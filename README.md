@@ -52,7 +52,7 @@ repo:
 ```yaml
 jobs:
   test:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@master
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.0.0
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
@@ -71,7 +71,7 @@ on:
 
 jobs:
   contract:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@master
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.0.0
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
