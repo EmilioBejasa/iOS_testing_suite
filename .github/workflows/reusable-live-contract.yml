@@ -1,0 +1,55 @@
+name: Reusable Live API Contract Check
+
+on:
+  workflow_call:
+    inputs:
+      scheme:
+        description: The Xcode scheme to test
+        required: true
+        type: string
+      project:
+        description: Path to the .xcodeproj (relative to repo root)
+        required: true
+        type: string
+      only_testing:
+        description: Test identifier to run against the live network (e.g. "MyTests/LiveContractTests")
+        required: true
+        type: string
+      device:
+        description: Simulator device name to run against
+        required: false
+        type: string
+        default: "iPhone 16"
+      xcodegen:
+        description: Whether to run `xcodegen generate` before testing
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  contract:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        if: inputs.xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        if: inputs.xcodegen
+        run: xcodegen generate
+
+      - name: Run live contract tests
+        env:
+          PROJECT: ${{ inputs.project }}
+          SCHEME: ${{ inputs.scheme }}
+          DEVICE_NAME: ${{ inputs.device }}
+          ONLY_TESTING: ${{ inputs.only_testing }}
+        run: |
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            -only-testing:"$ONLY_TESTING" \
+            CODE_SIGNING_ALLOWED=NO

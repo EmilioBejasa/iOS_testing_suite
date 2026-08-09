@@ -1,4 +1,5 @@
 import XCTest
+import UITestHelpers
 
 final class WeatherListUITests: XCTestCase {
     func testMockSuccessShowsCityList() {

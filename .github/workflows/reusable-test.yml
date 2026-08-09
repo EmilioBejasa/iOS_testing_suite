@@ -1,0 +1,100 @@
+name: Reusable iOS Test Suite
+
+on:
+  workflow_call:
+    inputs:
+      scheme:
+        description: The Xcode scheme to test
+        required: true
+        type: string
+      project:
+        description: Path to the .xcodeproj (relative to repo root)
+        required: true
+        type: string
+      devices:
+        description: JSON array of simulator device names to run the matrix against
+        required: false
+        type: string
+        default: '["iPhone 16"]'
+      xcodegen:
+        description: Whether to run `xcodegen generate` before testing
+        required: false
+        type: boolean
+        default: true
+      enable_coverage:
+        description: Whether to collect and report code coverage
+        required: false
+        type: boolean
+        default: true
+      skip_testing:
+        description: Space-separated test identifiers to exclude (e.g. "MyTests/LiveContractTests")
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  test:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        destination_name: ${{ fromJSON(inputs.devices) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        if: inputs.xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        if: inputs.xcodegen
+        run: xcodegen generate
+
+      - name: Compute artifact-safe device slug
+        id: device
+        run: echo "slug=$(echo '${{ matrix.destination_name }}' | tr -c '[:alnum:]' '_')" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests
+        env:
+          PROJECT: ${{ inputs.project }}
+          SCHEME: ${{ inputs.scheme }}
+          DEVICE_NAME: ${{ matrix.destination_name }}
+          SKIP_TESTING: ${{ inputs.skip_testing }}
+          ENABLE_COVERAGE: ${{ inputs.enable_coverage }}
+        run: |
+          SKIP_ARGS=()
+          for id in $SKIP_TESTING; do
+            SKIP_ARGS+=("-skip-testing:$id")
+          done
+
+          COVERAGE_FLAG="NO"
+          if [ "$ENABLE_COVERAGE" = "true" ]; then
+            COVERAGE_FLAG="YES"
+          fi
+
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+            "${SKIP_ARGS[@]}" \
+            -enableCodeCoverage "$COVERAGE_FLAG" \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Report code coverage
+        if: always() && inputs.enable_coverage
+        run: |
+          xcrun xccov view --report --json TestResults.xcresult > coverage.json
+          python3 -c "
+          import json
+          data = json.load(open('coverage.json'))
+          pct = data['lineCoverage'] * 100
+          print(f'Overall line coverage: {pct:.1f}%')
+          " | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ steps.device.outputs.slug }}
+          path: TestResults.xcresult

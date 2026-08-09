@@ -1,6 +1,6 @@
 import XCTest
 
-extension XCUIApplication {
+public extension XCUIApplication {
     /// SwiftUI doesn't always back an identifier with the XCUIElement type you'd
     /// expect (e.g. `.accessibilityIdentifier` on a `List` can surface as a table,
     /// collection view, or plain element depending on OS version), so look for the
@@ -9,6 +9,7 @@ extension XCUIApplication {
         descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
+    @discardableResult
     func launched(withArguments arguments: [String]) -> XCUIApplication {
         launchArguments = arguments
         launch()
