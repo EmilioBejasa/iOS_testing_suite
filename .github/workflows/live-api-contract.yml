@@ -1,14 +1,12 @@
-name: Live Open-Meteo Contract Check
+name: Live DummyJSON Contract Check
 
 on:
-  schedule:
-    - cron: "0 13 * * *"
   workflow_dispatch:
 
 jobs:
   contract:
     uses: ./.github/workflows/reusable-live-contract.yml
     with:
-      scheme: Weather
-      project: Weather.xcodeproj
-      only_testing: "WeatherTests/OpenMeteoLiveContractTests"
+      scheme: QuoteBox
+      project: QuoteBox.xcodeproj
+      only_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
