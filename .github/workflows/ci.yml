@@ -53,7 +53,7 @@ jobs:
           for target in data['targets']:
               if target['name'] == 'Weather.app':
                   print(f\"Weather.app line coverage: {target['lineCoverage'] * 100:.1f}%\")
-          " >> "$GITHUB_STEP_SUMMARY"
+          " | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test results
         if: always()
