@@ -2,11 +2,21 @@ name: iOS Build
 
 on:
   push:
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        destination_name:
+          - "iPhone 16"
+          - "iPhone SE (3rd generation)"
+          - "iPad (10th generation)"
     steps:
       - uses: actions/checkout@v4
 
@@ -16,18 +26,38 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Compute artifact-safe device slug
+        id: device
+        run: echo "slug=$(echo '${{ matrix.destination_name }}' | tr -c '[:alnum:]' '_')" >> "$GITHUB_OUTPUT"
+
       - name: Run tests
         run: |
           xcodebuild test \
             -project Weather.xcodeproj \
             -scheme Weather \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=${{ matrix.destination_name }}' \
+            -skip-testing:WeatherTests/OpenMeteoLiveContractTests \
+            -enableCodeCoverage YES \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Report code coverage
+        if: always()
+        run: |
+          xcrun xccov view --report --json TestResults.xcresult > coverage.json
+          python3 -c "
+          import json
+          data = json.load(open('coverage.json'))
+          pct = data['lineCoverage'] * 100
+          print(f'Overall line coverage: {pct:.1f}%')
+          for target in data['targets']:
+              if target['name'] == 'Weather.app':
+                  print(f\"Weather.app line coverage: {target['lineCoverage'] * 100:.1f}%\")
+          " >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ steps.device.outputs.slug }}
           path: TestResults.xcresult

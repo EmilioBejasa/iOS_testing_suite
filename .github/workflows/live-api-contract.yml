@@ -1,0 +1,27 @@
+name: Live Open-Meteo Contract Check
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run live contract tests
+        run: |
+          xcodebuild test \
+            -project Weather.xcodeproj \
+            -scheme Weather \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -only-testing:WeatherTests/OpenMeteoLiveContractTests \
+            CODE_SIGNING_ALLOWED=NO
