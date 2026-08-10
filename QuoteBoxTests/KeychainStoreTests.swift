@@ -28,20 +28,28 @@ final class KeychainStoreTests: XCTestCase {
         try assertRoundTrips(InMemoryKeychainStore())
     }
 
+    /// Uses plain `try` statements rather than `XCTAssertNil(try ...)` so a thrown
+    /// error propagates out of this function instead of being swallowed into a
+    /// recorded test failure — callers need the real error to decide whether to
+    /// skip (see the missing-entitlement handling above).
     private func assertRoundTrips(_ store: KeychainStoring) throws {
         let key = "test.key.\(UUID().uuidString)"
         let data = "secret value".data(using: .utf8)!
 
-        XCTAssertNil(try store.load(for: key))
+        let initial = try store.load(for: key)
+        XCTAssertNil(initial)
 
         try store.save(data, for: key)
-        XCTAssertEqual(try store.load(for: key), data)
+        let saved = try store.load(for: key)
+        XCTAssertEqual(saved, data)
 
         let updated = "updated value".data(using: .utf8)!
         try store.save(updated, for: key)
-        XCTAssertEqual(try store.load(for: key), updated)
+        let reloaded = try store.load(for: key)
+        XCTAssertEqual(reloaded, updated)
 
         try store.delete(for: key)
-        XCTAssertNil(try store.load(for: key))
+        let afterDelete = try store.load(for: key)
+        XCTAssertNil(afterDelete)
     }
 }
