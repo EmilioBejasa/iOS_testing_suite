@@ -3,14 +3,14 @@
 A reusable iOS testing setup — a Swift package of test helpers, plus GitHub Actions
 workflows any iOS repo can call by reference instead of copy-pasting CI config.
 
-> **This branch (`verify-portability-quotebox`) exists to verify the kit is genuinely
-> app-agnostic.** It swaps out `master`'s Weather demo app for QuoteBox: a
-> different domain (DummyJSON quotes, not Open-Meteo weather), a different
-> architecture (`@Observable` + `TabView`, not `ObservableObject` MVVM +
-> `NavigationStack` list/detail), and a different testing surface (adds local
-> UserDefaults-backed persistence, not just network). Same `NetworkStub` /
-> `UITestHelpers` package, same `reusable-test.yml` / `reusable-live-contract.yml`,
-> unmodified. It's not meant to be merged into `master` — `master` keeps Weather.
+QuoteBox (`QuoteBox/`, `QuoteBoxTests/`, `QuoteBoxUITests/`) is the kit's proving
+ground: a small demo app whose only job is to be a real, working consumer of every
+module below, exercised through the same CI device matrix any app using this kit
+would run. It replaced an earlier Weather demo app specifically to verify the kit
+wasn't accidentally coupled to Weather's specifics — different API shape
+(DummyJSON quotes, not Open-Meteo weather), different architecture (`@Observable` +
+`TabView`, not `ObservableObject` MVVM + `NavigationStack`), different testing
+surface (local persistence, not just network).
 
 ## What's reusable
 
@@ -51,6 +51,24 @@ let app = XCUIApplication().launched(withArguments: ["--mock-success"])
 XCTAssertTrue(app.element("myList.list").waitForExistence(timeout: 5))
 ```
 
+It also has `tab(_:)` — the same identifier-based `element(_:)` lookup can't find
+tab bar buttons on every OS (iPadOS 18's floating tab bar backs items with a private
+element type XCTest won't classify as `.tabBar`), so this searches by label across
+every element type instead:
+
+```swift
+app.tab("Favorites").tap()
+```
+
+And `auditAccessibility()`, a thin wrapper around XCTest's built-in accessibility
+audit (iOS 17+):
+
+```swift
+try app.auditAccessibility()
+// or allow-list a specific known issue while still failing on anything else:
+try app.auditAccessibility(allowing: { $0.auditType == .contrast && $0.element?.identifier == "known.lowContrastLogo" })
+```
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of
@@ -89,11 +107,11 @@ jobs:
 Both workflows assume XcodeGen by default (`xcodegen: true`); pass `xcodegen: false`
 if your project already checks in an `.xcodeproj`.
 
-## The QuoteBox app (this branch)
+## The QuoteBox app
 
 Everything under `QuoteBox/`, `QuoteBoxTests/`, and `QuoteBoxUITests/` is a working
 consumer of the above: `project.yml` pulls in this same repo as a local Swift
 package (`packages: iOSTestKit: path: .`), and `.github/workflows/ci.yml` /
 `live-api-contract.yml` call the reusable workflows with QuoteBox-specific inputs.
-Compare these two files with `master`'s versions — same reusable workflow files,
-different `with:` inputs — to see exactly what changes per app and what doesn't.
+Any other app would do the same thing from its own repo, pointing `.package(url:)`
+at a tagged release of this one instead of a local path.
