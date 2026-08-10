@@ -10,7 +10,7 @@ final class QuoteBoxUITests: XCTestCase {
 
         app.element("quote.favoriteButton").tap()
 
-        app.element("tab.favorites").tap()
+        app.tabBars.buttons["Favorites"].tap()
         XCTAssertTrue(app.element("favorites.list").waitForExistence(timeout: 5))
     }
 
@@ -25,7 +25,7 @@ final class QuoteBoxUITests: XCTestCase {
 
         XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
 
-        app.element("tab.favorites").tap()
+        app.tabBars.buttons["Favorites"].tap()
         XCTAssertTrue(app.element("favorites.empty").waitForExistence(timeout: 5))
     }
 }
