@@ -1,5 +1,6 @@
 import XCTest
 import TimeControl
+import LocalNotifications
 @testable import QuoteBox
 
 @MainActor
@@ -82,5 +83,50 @@ final class QuoteStoreTests: XCTestCase {
         await store.fetchNewQuote()
         XCTAssertEqual(store.state, .loaded(quote))
         XCTAssertFalse(store.canFetchNewQuote)
+    }
+
+    func testToggleDailyReminderOnWhenAuthorized() async {
+        let scheduler = MockReminderScheduler(authorizationResult: .authorized)
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(Quote(id: 1, quote: "Q", author: "A"))),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: scheduler
+        )
+
+        await store.toggleDailyReminder()
+
+        XCTAssertEqual(store.reminderState, .on)
+        XCTAssertEqual(scheduler.scheduledReminder?.hour, QuoteStore.reminderHour)
+        XCTAssertEqual(scheduler.scheduledReminder?.minute, QuoteStore.reminderMinute)
+    }
+
+    func testToggleDailyReminderShowsDeniedPermissionWhenNotAuthorized() async {
+        let scheduler = MockReminderScheduler(authorizationResult: .denied)
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(Quote(id: 1, quote: "Q", author: "A"))),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: scheduler
+        )
+
+        await store.toggleDailyReminder()
+
+        XCTAssertEqual(store.reminderState, .deniedPermission)
+        XCTAssertNil(scheduler.scheduledReminder)
+    }
+
+    func testToggleDailyReminderOffCancelsExistingReminder() async {
+        let scheduler = MockReminderScheduler(authorizationResult: .authorized)
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(Quote(id: 1, quote: "Q", author: "A"))),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: scheduler
+        )
+        await store.toggleDailyReminder()
+        XCTAssertEqual(store.reminderState, .on)
+
+        await store.toggleDailyReminder()
+
+        XCTAssertEqual(store.reminderState, .off)
+        XCTAssertTrue(scheduler.didCancel)
     }
 }

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import TimeControl
+import LocalNotifications
 
 @Observable
 @MainActor
@@ -12,24 +13,36 @@ final class QuoteStore {
         case error(String)
     }
 
+    enum ReminderState: Equatable {
+        case off
+        case on
+        case deniedPermission
+    }
+
     static let fetchCooldown: TimeInterval = 1
+    static let reminderHour = 9
+    static let reminderMinute = 0
 
     private(set) var state: State = .idle
     private(set) var favorites: [Quote]
+    private(set) var reminderState: ReminderState = .off
 
     private let apiClient: QuoteAPIClientProtocol
     private let favoritesStore: FavoritesStoring
     private let dateProvider: DateProviding
+    private let reminderScheduler: ReminderScheduling
     private var lastFetchedAt: Date?
 
     init(
         apiClient: QuoteAPIClientProtocol,
         favoritesStore: FavoritesStoring,
-        dateProvider: DateProviding = SystemDateProvider()
+        dateProvider: DateProviding = SystemDateProvider(),
+        reminderScheduler: ReminderScheduling = SystemReminderScheduler()
     ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
         self.dateProvider = dateProvider
+        self.reminderScheduler = reminderScheduler
         self.favorites = favoritesStore.loadFavorites()
     }
 
@@ -65,5 +78,25 @@ final class QuoteStore {
             favorites.append(quote)
         }
         favoritesStore.save(favorites)
+    }
+
+    func toggleDailyReminder() async {
+        if reminderState == .on {
+            reminderScheduler.cancelDailyReminder()
+            reminderState = .off
+            return
+        }
+
+        guard await reminderScheduler.requestAuthorization() == .authorized else {
+            reminderState = .deniedPermission
+            return
+        }
+
+        do {
+            try await reminderScheduler.scheduleDailyReminder(hour: Self.reminderHour, minute: Self.reminderMinute)
+            reminderState = .on
+        } catch {
+            reminderState = .off
+        }
     }
 }

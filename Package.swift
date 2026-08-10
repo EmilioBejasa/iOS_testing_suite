@@ -9,13 +9,15 @@ let package = Package(
         .library(name: "UITestHelpers", targets: ["UITestHelpers"]),
         .library(name: "TimeControl", targets: ["TimeControl"]),
         .library(name: "KeychainStore", targets: ["KeychainStore"]),
-        .library(name: "CoreDataTestSupport", targets: ["CoreDataTestSupport"])
+        .library(name: "CoreDataTestSupport", targets: ["CoreDataTestSupport"]),
+        .library(name: "LocalNotifications", targets: ["LocalNotifications"])
     ],
     targets: [
         .target(name: "NetworkStub"),
         .target(name: "UITestHelpers"),
         .target(name: "TimeControl"),
         .target(name: "KeychainStore"),
-        .target(name: "CoreDataTestSupport")
+        .target(name: "CoreDataTestSupport"),
+        .target(name: "LocalNotifications")
     ]
 )

@@ -33,6 +33,40 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    func testEnablingDailyReminderTurnsToggleOn() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success"])
+
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+        XCTAssertEqual(app.element("quote.reminderToggle").value as? String, "0")
+
+        app.element("quote.reminderToggle").tap()
+
+        XCTAssertTrue(waitUntil(timeout: 5) { app.element("quote.reminderToggle").value as? String == "1" })
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
+    func testDeniedNotificationPermissionShowsMessage() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--mock-notifications-denied"])
+
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+        app.element("quote.reminderToggle").tap()
+
+        XCTAssertTrue(app.element("quote.reminderDeniedMessage").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
+    /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
+    /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
+    /// since a snapshot taken before a UI change doesn't reliably live-update.
+    private func waitUntil(timeout: TimeInterval, condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            usleep(100_000)
+        }
+        return condition()
+    }
+
     /// Two audit types are allow-listed for reasons unrelated to QuoteBox's own
     /// text/color choices, confirmed by diagnostic runs before landing this:
     ///  - `.contrast`: headless CI simulators report a generic "Contrast nearly

@@ -28,6 +28,8 @@ targets:
     dependencies:
       - package: iOSTestKit
         product: TimeControl
+      - package: iOSTestKit
+        product: LocalNotifications
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.app
@@ -55,6 +57,8 @@ targets:
         product: KeychainStore
       - package: iOSTestKit
         product: CoreDataTestSupport
+      - package: iOSTestKit
+        product: LocalNotifications
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
