@@ -2,16 +2,14 @@ name: iOS Build
 
 on:
   push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+    branches: [verify-portability-quotebox]
   workflow_dispatch:
 
 jobs:
   test:
     uses: ./.github/workflows/reusable-test.yml
     with:
-      scheme: Weather
-      project: Weather.xcodeproj
+      scheme: QuoteBox
+      project: QuoteBox.xcodeproj
       devices: '["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]'
-      skip_testing: "WeatherTests/OpenMeteoLiveContractTests"
+      skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"

@@ -1,8 +1,16 @@
 # iOS Test Kit
 
-A Weather demo app (SwiftUI + Open-Meteo) used to build out and prove a reusable iOS
-testing setup: a Swift package of test helpers, plus GitHub Actions workflows any
-iOS repo can call by reference instead of copy-pasting CI config.
+A reusable iOS testing setup — a Swift package of test helpers, plus GitHub Actions
+workflows any iOS repo can call by reference instead of copy-pasting CI config.
+
+> **This branch (`verify-portability-quotebox`) exists to verify the kit is genuinely
+> app-agnostic.** It swaps out `master`'s Weather demo app for QuoteBox: a
+> different domain (DummyJSON quotes, not Open-Meteo weather), a different
+> architecture (`@Observable` + `TabView`, not `ObservableObject` MVVM +
+> `NavigationStack` list/detail), and a different testing surface (adds local
+> UserDefaults-backed persistence, not just network). Same `NetworkStub` /
+> `UITestHelpers` package, same `reusable-test.yml` / `reusable-live-contract.yml`,
+> unmodified. It's not meant to be merged into `master` — `master` keeps Weather.
 
 ## What's reusable
 
@@ -81,10 +89,11 @@ jobs:
 Both workflows assume XcodeGen by default (`xcodegen: true`); pass `xcodegen: false`
 if your project already checks in an `.xcodeproj`.
 
-## The Weather app
+## The QuoteBox app (this branch)
 
-Everything under `Weather/`, `WeatherTests/`, and `WeatherUITests/` is a working
+Everything under `QuoteBox/`, `QuoteBoxTests/`, and `QuoteBoxUITests/` is a working
 consumer of the above: `project.yml` pulls in this same repo as a local Swift
 package (`packages: iOSTestKit: path: .`), and `.github/workflows/ci.yml` /
-`live-api-contract.yml` call the reusable workflows with Weather-specific inputs.
-Read those two files as the reference example for adopting this in another project.
+`live-api-contract.yml` call the reusable workflows with QuoteBox-specific inputs.
+Compare these two files with `master`'s versions — same reusable workflow files,
+different `with:` inputs — to see exactly what changes per app and what doesn't.
