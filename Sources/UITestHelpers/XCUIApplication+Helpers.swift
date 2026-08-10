@@ -25,9 +25,9 @@ public extension XCUIApplication {
     @available(iOS 17.0, *)
     func auditAccessibility(
         _ types: XCUIAccessibilityAuditType = .all,
-        allowing isKnownIssue: (XCUIAccessibilityAuditIssue) -> Bool = { _ in false }
+        allowing isKnownIssue: @escaping (XCUIAccessibilityAuditIssue) -> Bool = { _ in false }
     ) throws {
-        try performAccessibilityAudit(for: types, issueHandler: isKnownIssue)
+        try performAccessibilityAudit(for: types, isKnownIssue)
     }
 
     @discardableResult
