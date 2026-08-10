@@ -18,6 +18,18 @@ public extension XCUIApplication {
         descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
+    /// Thin, discoverable wrapper around XCTest's built-in accessibility audit so it
+    /// doesn't have to be rediscovered per app. `allowing` lets a test allow-list a
+    /// specific known issue (return `true` to treat it as handled) while still
+    /// failing on everything else.
+    @available(iOS 17.0, *)
+    func auditAccessibility(
+        _ types: XCUIAccessibilityAuditType = .all,
+        allowing isKnownIssue: (XCUIAccessibilityAuditIssue) -> Bool = { _ in false }
+    ) throws {
+        try performAccessibilityAudit(types, issueHandler: isKnownIssue)
+    }
+
     @discardableResult
     func launched(withArguments arguments: [String]) -> XCUIApplication {
         launchArguments = arguments
