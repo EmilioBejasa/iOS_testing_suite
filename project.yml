@@ -37,6 +37,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: QuoteBox/QuoteBox.entitlements
 
   QuoteBoxTests:
     type: bundle.unit-test
