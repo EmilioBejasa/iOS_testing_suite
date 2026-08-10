@@ -1,4 +1,5 @@
 import XCTest
+import TimeControl
 @testable import QuoteBox
 
 @MainActor
@@ -43,5 +44,43 @@ final class QuoteStoreTests: XCTestCase {
         let store = QuoteStore(apiClient: MockQuoteAPIClient(mode: .success(quote)), favoritesStore: favoritesStore)
 
         XCTAssertEqual(store.favorites, [quote])
+    }
+
+    func testCanFetchNewQuoteRespectsCooldown() async {
+        let dateProvider = TestDateProvider(currentDate: Date(timeIntervalSince1970: 0))
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            dateProvider: dateProvider
+        )
+
+        XCTAssertTrue(store.canFetchNewQuote)
+
+        await store.fetchNewQuote()
+        XCTAssertFalse(store.canFetchNewQuote)
+
+        dateProvider.currentDate.addTimeInterval(QuoteStore.fetchCooldown - 0.1)
+        XCTAssertFalse(store.canFetchNewQuote)
+
+        dateProvider.currentDate.addTimeInterval(0.1)
+        XCTAssertTrue(store.canFetchNewQuote)
+    }
+
+    func testFetchNewQuoteNoOpsWithinCooldown() async {
+        let dateProvider = TestDateProvider(currentDate: Date(timeIntervalSince1970: 0))
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            dateProvider: dateProvider
+        )
+
+        await store.fetchNewQuote()
+        XCTAssertEqual(store.state, .loaded(quote))
+
+        await store.fetchNewQuote()
+        XCTAssertEqual(store.state, .loaded(quote))
+        XCTAssertFalse(store.canFetchNewQuote)
     }
 }

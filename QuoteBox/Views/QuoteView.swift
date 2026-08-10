@@ -10,6 +10,7 @@ struct QuoteView: View {
                 Button("New Quote") {
                     Task { await store.fetchNewQuote() }
                 }
+                .disabled(!store.canFetchNewQuote)
                 .accessibilityIdentifier("quote.newButton")
 
                 if case .loaded = store.state {
