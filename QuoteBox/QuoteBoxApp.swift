@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 @main
@@ -17,7 +18,11 @@ struct QuoteBoxApp: App {
             favoritesStore = InMemoryFavoritesStore()
         } else {
             apiClient = QuoteAPIClient()
-            favoritesStore = UserDefaultsFavoritesStore()
+            let container = NSPersistentContainer(name: "QuoteBox")
+            container.loadPersistentStores { _, error in
+                precondition(error == nil, "Failed to load Core Data store: \(error!)")
+            }
+            favoritesStore = CoreDataFavoritesStore(container: container)
         }
 
         store = QuoteStore(apiClient: apiClient, favoritesStore: favoritesStore)
