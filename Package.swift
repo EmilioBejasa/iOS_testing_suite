@@ -7,11 +7,13 @@ let package = Package(
     products: [
         .library(name: "NetworkStub", targets: ["NetworkStub"]),
         .library(name: "UITestHelpers", targets: ["UITestHelpers"]),
-        .library(name: "TimeControl", targets: ["TimeControl"])
+        .library(name: "TimeControl", targets: ["TimeControl"]),
+        .library(name: "KeychainStore", targets: ["KeychainStore"])
     ],
     targets: [
         .target(name: "NetworkStub"),
         .target(name: "UITestHelpers"),
-        .target(name: "TimeControl")
+        .target(name: "TimeControl"),
+        .target(name: "KeychainStore")
     ]
 )

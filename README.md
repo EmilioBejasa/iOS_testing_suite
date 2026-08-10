@@ -85,6 +85,26 @@ let store = MyStore(dateProvider: dateProvider)
 dateProvider.currentDate.addTimeInterval(60) // simulate a minute passing, no real sleep
 ```
 
+### `KeychainStore` (Swift Package product)
+
+A `KeychainStoring` protocol so app code isn't tied to `Security` framework calls
+directly — same protocol+real+fake shape as `TimeControl`/`FavoritesStoring`.
+`SystemKeychainStore` persists to the real Keychain (`kSecClassGenericPassword`,
+scoped by a `service` string); `InMemoryKeychainStore` is a dictionary-backed fake
+for fast, deterministic tests.
+
+```swift
+import KeychainStore
+
+let store: KeychainStoring = SystemKeychainStore(service: "com.myapp.auth")
+try store.save(tokenData, for: "authToken")
+let token = try store.load(for: "authToken")
+```
+
+Validated directly against the Simulator's real Keychain in this repo's own tests
+(`QuoteBoxTests/KeychainStoreTests.swift`) rather than through a QuoteBox feature —
+a public quotes app has no natural secret to store, so there's no UI wiring here.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

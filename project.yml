@@ -50,6 +50,8 @@ targets:
         product: NetworkStub
       - package: iOSTestKit
         product: TimeControl
+      - package: iOSTestKit
+        product: KeychainStore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
