@@ -104,6 +104,12 @@ let token = try store.load(for: "authToken")
 Validated directly against the Simulator's real Keychain in this repo's own tests
 (`QuoteBoxTests/KeychainStoreTests.swift`) rather than through a QuoteBox feature —
 a public quotes app has no natural secret to store, so there's no UI wiring here.
+That real-Keychain test skips itself in this repo's own CI specifically, since
+`reusable-test.yml` runs with `CODE_SIGNING_ALLOWED=NO` so any consumer can run CI
+without a signing identity — but that also means the `keychain-access-groups`
+entitlement Keychain access requires never gets embedded. It still runs and
+validates real Keychain access normally on a signed build (a real device, or CI
+with signing configured).
 
 ### Reusable GitHub Actions workflows
 
