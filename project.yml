@@ -25,6 +25,9 @@ targets:
     platform: iOS
     sources:
       - path: QuoteBox
+    dependencies:
+      - package: iOSTestKit
+        product: TimeControl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.app
@@ -45,6 +48,8 @@ targets:
         embed: false
       - package: iOSTestKit
         product: NetworkStub
+      - package: iOSTestKit
+        product: TimeControl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

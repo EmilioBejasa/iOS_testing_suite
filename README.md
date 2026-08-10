@@ -69,6 +69,22 @@ try app.auditAccessibility()
 try app.auditAccessibility(allowing: { $0.auditType == .contrast && $0.element?.identifier == "known.lowContrastLogo" })
 ```
 
+### `TimeControl` (Swift Package product)
+
+A `DateProviding` protocol so app code asks "what time is it?" through an
+injectable dependency instead of calling `Date()` directly — the same
+protocol+real+fake shape as a typical app-level `FavoritesStoring`-style
+abstraction, just reusable across apps.
+
+```swift
+import TimeControl
+
+let dateProvider = TestDateProvider(currentDate: Date(timeIntervalSince1970: 0))
+let store = MyStore(dateProvider: dateProvider)
+// ... exercise time-dependent logic ...
+dateProvider.currentDate.addTimeInterval(60) // simulate a minute passing, no real sleep
+```
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

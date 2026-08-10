@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import TimeControl
 
 @Observable
 @MainActor
@@ -11,15 +12,24 @@ final class QuoteStore {
         case error(String)
     }
 
+    static let fetchCooldown: TimeInterval = 1
+
     private(set) var state: State = .idle
     private(set) var favorites: [Quote]
 
     private let apiClient: QuoteAPIClientProtocol
     private let favoritesStore: FavoritesStoring
+    private let dateProvider: DateProviding
+    private var lastFetchedAt: Date?
 
-    init(apiClient: QuoteAPIClientProtocol, favoritesStore: FavoritesStoring) {
+    init(
+        apiClient: QuoteAPIClientProtocol,
+        favoritesStore: FavoritesStoring,
+        dateProvider: DateProviding = SystemDateProvider()
+    ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
+        self.dateProvider = dateProvider
         self.favorites = favoritesStore.loadFavorites()
     }
 
@@ -28,7 +38,16 @@ final class QuoteStore {
         return favorites.contains(quote)
     }
 
+    /// Prevents double-tap spam on "New Quote": false for `fetchCooldown` seconds
+    /// after a fetch starts.
+    var canFetchNewQuote: Bool {
+        guard let lastFetchedAt else { return true }
+        return dateProvider.now().timeIntervalSince(lastFetchedAt) >= Self.fetchCooldown
+    }
+
     func fetchNewQuote() async {
+        guard canFetchNewQuote else { return }
+        lastFetchedAt = dateProvider.now()
         state = .loading
         do {
             let quote = try await apiClient.fetchRandomQuote()
