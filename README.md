@@ -85,6 +85,32 @@ let store = MyStore(dateProvider: dateProvider)
 dateProvider.currentDate.addTimeInterval(60) // simulate a minute passing, no real sleep
 ```
 
+### `KeychainStore` (Swift Package product)
+
+A `KeychainStoring` protocol so app code isn't tied to `Security` framework calls
+directly — same protocol+real+fake shape as `TimeControl`/`FavoritesStoring`.
+`SystemKeychainStore` persists to the real Keychain (`kSecClassGenericPassword`,
+scoped by a `service` string); `InMemoryKeychainStore` is a dictionary-backed fake
+for fast, deterministic tests.
+
+```swift
+import KeychainStore
+
+let store: KeychainStoring = SystemKeychainStore(service: "com.myapp.auth")
+try store.save(tokenData, for: "authToken")
+let token = try store.load(for: "authToken")
+```
+
+Validated directly against the Simulator's real Keychain in this repo's own tests
+(`QuoteBoxTests/KeychainStoreTests.swift`) rather than through a QuoteBox feature —
+a public quotes app has no natural secret to store, so there's no UI wiring here.
+That real-Keychain test skips itself in this repo's own CI specifically, since
+`reusable-test.yml` runs with `CODE_SIGNING_ALLOWED=NO` so any consumer can run CI
+without a signing identity — but that also means the `keychain-access-groups`
+entitlement Keychain access requires never gets embedded. It still runs and
+validates real Keychain access normally on a signed build (a real device, or CI
+with signing configured).
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of
