@@ -37,13 +37,11 @@ final class QuoteBoxUITests: XCTestCase {
         let app = XCUIApplication().launched(withArguments: ["--mock-success"])
 
         XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
-        let toggle = app.element("quote.reminderToggle")
-        XCTAssertEqual(toggle.value as? String, "0")
+        XCTAssertEqual(app.element("quote.reminderToggle").value as? String, "0")
 
-        toggle.tap()
+        app.element("quote.reminderToggle").tap()
 
-        let turnedOn = NSPredicate(format: "value == '1'")
-        wait(for: [expectation(for: turnedOn, evaluatedWith: toggle)], timeout: 5)
+        XCTAssertTrue(waitUntil(timeout: 5) { app.element("quote.reminderToggle").value as? String == "1" })
         try auditIgnoringKnownFalsePositives(app)
     }
 
@@ -55,6 +53,18 @@ final class QuoteBoxUITests: XCTestCase {
 
         XCTAssertTrue(app.element("quote.reminderDeniedMessage").waitForExistence(timeout: 5))
         try auditIgnoringKnownFalsePositives(app)
+    }
+
+    /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
+    /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
+    /// since a snapshot taken before a UI change doesn't reliably live-update.
+    private func waitUntil(timeout: TimeInterval, condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            usleep(100_000)
+        }
+        return condition()
     }
 
     /// Two audit types are allow-listed for reasons unrelated to QuoteBox's own
