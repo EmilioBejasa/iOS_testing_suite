@@ -130,6 +130,33 @@ production persistence (`QuoteBoxApp` builds a real on-disk container), and
 `QuoteBoxTests/CoreDataFavoritesStoreTests.swift` proves it with the in-memory
 container above — the same relationship `NetworkStub` has to the real `QuoteAPIClient`.
 
+### `LocalNotifications` (Swift Package product)
+
+A `ReminderScheduling` protocol demonstrating the pattern for testing any
+permission-gated system service: request authorization and act through an
+injectable dependency, so a UI test can swap in a fake and never trigger the real
+system permission dialog (which XCTest can't dismiss headlessly — it would hang
+CI). `SystemReminderScheduler` wraps `UNUserNotificationCenter`;
+`MockReminderScheduler` is a settable fake that records what it was asked to do.
+The same shape generalizes to other system permissions (location, camera, photos)
+even though only notifications ships concretely here.
+
+```swift
+import LocalNotifications
+
+let scheduler: ReminderScheduling = MockReminderScheduler(authorizationResult: .authorized)
+let status = await scheduler.requestAuthorization()
+if status == .authorized {
+    try await scheduler.scheduleDailyReminder(hour: 9, minute: 0)
+}
+```
+
+`QuoteBox` wires this in exactly like `QuoteAPIClientProtocol`: real
+`SystemReminderScheduler` in production, `MockReminderScheduler` under
+`--mock-success`/`--mock-error`, with a `--mock-notifications-denied` launch
+argument (mirroring `--mock-error`) to exercise the denied-permission UI path
+deterministically.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

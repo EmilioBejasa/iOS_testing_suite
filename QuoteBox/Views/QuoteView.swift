@@ -20,6 +20,20 @@ struct QuoteView: View {
                     .accessibilityIdentifier("quote.favoriteButton")
                 }
             }
+
+            Toggle("Daily Reminder", isOn: Binding(
+                get: { store.reminderState == .on },
+                set: { _ in Task { await store.toggleDailyReminder() } }
+            ))
+            .accessibilityIdentifier("quote.reminderToggle")
+
+            if store.reminderState == .deniedPermission {
+                Text("Notifications are disabled. Enable them in Settings to get a daily reminder.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("quote.reminderDeniedMessage")
+            }
         }
         .padding()
         .task {
