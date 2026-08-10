@@ -111,6 +111,25 @@ entitlement Keychain access requires never gets embedded. It still runs and
 validates real Keychain access normally on a signed build (a real device, or CI
 with signing configured).
 
+### `CoreDataTestSupport` (Swift Package product)
+
+`InMemoryPersistentContainer.make(modelName:bundle:)` builds an `NSPersistentContainer`
+backed by an in-memory store instead of on-disk SQLite, loaded synchronously — works
+for any app's `.xcdatamodeld`, not just QuoteBox's.
+
+```swift
+import CoreDataTestSupport
+
+let container = InMemoryPersistentContainer.make(modelName: "MyApp", bundle: Bundle(for: MyManagedObjectSubclass.self))
+let store = MyCoreDataBackedStore(container: container)
+// exercise store's save/load logic with no disk I/O and no state leaking between tests
+```
+
+`QuoteBox` uses this for real: `CoreDataFavoritesStore` is favorites' actual
+production persistence (`QuoteBoxApp` builds a real on-disk container), and
+`QuoteBoxTests/CoreDataFavoritesStoreTests.swift` proves it with the in-memory
+container above — the same relationship `NetworkStub` has to the real `QuoteAPIClient`.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

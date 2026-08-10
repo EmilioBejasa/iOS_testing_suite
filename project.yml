@@ -53,6 +53,8 @@ targets:
         product: TimeControl
       - package: iOSTestKit
         product: KeychainStore
+      - package: iOSTestKit
+        product: CoreDataTestSupport
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

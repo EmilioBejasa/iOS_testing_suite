@@ -8,12 +8,14 @@ let package = Package(
         .library(name: "NetworkStub", targets: ["NetworkStub"]),
         .library(name: "UITestHelpers", targets: ["UITestHelpers"]),
         .library(name: "TimeControl", targets: ["TimeControl"]),
-        .library(name: "KeychainStore", targets: ["KeychainStore"])
+        .library(name: "KeychainStore", targets: ["KeychainStore"]),
+        .library(name: "CoreDataTestSupport", targets: ["CoreDataTestSupport"])
     ],
     targets: [
         .target(name: "NetworkStub"),
         .target(name: "UITestHelpers"),
         .target(name: "TimeControl"),
-        .target(name: "KeychainStore")
+        .target(name: "KeychainStore"),
+        .target(name: "CoreDataTestSupport")
     ]
 )
