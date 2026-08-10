@@ -27,7 +27,7 @@ public extension XCUIApplication {
         _ types: XCUIAccessibilityAuditType = .all,
         allowing isKnownIssue: (XCUIAccessibilityAuditIssue) -> Bool = { _ in false }
     ) throws {
-        try performAccessibilityAudit(types, issueHandler: isKnownIssue)
+        try performAccessibilityAudit(for: types, issueHandler: isKnownIssue)
     }
 
     @discardableResult
