@@ -11,5 +11,5 @@ jobs:
     with:
       scheme: QuoteBox
       project: QuoteBox.xcodeproj
-      devices: '["iPhone 16", "iPad (10th generation)"]'
+      devices: '["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]'
       skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
