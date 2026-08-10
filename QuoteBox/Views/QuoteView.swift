@@ -10,14 +10,12 @@ struct QuoteView: View {
                 Button("New Quote") {
                     Task { await store.fetchNewQuote() }
                 }
-                .buttonStyle(.borderedProminent)
                 .accessibilityIdentifier("quote.newButton")
 
                 if case .loaded = store.state {
                     Button(store.isCurrentQuoteFavorited ? "Unfavorite" : "Favorite") {
                         store.toggleFavoriteForCurrentQuote()
                     }
-                    .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("quote.favoriteButton")
                 }
             }
