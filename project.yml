@@ -97,6 +97,8 @@ targets:
         product: AppleSignIn
       - package: iOSTestKit
         product: BackgroundTaskScheduling
+      - package: iOSTestKit
+        product: ContactsAuthorization
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

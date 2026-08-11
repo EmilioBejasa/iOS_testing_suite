@@ -21,7 +21,8 @@ let package = Package(
         .library(name: "BiometricAuthentication", targets: ["BiometricAuthentication"]),
         .library(name: "PushRegistering", targets: ["PushRegistering"]),
         .library(name: "AppleSignIn", targets: ["AppleSignIn"]),
-        .library(name: "BackgroundTaskScheduling", targets: ["BackgroundTaskScheduling"])
+        .library(name: "BackgroundTaskScheduling", targets: ["BackgroundTaskScheduling"]),
+        .library(name: "ContactsAuthorization", targets: ["ContactsAuthorization"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -40,6 +41,7 @@ let package = Package(
         .target(name: "BiometricAuthentication"),
         .target(name: "PushRegistering"),
         .target(name: "AppleSignIn"),
-        .target(name: "BackgroundTaskScheduling")
+        .target(name: "BackgroundTaskScheduling"),
+        .target(name: "ContactsAuthorization")
     ]
 )

@@ -53,7 +53,8 @@ struct QuoteBoxApp: App {
         // times a real device has been launched.
         launchCount = userDefaultsStore.integer(for: "launchCount") + 1
         userDefaultsStore.setInteger(launchCount, for: "launchCount")
-        _route = State(initialValue: DeepLinkSource.url(from: arguments).flatMap(QuoteBoxRoute.init(url:)))
+        let launchURL = DeepLinkSource.url(from: arguments) ?? UniversalLinkSource.url(from: arguments)
+        _route = State(initialValue: launchURL.flatMap(QuoteBoxRoute.init(url:)))
     }
 
     var body: some Scene {
@@ -61,6 +62,9 @@ struct QuoteBoxApp: App {
             RootView(store: store, tipJarStore: tipJarStore, launchCount: launchCount, route: $route)
                 .onOpenURL { url in
                     route = QuoteBoxRoute(url: url)
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    route = activity.webpageURL.flatMap(QuoteBoxRoute.init(url:))
                 }
         }
     }
