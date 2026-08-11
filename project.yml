@@ -36,6 +36,8 @@ targets:
         product: PurchaseSupport
       - package: iOSTestKit
         product: DebugOverlay
+      - package: iOSTestKit
+        product: UserDefaultsStore
     info:
       path: QuoteBox/Info.plist
       properties:
@@ -83,6 +85,12 @@ targets:
         product: LocationAuthorization
       - package: iOSTestKit
         product: PurchaseSupport
+      - package: iOSTestKit
+        product: UserDefaultsStore
+      - package: iOSTestKit
+        product: PhotoLibraryAuthorization
+      - package: iOSTestKit
+        product: BiometricAuthentication
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

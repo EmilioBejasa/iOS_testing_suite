@@ -69,6 +69,22 @@ try app.auditAccessibility()
 try app.auditAccessibility(allowing: { $0.auditType == .contrast && $0.element?.identifier == "known.lowContrastLogo" })
 ```
 
+And `measureLaunch(withArguments:)`, an `XCTestCase` extension wrapping XCTest's
+built-in `XCTApplicationLaunchMetric` around a fresh app launch:
+
+```swift
+func testAppLaunchPerformance() {
+    measureLaunch(withArguments: ["--mock-success"])
+}
+```
+
+Deliberately asserts no fixed pass/fail duration: `measure`'s baseline comparison
+is tied to a specific device/Xcode version, which doesn't travel across a CI
+matrix of ephemeral, variable-hardware runners — a hardcoded ceiling would flag
+hardware noise, not real regressions. The numbers still land in the `.xcresult`
+(already uploaded as a CI artifact by `reusable-test.yml`) for anyone tracking the
+trend over time. `QuoteBoxUITests.testAppLaunchPerformance` exercises it.
+
 ### `TimeControl` (Swift Package product)
 
 A `DateProviding` protocol so app code asks "what time is it?" through an
@@ -110,6 +126,31 @@ without a signing identity — but that also means the `keychain-access-groups`
 entitlement Keychain access requires never gets embedded. It still runs and
 validates real Keychain access normally on a signed build (a real device, or CI
 with signing configured).
+
+### `UserDefaultsStore` (Swift Package product)
+
+A `UserDefaultsStoring` protocol, same protocol+real+fake shape as
+`KeychainStore` — scoped to the two most common `UserDefaults` use cases
+(counters, flags) rather than a generic `Codable` wrapper. `SystemUserDefaultsStore`
+persists to real `UserDefaults` (optionally scoped to a `suiteName`);
+`InMemoryUserDefaultsStore` is a dictionary-backed fake.
+
+```swift
+import UserDefaultsStore
+
+let store: UserDefaultsStoring = SystemUserDefaultsStore()
+store.setInteger(store.integer(for: "launchCount") + 1, for: "launchCount")
+```
+
+`QuoteBox` wires this into a real "Launch Count" feature: `QuoteBoxApp` increments
+a counter on every `init()` — `SystemUserDefaultsStore` in production,
+`InMemoryUserDefaultsStore` under `--mock-*` so the count is deterministically `1`
+per launch instead of drifting with however many times the Simulator has actually
+launched the app — and surfaces it in the `DebugOverlay` Debug tab's new "App"
+section. Validated by `QuoteBoxTests/UserDefaultsStoreTests.swift` (round-trips
+both implementations, mirroring `KeychainStoreTests.swift`'s pattern — no
+entitlement/signing concern here, so no skip path is needed) and
+`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`.
 
 ### `CoreDataTestSupport` (Swift Package product)
 
@@ -230,6 +271,56 @@ dismiss headlessly — unlike `LocalNotifications`, where `--mock-*` launch
 arguments keep the real permission API out of UI tests entirely, testing that
 same interactive path here would risk hanging the run, not just failing it.
 
+### `PhotoLibraryAuthorization` (Swift Package product)
+
+A third permission-gated system service, following the same protocol+real+fake
+shape. Uses `PHAuthorizationStatus` directly (Photos' own richer type —
+`notDetermined`/`restricted`/`denied`/`authorized`/`limited`) rather than
+reinventing a simplified enum that would lose the `.limited` (partial photo
+access) case. `SystemPhotoLibraryAuthorizer` wraps `PHPhotoLibrary` — unlike
+`CLLocationManager`, Photos already exposes a native `async` authorization API
+(iOS 14+), so no delegate/continuation bridging is needed here the way
+`LocationAuthorization` requires. `MockPhotoLibraryAuthorizer` is a settable fake.
+
+```swift
+import PhotoLibraryAuthorization
+
+let authorizer: PhotoLibraryAuthorizing = MockPhotoLibraryAuthorizer(status: .authorized)
+let status = await authorizer.requestAuthorization()
+```
+
+Same "kit-level only" treatment as `LocationAuthorization`, for the same two
+reasons: a quotes app has no natural need for photo access, and automated tests
+never call `requestAuthorization()` against the real authorizer — only the safe,
+non-prompting `currentAuthorizationStatus()` read
+(`QuoteBoxTests/PhotoLibraryAuthorizationTests.swift`).
+
+### `BiometricAuthentication` (Swift Package product)
+
+Face ID/Touch ID doesn't fit the permission-status shape the way Location/Photos
+do: `LAContext` has no persisted "authorization status" to read back later, only
+a synchronous capability check (`canEvaluate()`, is biometric auth configured on
+this device right now — never prompts) and an evaluation that always prompts
+(`evaluate(reason:)`). `SystemBiometricAuthenticator` bridges `LAContext`'s
+completion-handler-based `evaluatePolicy` to `async` via `CheckedContinuation` —
+simpler than `LocationAuthorization`'s bridge, since there's a completion closure
+to resume from directly rather than a delegate callback.
+`MockBiometricAuthenticator` has independently settable `canEvaluateResult`/
+`evaluateResult`.
+
+```swift
+import BiometricAuthentication
+
+let authenticator: BiometricAuthenticating = MockBiometricAuthenticator()
+guard authenticator.canEvaluate() else { return }
+let unlocked = await authenticator.evaluate(reason: "Unlock QuoteBox")
+```
+
+Same "kit-level only" treatment again: `QuoteBoxTests/BiometricAuthenticationTests.swift`
+tests the mock fully, and the real authenticator is only exercised via
+`canEvaluate()` — never `evaluate()`, which would trigger the real,
+headless-undismissable Face ID/Touch ID system prompt.
+
 ### `PurchaseSupport` (Swift Package product)
 
 A `PurchaseManaging` protocol wrapping StoreKit 2's `Product`/`Transaction` APIs.
@@ -309,10 +400,11 @@ DebugOverlayView(sections: [
 `QuoteBox` wires this into a `#if DEBUG`-gated "Debug" tab in `RootView` — visible
 in every scheme in `project.yml` builds by default, including the one CI's
 `xcodebuild test` runs against, so `QuoteBoxUITests/testDebugTabShowsLaunchArgumentsAndAppState`
-can assert against it directly — showing launch arguments alongside `QuoteStore`
-and `TipJarStore`'s current state (quote state, favorites count, reminder state,
-tip jar state), read directly off those stores rather than re-implemented, so the
-panel can't drift out of sync with the state machines it's reporting on.
+can assert against it directly — showing launch arguments, the `UserDefaultsStore`-backed
+launch count, and `QuoteStore`/`TipJarStore`'s current state (quote state,
+favorites count, reminder state, tip jar state), read directly off those stores
+rather than re-implemented, so the panel can't drift out of sync with the state
+machines it's reporting on.
 
 ### Reusable GitHub Actions workflows
 

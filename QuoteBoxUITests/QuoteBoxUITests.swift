@@ -102,7 +102,19 @@ final class QuoteBoxUITests: XCTestCase {
         XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["--mock-success"].exists)
         XCTAssertTrue(app.staticTexts["Tip Jar"].exists)
+        // Under --mock-*, QuoteBoxApp uses a fresh InMemoryUserDefaultsStore per
+        // launch, so this is deterministically 1 rather than drifting with however
+        // many times the Simulator has launched the app.
+        XCTAssertTrue(app.staticTexts["1"].exists)
         try auditIgnoringKnownFalsePositives(app)
+    }
+
+    /// No pass/fail assertion on duration - see `measureLaunch`'s doc comment in
+    /// `UITestHelpers` for why a fixed threshold isn't safe on shared CI hardware.
+    /// This exists to get real numbers into the .xcresult that `reusable-test.yml`
+    /// already uploads as a CI artifact.
+    func testAppLaunchPerformance() {
+        measureLaunch(withArguments: ["--mock-success"])
     }
 
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
