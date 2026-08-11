@@ -90,8 +90,6 @@ schemes:
         QuoteBoxTests: [test]
         QuoteBoxUITests: [test]
     test:
-      environmentVariables:
-        SNAPSHOT_RECORD: "1"
       targets:
         - QuoteBoxTests
         - QuoteBoxUITests
