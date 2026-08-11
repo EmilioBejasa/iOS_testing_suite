@@ -4,6 +4,7 @@ import CoreLocation
 /// `CLLocationManager` has no native async authorization API — its
 /// authorization callback is delegate-based (`locationManagerDidChangeAuthorization`),
 /// bridged to `async` here via `CheckedContinuation`.
+@available(iOS 14.0, *)
 public final class SystemLocationAuthorizer: NSObject, LocationAuthorizing {
     private let manager: CLLocationManager
     private var continuation: CheckedContinuation<CLAuthorizationStatus, Never>?
@@ -32,6 +33,7 @@ public final class SystemLocationAuthorizer: NSObject, LocationAuthorizing {
     }
 }
 
+@available(iOS 14.0, *)
 extension SystemLocationAuthorizer: CLLocationManagerDelegate {
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         continuation?.resume(returning: manager.authorizationStatus)
