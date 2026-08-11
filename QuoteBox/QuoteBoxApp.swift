@@ -1,10 +1,12 @@
 import CoreData
+import DeepLinkTesting
 import LocalNotifications
 import SwiftUI
 
 @main
 struct QuoteBoxApp: App {
     private let store: QuoteStore
+    @State private var route: QuoteBoxRoute?
 
     init() {
         let arguments = ProcessInfo.processInfo.arguments
@@ -32,11 +34,15 @@ struct QuoteBoxApp: App {
         }
 
         store = QuoteStore(apiClient: apiClient, favoritesStore: favoritesStore, reminderScheduler: reminderScheduler)
+        _route = State(initialValue: DeepLinkSource.url(from: arguments).flatMap(QuoteBoxRoute.init(url:)))
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(store: store)
+            RootView(store: store, route: $route)
+                .onOpenURL { url in
+                    route = QuoteBoxRoute(url: url)
+                }
         }
     }
 }

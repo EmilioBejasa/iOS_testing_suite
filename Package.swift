@@ -11,7 +11,8 @@ let package = Package(
         .library(name: "KeychainStore", targets: ["KeychainStore"]),
         .library(name: "CoreDataTestSupport", targets: ["CoreDataTestSupport"]),
         .library(name: "LocalNotifications", targets: ["LocalNotifications"]),
-        .library(name: "SnapshotTesting", targets: ["SnapshotTesting"])
+        .library(name: "SnapshotTesting", targets: ["SnapshotTesting"]),
+        .library(name: "DeepLinkTesting", targets: ["DeepLinkTesting"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -20,6 +21,7 @@ let package = Package(
         .target(name: "KeychainStore"),
         .target(name: "CoreDataTestSupport"),
         .target(name: "LocalNotifications"),
-        .target(name: "SnapshotTesting")
+        .target(name: "SnapshotTesting"),
+        .target(name: "DeepLinkTesting")
     ]
 )

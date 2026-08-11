@@ -30,14 +30,23 @@ targets:
         product: TimeControl
       - package: iOSTestKit
         product: LocalNotifications
+      - package: iOSTestKit
+        product: DeepLinkTesting
+    info:
+      properties:
+        CFBundleDisplayName: QuoteBox
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        CFBundleURLTypes:
+          - CFBundleURLName: com.quotebox.qa.app
+            CFBundleURLSchemes:
+              - quotebox
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.app
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: QuoteBox
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: QuoteBox/QuoteBox.entitlements
 
@@ -61,6 +70,8 @@ targets:
         product: LocalNotifications
       - package: iOSTestKit
         product: SnapshotTesting
+      - package: iOSTestKit
+        product: DeepLinkTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

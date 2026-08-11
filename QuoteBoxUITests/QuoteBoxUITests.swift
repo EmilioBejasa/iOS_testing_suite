@@ -55,6 +55,13 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    func testDeepLinkToFavoritesOpensFavoritesTab() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--deep-link", "quotebox://favorites"])
+
+        XCTAssertTrue(app.element("favorites.empty").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.
