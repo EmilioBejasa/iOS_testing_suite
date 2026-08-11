@@ -83,8 +83,13 @@ final class QuoteBoxUITests: XCTestCase {
 
         app.element("tipJar.button").tap()
 
+        // Query .exists before .isEnabled - once state moves to .failed, the
+        // button leaves the hierarchy entirely (QuoteView renders tipJar.unavailable
+        // instead), and querying .isEnabled on an element that no longer exists
+        // throws a hard XCUITest snapshot error rather than returning false.
         XCTAssertTrue(waitUntil(timeout: 5) {
-            app.element("tipJar.thankYou").exists || !app.element("tipJar.button").isEnabled
+            let button = app.element("tipJar.button")
+            return app.element("tipJar.thankYou").exists || (button.exists && !button.isEnabled)
         })
         XCTAssertFalse(app.element("tipJar.unavailable").exists)
         try auditIgnoringKnownFalsePositives(app)
@@ -102,7 +107,19 @@ final class QuoteBoxUITests: XCTestCase {
         XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["--mock-success"].exists)
         XCTAssertTrue(app.staticTexts["Tip Jar"].exists)
+        // Under --mock-*, QuoteBoxApp uses a fresh InMemoryUserDefaultsStore per
+        // launch, so this is deterministically 1 rather than drifting with however
+        // many times the Simulator has launched the app.
+        XCTAssertTrue(app.staticTexts["1"].exists)
         try auditIgnoringKnownFalsePositives(app)
+    }
+
+    /// No pass/fail assertion on duration - see `measureLaunch`'s doc comment in
+    /// `UITestHelpers` for why a fixed threshold isn't safe on shared CI hardware.
+    /// This exists to get real numbers into the .xcresult that `reusable-test.yml`
+    /// already uploads as a CI artifact.
+    func testAppLaunchPerformance() {
+        measureLaunch(withArguments: ["--mock-success"])
     }
 
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via

@@ -15,7 +15,10 @@ let package = Package(
         .library(name: "DeepLinkTesting", targets: ["DeepLinkTesting"]),
         .library(name: "LocationAuthorization", targets: ["LocationAuthorization"]),
         .library(name: "PurchaseSupport", targets: ["PurchaseSupport"]),
-        .library(name: "DebugOverlay", targets: ["DebugOverlay"])
+        .library(name: "DebugOverlay", targets: ["DebugOverlay"]),
+        .library(name: "UserDefaultsStore", targets: ["UserDefaultsStore"]),
+        .library(name: "PhotoLibraryAuthorization", targets: ["PhotoLibraryAuthorization"]),
+        .library(name: "BiometricAuthentication", targets: ["BiometricAuthentication"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -28,6 +31,9 @@ let package = Package(
         .target(name: "DeepLinkTesting"),
         .target(name: "LocationAuthorization"),
         .target(name: "PurchaseSupport"),
-        .target(name: "DebugOverlay")
+        .target(name: "DebugOverlay"),
+        .target(name: "UserDefaultsStore"),
+        .target(name: "PhotoLibraryAuthorization"),
+        .target(name: "BiometricAuthentication")
     ]
 )
