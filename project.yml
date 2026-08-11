@@ -115,3 +115,4 @@ schemes:
         - QuoteBoxUITests
     run:
       config: Debug
+      storeKitConfiguration: QuoteBoxTests/Configuration.storekit

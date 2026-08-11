@@ -27,7 +27,7 @@ struct QuoteBoxApp: App {
             favoritesStore = InMemoryFavoritesStore()
             let authorizationResult: AuthorizationStatus = arguments.contains("--mock-notifications-denied") ? .denied : .authorized
             reminderScheduler = MockReminderScheduler(authorizationResult: authorizationResult)
-            purchaseManager = MockPurchaseManager()
+            purchaseManager = arguments.contains("--real-purchases") ? StoreKitPurchaseManager() : MockPurchaseManager()
         } else {
             apiClient = QuoteAPIClient()
             let container = NSPersistentContainer(name: "QuoteBox")

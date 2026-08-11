@@ -62,6 +62,34 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    /// `--real-purchases` swaps in the real `StoreKitPurchaseManager` (everything
+    /// else stays mocked/deterministic), so tapping Tip Jar drives an actual
+    /// `Product.purchase()` call against the local StoreKit configuration the
+    /// `QuoteBox` scheme's Run action is wired to (`project.yml`'s
+    /// `storeKitConfiguration`). Reaching `.purchasing` (button disables) or
+    /// `.purchased` (already owned from a prior run) both prove the product
+    /// resolved against that configuration instead of a real, unreachable App
+    /// Store — only `.failed` indicates the config isn't wired. This deliberately
+    /// stops there: the system purchase-confirmation sheet itself is owned by a
+    /// process outside the app's own accessibility tree, so reliably tapping
+    /// through it means resorting to raw coordinate taps — the same class of
+    /// fragile, OS-version-dependent hack this kit avoids everywhere else a
+    /// system-owned dialog is involved (see `LocationAuthorization`'s
+    /// `.notDetermined` avoidance and `DeepLinkTesting`'s avoidance of the native
+    /// "Open in App" confirmation).
+    func testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-purchases"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.element("tipJar.button").tap()
+
+        XCTAssertTrue(waitUntil(timeout: 5) {
+            app.element("tipJar.thankYou").exists || !app.element("tipJar.button").isEnabled
+        })
+        XCTAssertFalse(app.element("tipJar.unavailable").exists)
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.
