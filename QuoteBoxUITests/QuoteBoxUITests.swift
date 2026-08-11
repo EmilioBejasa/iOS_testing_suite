@@ -122,6 +122,26 @@ final class QuoteBoxUITests: XCTestCase {
         // launch, so this is deterministically 1 rather than drifting with however
         // many times the Simulator has launched the app.
         XCTAssertTrue(app.staticTexts["1"].exists)
+        // MockNetworkReachabilityMonitor always reports .satisfied under --mock-*.
+        XCTAssertTrue(app.staticTexts["satisfied"].exists)
+        // launchCount is 1 here, below reviewRequestThreshold (3).
+        XCTAssertTrue(app.staticTexts["false"].exists)
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
+    /// --launch-count 2 seeds InMemoryUserDefaultsStore so the increment in
+    /// QuoteBoxApp.init() lands launchCount on 3 - QuoteBoxApp.reviewRequestThreshold
+    /// - deterministically reaching the branch that calls reviewRequester.requestReview()
+    /// without depending on real persisted launch history.
+    func testReviewRequestedAtLaunchCountThreshold() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--launch-count", "2"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["3"].exists)
+        XCTAssertTrue(app.staticTexts["true"].exists)
         try auditIgnoringKnownFalsePositives(app)
     }
 
