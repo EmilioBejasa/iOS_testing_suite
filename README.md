@@ -177,6 +177,34 @@ Set `SNAPSHOT_RECORD=1` to write a new reference image instead of comparing — 
 test still fails when recording, so it can't be left on by accident. Runs as a
 plain unit test (no simulator UI interaction, no XCUITest involved).
 
+### `DeepLinkTesting` (Swift Package product)
+
+`DeepLinkSource.url(from:)` looks for `--deep-link <url>` in launch arguments.
+`XCUIDevice.shared.system.open(url:)` — the obvious way to test deep links — opens
+a real system "Open in 'MyApp'" confirmation dialog that a synchronous UI-test
+call can't dismiss, which would hang CI. This sidesteps that entirely: a UI test
+passes the URL as a launch argument, and the app reads it at startup exactly like
+it already does for `--mock-success`/`--mock-error`, testing the app's own
+URL-to-route parsing and resulting UI state without touching the real OS-level
+open dialog.
+
+```swift
+import DeepLinkTesting
+
+// in the app, alongside existing launch-argument handling:
+let route = DeepLinkSource.url(from: ProcessInfo.processInfo.arguments).flatMap(MyRoute.init(url:))
+```
+
+```swift
+// in a UI test:
+let app = XCUIApplication().launched(withArguments: ["--deep-link", "myapp://favorites"])
+```
+
+`QuoteBox` wires this in via `QuoteBoxRoute` (`quotebox://favorites` opens the
+Favorites tab) — plain Swift, no kit dependency needed for the URL-parsing part.
+The real `.onOpenURL` production path and the test launch-argument path both flow
+through the same `QuoteBoxRoute?` binding, so either one can drive navigation.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of
