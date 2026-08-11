@@ -259,11 +259,30 @@ other fakes it can't fabricate one from nothing. It holds a real `Product`
 `QuoteBox` wires this into a real "Tip Jar" feature (`StoreKitPurchaseManager` in
 production, `MockPurchaseManager` under `--mock-success`/`--mock-error`), the same
 DI pattern as every other kit-backed dependency in the app. It's validated at the
-kit level via `SKTestSession` in `QuoteBoxTests/PurchaseSupportTests.swift`, not
-through `QuoteBoxUITests` — driving a real purchase through the UI needs the Xcode
-*scheme* wired to the `.storekit` config (a separate mechanism from
-`SKTestSession`, since the UI-tested app runs in its own process), which wasn't
-pursued this round.
+kit level via `SKTestSession` in `QuoteBoxTests/PurchaseSupportTests.swift`, and
+now also through `QuoteBoxUITests`: `project.yml` wires the `QuoteBox` scheme's Run
+action to `QuoteBoxTests/Configuration.storekit` via XcodeGen's
+`storeKitConfiguration` (the mechanism `SKTestSession` doesn't cover, since a
+UI-tested app launches in its own process), so both a manual run and a UI-test
+launch resolve StoreKit calls against local test data instead of the real App
+Store. A `--real-purchases` launch argument (combined with `--mock-success`, same
+shape as `--mock-notifications-denied`) swaps in the real `StoreKitPurchaseManager`
+while everything else stays deterministic, so
+`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration` can tap Tip Jar and
+assert the app reaches `.purchasing`/`.purchased` rather than `.failed` — proving
+the product actually resolved against the wired config.
+
+That test deliberately stops before the system purchase-confirmation sheet itself:
+it's owned by a process outside the app's own accessibility tree, so reliably
+tapping through it means resorting to raw coordinate taps, the same class of
+fragile, OS-version-dependent hack this kit avoids everywhere else a system-owned
+dialog is involved (`LocationAuthorization`'s `.notDetermined` avoidance,
+`DeepLinkTesting`'s avoidance of the native "Open in App" confirmation). Also
+worth knowing if this flakes in CI: there's a documented Apple Developer Forums
+regression on some simulator runtimes where `xcodebuild test` from the CLI (how
+`reusable-test.yml` runs everything) doesn't reliably propagate a scheme's
+StoreKit configuration to the simulator, even though it works from the Xcode IDE —
+unresolved upstream, not something this repo can work around.
 
 ### Reusable GitHub Actions workflows
 
