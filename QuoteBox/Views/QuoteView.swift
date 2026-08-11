@@ -52,16 +52,7 @@ struct QuoteView: View {
             ProgressView("Loading...")
                 .accessibilityIdentifier("quote.loading")
         case .loaded(let quote):
-            VStack(spacing: 8) {
-                Text(quote.quote)
-                    .font(.title3)
-                    .multilineTextAlignment(.center)
-                    .accessibilityIdentifier("quote.text")
-                Text("— \(quote.author)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("quote.author")
-            }
+            QuoteContentView(quote: quote)
         case .error(let message):
             Text(message)
                 .multilineTextAlignment(.center)
