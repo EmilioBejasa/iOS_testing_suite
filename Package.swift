@@ -14,7 +14,8 @@ let package = Package(
         .library(name: "SnapshotTesting", targets: ["SnapshotTesting"]),
         .library(name: "DeepLinkTesting", targets: ["DeepLinkTesting"]),
         .library(name: "LocationAuthorization", targets: ["LocationAuthorization"]),
-        .library(name: "PurchaseSupport", targets: ["PurchaseSupport"])
+        .library(name: "PurchaseSupport", targets: ["PurchaseSupport"]),
+        .library(name: "DebugOverlay", targets: ["DebugOverlay"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -26,6 +27,7 @@ let package = Package(
         .target(name: "SnapshotTesting"),
         .target(name: "DeepLinkTesting"),
         .target(name: "LocationAuthorization"),
-        .target(name: "PurchaseSupport")
+        .target(name: "PurchaseSupport"),
+        .target(name: "DebugOverlay")
     ]
 )

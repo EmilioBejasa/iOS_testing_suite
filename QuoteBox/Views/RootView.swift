@@ -1,9 +1,13 @@
+import DebugOverlay
 import SwiftUI
 
 struct RootView: View {
     enum Tab {
         case quote
         case favorites
+        #if DEBUG
+        case debug
+        #endif
     }
 
     @State private var store: QuoteStore
@@ -35,6 +39,15 @@ struct RootView: View {
                         .accessibilityIdentifier("tab.favorites")
                 }
                 .tag(Tab.favorites)
+
+            #if DEBUG
+            DebugOverlayView(sections: debugSections)
+                .tabItem {
+                    Label("Debug", systemImage: "ladybug")
+                        .accessibilityIdentifier("tab.debug")
+                }
+                .tag(Tab.debug)
+            #endif
         }
         // Handles a route arriving after this view is already on screen (a real
         // .onOpenURL while the app is running) - the initializer above only
@@ -46,4 +59,20 @@ struct RootView: View {
             }
         }
     }
+
+    #if DEBUG
+    private var debugSections: [DebugSection] {
+        [
+            .launchArguments(),
+            DebugSection("Quote", rows: [
+                DebugRow("State", String(describing: store.state)),
+                DebugRow("Favorites", "\(store.favorites.count)"),
+                DebugRow("Reminder", String(describing: store.reminderState)),
+            ]),
+            DebugSection("Tip Jar", rows: [
+                DebugRow("State", String(describing: tipJarStore.state)),
+            ]),
+        ]
+    }
+    #endif
 }
