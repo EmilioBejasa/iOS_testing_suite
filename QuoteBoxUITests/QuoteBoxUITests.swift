@@ -83,8 +83,13 @@ final class QuoteBoxUITests: XCTestCase {
 
         app.element("tipJar.button").tap()
 
+        // Query .exists before .isEnabled - once state moves to .failed, the
+        // button leaves the hierarchy entirely (QuoteView renders tipJar.unavailable
+        // instead), and querying .isEnabled on an element that no longer exists
+        // throws a hard XCUITest snapshot error rather than returning false.
         XCTAssertTrue(waitUntil(timeout: 5) {
-            app.element("tipJar.thankYou").exists || !app.element("tipJar.button").isEnabled
+            let button = app.element("tipJar.button")
+            return app.element("tipJar.thankYou").exists || (button.exists && !button.isEnabled)
         })
         XCTAssertFalse(app.element("tipJar.unavailable").exists)
         try auditIgnoringKnownFalsePositives(app)

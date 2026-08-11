@@ -375,6 +375,15 @@ regression on some simulator runtimes where `xcodebuild test` from the CLI (how
 StoreKit configuration to the simulator, even though it works from the Xcode IDE —
 unresolved upstream, not something this repo can work around.
 
+A second, separate CI flake in this same area: the "StoreKit Testing in Xcode"
+local certificate that ships with a given Xcode install can occasionally fail
+signature verification with `Certificate is not temporally valid` — seen on both
+this test and `PurchaseSupportTests.testFetchAndPurchaseTipProduct`, on the same
+CI run other tests including this one passed cleanly minutes earlier. GitHub's
+macOS runner image pins a specific Xcode version per run, and StoreKit's local
+testing certificate is scoped to that install; re-running the job is the fix, not
+a code change here.
+
 ### `DebugOverlay` (Swift Package product)
 
 A drop-in SwiftUI panel (`DebugOverlayView`) that renders `[DebugSection]` — plain
