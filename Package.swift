@@ -22,7 +22,10 @@ let package = Package(
         .library(name: "PushRegistering", targets: ["PushRegistering"]),
         .library(name: "AppleSignIn", targets: ["AppleSignIn"]),
         .library(name: "BackgroundTaskScheduling", targets: ["BackgroundTaskScheduling"]),
-        .library(name: "ContactsAuthorization", targets: ["ContactsAuthorization"])
+        .library(name: "ContactsAuthorization", targets: ["ContactsAuthorization"]),
+        .library(name: "NetworkReachabilityMonitoring", targets: ["NetworkReachabilityMonitoring"]),
+        .library(name: "CloudKitAccountChecking", targets: ["CloudKitAccountChecking"]),
+        .library(name: "ReviewRequesting", targets: ["ReviewRequesting"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -42,6 +45,9 @@ let package = Package(
         .target(name: "PushRegistering"),
         .target(name: "AppleSignIn"),
         .target(name: "BackgroundTaskScheduling"),
-        .target(name: "ContactsAuthorization")
+        .target(name: "ContactsAuthorization"),
+        .target(name: "NetworkReachabilityMonitoring"),
+        .target(name: "CloudKitAccountChecking"),
+        .target(name: "ReviewRequesting")
     ]
 )

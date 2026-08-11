@@ -1,7 +1,9 @@
 import Foundation
+import Network
 import Observation
 import TimeControl
 import LocalNotifications
+import NetworkReachabilityMonitoring
 
 @Observable
 @MainActor
@@ -26,24 +28,34 @@ final class QuoteStore {
     private(set) var state: State = .idle
     private(set) var favorites: [Quote]
     private(set) var reminderState: ReminderState = .off
+    private(set) var networkStatus: NWPath.Status
 
     private let apiClient: QuoteAPIClientProtocol
     private let favoritesStore: FavoritesStoring
     private let dateProvider: DateProviding
     private let reminderScheduler: ReminderScheduling
+    private let reachabilityMonitor: NetworkReachabilityMonitoring
     private var lastFetchedAt: Date?
 
     init(
         apiClient: QuoteAPIClientProtocol,
         favoritesStore: FavoritesStoring,
         dateProvider: DateProviding = SystemDateProvider(),
-        reminderScheduler: ReminderScheduling = SystemReminderScheduler()
+        reminderScheduler: ReminderScheduling = SystemReminderScheduler(),
+        reachabilityMonitor: NetworkReachabilityMonitoring = SystemNetworkReachabilityMonitor()
     ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
         self.dateProvider = dateProvider
         self.reminderScheduler = reminderScheduler
+        self.reachabilityMonitor = reachabilityMonitor
         self.favorites = favoritesStore.loadFavorites()
+        self.networkStatus = reachabilityMonitor.currentStatus
+        reachabilityMonitor.startMonitoring { [weak self] status in
+            Task { @MainActor in
+                self?.networkStatus = status
+            }
+        }
     }
 
     var isCurrentQuoteFavorited: Bool {

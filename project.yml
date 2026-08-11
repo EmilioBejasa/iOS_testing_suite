@@ -38,6 +38,10 @@ targets:
         product: DebugOverlay
       - package: iOSTestKit
         product: UserDefaultsStore
+      - package: iOSTestKit
+        product: NetworkReachabilityMonitoring
+      - package: iOSTestKit
+        product: ReviewRequesting
     info:
       path: QuoteBox/Info.plist
       properties:
@@ -99,6 +103,12 @@ targets:
         product: BackgroundTaskScheduling
       - package: iOSTestKit
         product: ContactsAuthorization
+      - package: iOSTestKit
+        product: NetworkReachabilityMonitoring
+      - package: iOSTestKit
+        product: CloudKitAccountChecking
+      - package: iOSTestKit
+        product: ReviewRequesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

@@ -15,11 +15,19 @@ struct RootView: View {
     @State private var selectedTab: Tab = .quote
     @Binding private var route: QuoteBoxRoute?
     private let launchCount: Int
+    private let didRequestReviewThisLaunch: Bool
 
-    init(store: QuoteStore, tipJarStore: TipJarStore, launchCount: Int, route: Binding<QuoteBoxRoute?>) {
+    init(
+        store: QuoteStore,
+        tipJarStore: TipJarStore,
+        launchCount: Int,
+        didRequestReviewThisLaunch: Bool,
+        route: Binding<QuoteBoxRoute?>
+    ) {
         _store = State(initialValue: store)
         _tipJarStore = State(initialValue: tipJarStore)
         self.launchCount = launchCount
+        self.didRequestReviewThisLaunch = didRequestReviewThisLaunch
         _route = route
         if case .favorites = route.wrappedValue {
             _selectedTab = State(initialValue: .favorites)
@@ -68,11 +76,13 @@ struct RootView: View {
             .launchArguments(),
             DebugSection("App", rows: [
                 DebugRow("Launch Count", "\(launchCount)"),
+                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)"),
             ]),
             DebugSection("Quote", rows: [
                 DebugRow("State", String(describing: store.state)),
                 DebugRow("Favorites", "\(store.favorites.count)"),
                 DebugRow("Reminder", String(describing: store.reminderState)),
+                DebugRow("Network", String(describing: store.networkStatus)),
             ]),
             DebugSection("Tip Jar", rows: [
                 DebugRow("State", String(describing: tipJarStore.state)),

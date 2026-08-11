@@ -101,6 +101,33 @@ let store = MyStore(dateProvider: dateProvider)
 dateProvider.currentDate.addTimeInterval(60) // simulate a minute passing, no real sleep
 ```
 
+### `NetworkReachabilityMonitoring` (Swift Package product)
+
+Distinct from `NetworkStub` — that intercepts individual request/response pairs
+on a `URLSession`; this reports the device's actual connectivity state.
+`NetworkReachabilityMonitoring` keeps `NWPath.Status` directly
+(`.satisfied`/`.unsatisfied`/`.requiresConnection`) rather than reinventing an
+enum. `SystemNetworkReachabilityMonitor` wraps `NWPathMonitor`, running it on a
+dedicated background queue (Apple's own requirement); `MockNetworkReachabilityMonitor`
+is a settable fake with `simulateStatusChange(to:)` to drive updates manually.
+
+```swift
+import NetworkReachabilityMonitoring
+
+let monitor: NetworkReachabilityMonitoring = MockNetworkReachabilityMonitor(currentStatus: .satisfied)
+monitor.startMonitoring { status in print(status) }
+```
+
+`QuoteBox` wires this into `QuoteStore` (the same DI shape as its existing
+`dateProvider`/`reminderScheduler` parameters) — real monitor in production,
+`MockNetworkReachabilityMonitor(currentStatus: .satisfied)` under `--mock-*` for
+determinism — and surfaces `networkStatus` as a new "Network" row in the Debug
+tab's "Quote" section. Validated by
+`QuoteBoxTests/NetworkReachabilityMonitoringTests.swift` (mock fully tested; the
+real monitor is only constructed, never started — `NWPathMonitor.start(queue:)`
+runs indefinitely with no synchronous "did it work" signal worth asserting on in
+a unit test) and the extended `QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`.
+
 ### `KeychainStore` (Swift Package product)
 
 A `KeychainStoring` protocol so app code isn't tied to `Security` framework calls
@@ -151,6 +178,39 @@ section. Validated by `QuoteBoxTests/UserDefaultsStoreTests.swift` (round-trips
 both implementations, mirroring `KeychainStoreTests.swift`'s pattern — no
 entitlement/signing concern here, so no skip path is needed) and
 `QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`.
+
+### `ReviewRequesting` (Swift Package product)
+
+Fire-and-forget by design, matching `AppStore.requestReview(in:)` itself: no
+return value, and no way for any app — including the real one — to know whether
+the system actually presented the prompt, since iOS rate-limits and decides that
+on its own. `SystemReviewRequester` wraps `AppStore.requestReview(in:)`
+(`StoreKit`, iOS 16+), finding the foreground-active `UIWindowScene`;
+`MockReviewRequester` records `requestCount`, the only thing worth verifying
+about a call this opaque even for the real implementation.
+
+```swift
+import ReviewRequesting
+
+let requester: ReviewRequesting = MockReviewRequester()
+requester.requestReview()
+```
+
+`QuoteBox` wires this into a real trigger by building on `UserDefaultsStore`'s
+`launchCount`: `QuoteBoxApp.init()` calls `reviewRequester.requestReview()` when
+`launchCount == 3` (`QuoteBoxApp.reviewRequestThreshold`), then passes a plain
+`didRequestReviewThisLaunch: Bool` into `RootView` rather than a reference to the
+requester itself — a real app can't introspect whether `AppStore.requestReview`
+showed anything either, so the Debug tab's new "App" row honestly reflects only
+"did our own trigger logic fire." Under `--mock-success`,
+`InMemoryUserDefaultsStore` always makes `launchCount == 1`, so a new
+`--launch-count <n>` launch argument (parsed the same way
+`--mock-notifications-denied` already is) overrides `launchCount` directly to
+`n` for that launch, letting `QuoteBoxUITests.testReviewRequestedAtLaunchCountThreshold`
+force it to `3` deterministically.
+`QuoteBoxTests/ReviewRequestingTests.swift` calls `SystemReviewRequester()` for
+real — unlike `PushRegistering`/`AppleSignIn`'s prompting halves, this is
+genuinely side-effect-safe, so there's nothing to avoid.
 
 ### `CoreDataTestSupport` (Swift Package product)
 
@@ -468,6 +528,31 @@ of non-standard invocation context, so unlike a system dialog (avoidable) or an
 unresolved continuation (harmless if never awaited), there's credible risk the
 real scheduler crashes the test host outright.
 `QuoteBoxTests/BackgroundTaskSchedulingTests.swift` tests only the mock.
+
+### `CloudKitAccountChecking` (Swift Package product)
+
+`CloudKitAccountChecking` keeps `CKAccountStatus` directly, same reasoning as
+every other status-checking module for keeping a framework's own type.
+`SystemCloudKitAccountChecker` wraps `CKContainer.default().accountStatus()`
+(native async throwing API, iOS 15+), collapsing any thrown error to
+`.couldNotDetermine`; `MockCloudKitAccountChecker` is a settable fake.
+
+```swift
+import CloudKitAccountChecking
+
+let checker: CloudKitAccountChecking = MockCloudKitAccountChecker(status: .available)
+let status = await checker.accountStatus()
+```
+
+Kit-level only, and — the second module in this repo needing
+`BackgroundTaskScheduling`'s category of reasoning, not a pattern being
+avoided but an honest recurring outcome — never real-tested even though it
+looks like a safe status read. Verified before building this: calling
+`CKContainer.accountStatus()` without the
+`com.apple.developer.icloud-services` entitlement (which `QuoteBox` doesn't
+have — no natural need for iCloud sync, same reasoning as `LocationAuthorization`)
+can crash with an uncatchable `CKException` rather than throwing a normal Swift
+error. `QuoteBoxTests/CloudKitAccountCheckingTests.swift` tests only the mock.
 
 ### `PurchaseSupport` (Swift Package product)
 
