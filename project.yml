@@ -91,6 +91,12 @@ targets:
         product: PhotoLibraryAuthorization
       - package: iOSTestKit
         product: BiometricAuthentication
+      - package: iOSTestKit
+        product: PushRegistering
+      - package: iOSTestKit
+        product: AppleSignIn
+      - package: iOSTestKit
+        product: BackgroundTaskScheduling
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
