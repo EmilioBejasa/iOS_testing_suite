@@ -59,6 +59,8 @@ targets:
         product: CoreDataTestSupport
       - package: iOSTestKit
         product: LocalNotifications
+      - package: iOSTestKit
+        product: SnapshotTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
@@ -88,6 +90,8 @@ schemes:
         QuoteBoxTests: [test]
         QuoteBoxUITests: [test]
     test:
+      environmentVariables:
+        SNAPSHOT_RECORD: "1"
       targets:
         - QuoteBoxTests
         - QuoteBoxUITests

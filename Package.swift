@@ -10,7 +10,8 @@ let package = Package(
         .library(name: "TimeControl", targets: ["TimeControl"]),
         .library(name: "KeychainStore", targets: ["KeychainStore"]),
         .library(name: "CoreDataTestSupport", targets: ["CoreDataTestSupport"]),
-        .library(name: "LocalNotifications", targets: ["LocalNotifications"])
+        .library(name: "LocalNotifications", targets: ["LocalNotifications"]),
+        .library(name: "SnapshotTesting", targets: ["SnapshotTesting"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -18,6 +19,7 @@ let package = Package(
         .target(name: "TimeControl"),
         .target(name: "KeychainStore"),
         .target(name: "CoreDataTestSupport"),
-        .target(name: "LocalNotifications")
+        .target(name: "LocalNotifications"),
+        .target(name: "SnapshotTesting")
     ]
 )
