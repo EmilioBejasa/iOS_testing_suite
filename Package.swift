@@ -12,7 +12,8 @@ let package = Package(
         .library(name: "CoreDataTestSupport", targets: ["CoreDataTestSupport"]),
         .library(name: "LocalNotifications", targets: ["LocalNotifications"]),
         .library(name: "SnapshotTesting", targets: ["SnapshotTesting"]),
-        .library(name: "DeepLinkTesting", targets: ["DeepLinkTesting"])
+        .library(name: "DeepLinkTesting", targets: ["DeepLinkTesting"]),
+        .library(name: "LocationAuthorization", targets: ["LocationAuthorization"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -22,6 +23,7 @@ let package = Package(
         .target(name: "CoreDataTestSupport"),
         .target(name: "LocalNotifications"),
         .target(name: "SnapshotTesting"),
-        .target(name: "DeepLinkTesting")
+        .target(name: "DeepLinkTesting"),
+        .target(name: "LocationAuthorization")
     ]
 )

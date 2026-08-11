@@ -73,6 +73,8 @@ targets:
         product: SnapshotTesting
       - package: iOSTestKit
         product: DeepLinkTesting
+      - package: iOSTestKit
+        product: LocationAuthorization
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
