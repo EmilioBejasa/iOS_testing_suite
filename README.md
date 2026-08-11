@@ -21,7 +21,7 @@ surface (local persistence, not just network).
 requirement on the app side is that the client accepts an injectable `URLSession`.
 
 ```swift
-.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.0.0")
+.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.1.0")
 // target dependency: .product(name: "NetworkStub", package: "iOS_testing_suite")
 ```
 
@@ -274,7 +274,7 @@ repo:
 ```yaml
 jobs:
   test:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.0.0
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.1.0
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
@@ -293,7 +293,7 @@ on:
 
 jobs:
   contract:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.0.0
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.1.0
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
