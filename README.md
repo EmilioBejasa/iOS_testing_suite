@@ -218,6 +218,22 @@ Set `SNAPSHOT_RECORD=1` to write a new reference image instead of comparing — 
 test still fails when recording, so it can't be left on by accident. Runs as a
 plain unit test (no simulator UI interaction, no XCUITest involved).
 
+`assertSnapshot` also takes optional `locale:`/`dynamicTypeSize:` parameters,
+defaulting to `nil` so every existing call site (QuoteBox's included) renders
+exactly as before:
+
+```swift
+assertSnapshot(of: MyView(), dynamicTypeSize: .accessibility3, named: "loaded-accessibility3")
+```
+
+This replaces relying on an accessibility audit's allow-listed exception with
+actually rendering and comparing the larger size — no automatic filename
+suffixing, the caller names each variant explicitly via `named:`, same as today.
+**Scope note:** this round ships the capability only; it isn't accompanied by a
+new committed reference image for `QuoteBox` itself. Recording one needs
+`SNAPSHOT_RECORD=1` run on a Mac with Xcode/Simulator, which wasn't available
+while building this — a real gap, not a hidden one.
+
 ### `DeepLinkTesting` (Swift Package product)
 
 `DeepLinkSource.url(from:)` looks for `--deep-link <url>` in launch arguments.
@@ -245,6 +261,28 @@ let app = XCUIApplication().launched(withArguments: ["--deep-link", "myapp://fav
 Favorites tab) — plain Swift, no kit dependency needed for the URL-parsing part.
 The real `.onOpenURL` production path and the test launch-argument path both flow
 through the same `QuoteBoxRoute?` binding, so either one can drive navigation.
+
+`UniversalLinkSource.url(from:)` applies the identical technique to a second
+real-world trigger: Universal Links arrive via `NSUserActivity`/
+`.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)`, not `.onOpenURL`, so
+they need their own launch argument (`--universal-link <url>`) rather than
+reusing `--deep-link`. This deliberately stayed a second file in this same
+module rather than a new package — the reusable part is the *technique*
+(launch-argument URL instead of a real, headless-undismissable system dialog),
+which isn't specific to custom URL schemes, not a distinct system framework the
+way every other module here wraps one.
+
+```swift
+// in a UI test:
+let app = XCUIApplication().launched(withArguments: ["--universal-link", "https://myapp.com/favorites"])
+```
+
+`QuoteBox`'s `QuoteBoxRoute.init?(url:)` matches both shapes
+(`quotebox://favorites` and `https://quotebox.qa/favorites`, a placeholder
+domain — no real Associated Domains entitlement was added, same reasoning
+`DeepLinkTesting` already gives for never touching the real open dialog), and
+`QuoteBoxApp` drives the same `route` binding from `.onContinueUserActivity`
+alongside `.onOpenURL`.
 
 ### `LocationAuthorization` (Swift Package product)
 
@@ -294,6 +332,29 @@ reasons: a quotes app has no natural need for photo access, and automated tests
 never call `requestAuthorization()` against the real authorizer — only the safe,
 non-prompting `currentAuthorizationStatus()` read
 (`QuoteBoxTests/PhotoLibraryAuthorizationTests.swift`).
+
+### `ContactsAuthorization` (Swift Package product)
+
+A fourth permission-gated system service, same protocol+real+fake shape again.
+Uses `CNAuthorizationStatus` directly, same reasoning as the others for keeping
+a framework's own status type. `SystemContactsAuthorizer` wraps `CNContactStore`:
+`requestAccess(for:completionHandler:)` is already a plain completion handler
+(not a delegate), so it bridges to `async` directly via `CheckedContinuation` —
+no `NSObject`/delegate subclass needed, simpler than `LocationAuthorization`'s
+bridge. `MockContactsAuthorizer` is a settable fake.
+
+```swift
+import ContactsAuthorization
+
+let authorizer: ContactsAuthorizing = MockContactsAuthorizer(status: .authorized)
+let granted = await authorizer.requestAccess()
+```
+
+Same "kit-level only" treatment again: a quotes app has no natural need for
+contacts, and automated tests never call `requestAccess()` against the real
+authorizer — only the safe, non-prompting, static
+`CNContactStore.authorizationStatus(for:)` read
+(`QuoteBoxTests/ContactsAuthorizationTests.swift`).
 
 ### `BiometricAuthentication` (Swift Package product)
 

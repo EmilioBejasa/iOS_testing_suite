@@ -8,6 +8,13 @@ import XCTest
 /// reference image stays valid across an entire CI device matrix instead of
 /// needing a baseline per simulator.
 ///
+/// `locale` and `dynamicTypeSize` default to `nil`, leaving every existing call
+/// site unaffected - pass one to snapshot the same view under a specific locale
+/// or text size instead of relying on an accessibility audit's allow-listed
+/// exception to paper over not actually rendering it. The caller picks a
+/// distinct `name` per variant (e.g. `"loaded-accessibility3"`); there's no
+/// automatic filename suffixing, matching how `name` already works today.
+///
 /// Set the `SNAPSHOT_RECORD=1` environment variable to write a new reference
 /// image instead of comparing — the test still fails when recording, so
 /// recording mode can't be left on by accident.
@@ -16,14 +23,22 @@ import XCTest
 public func assertSnapshot(
     of view: some View,
     size: CGSize = CGSize(width: 300, height: 300),
+    locale: Locale? = nil,
+    dynamicTypeSize: DynamicTypeSize? = nil,
     named name: String,
     file: StaticString = #filePath,
     testName: String = #function,
     line: UInt = #line
 ) {
-    let renderer = ImageRenderer(
-        content: view.frame(width: size.width, height: size.height).environment(\.colorScheme, .light)
-    )
+    var content = AnyView(view.environment(\.colorScheme, .light))
+    if let locale {
+        content = AnyView(content.environment(\.locale, locale))
+    }
+    if let dynamicTypeSize {
+        content = AnyView(content.dynamicTypeSize(dynamicTypeSize))
+    }
+
+    let renderer = ImageRenderer(content: content.frame(width: size.width, height: size.height))
     renderer.scale = 2
 
     guard let renderedData = renderer.uiImage?.pngData() else {

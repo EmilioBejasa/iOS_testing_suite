@@ -62,6 +62,17 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    /// Same technique as testDeepLinkToFavoritesOpensFavoritesTab, exercising
+    /// UniversalLinkSource's --universal-link launch argument instead of
+    /// --deep-link, and QuoteBoxRoute's second init?(url:) match arm for the
+    /// https://quotebox.qa/favorites shape a real Universal Link would use.
+    func testUniversalLinkToFavoritesOpensFavoritesTab() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--universal-link", "https://quotebox.qa/favorites"])
+
+        XCTAssertTrue(app.element("favorites.empty").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
     /// `--real-purchases` swaps in the real `StoreKitPurchaseManager` (everything
     /// else stays mocked/deterministic), so tapping Tip Jar drives an actual
     /// `Product.purchase()` call against the local StoreKit configuration the
