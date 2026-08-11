@@ -205,6 +205,31 @@ Favorites tab) — plain Swift, no kit dependency needed for the URL-parsing par
 The real `.onOpenURL` production path and the test launch-argument path both flow
 through the same `QuoteBoxRoute?` binding, so either one can drive navigation.
 
+### `LocationAuthorization` (Swift Package product)
+
+A second permission-gated system service, following `LocalNotifications`'s
+protocol+real+fake shape. Uses `CLAuthorizationStatus` directly (CoreLocation's
+own richer type — `notDetermined`/`restricted`/`denied`/`authorizedWhenInUse`/`authorizedAlways`)
+rather than reinventing a simplified enum that would lose that distinction.
+`SystemLocationAuthorizer` bridges `CLLocationManager`'s delegate-based
+authorization callback to `async`; `MockLocationAuthorizer` is a settable fake.
+
+```swift
+import LocationAuthorization
+
+let authorizer: LocationAuthorizing = MockLocationAuthorizer(status: .authorizedWhenInUse)
+let status = await authorizer.requestWhenInUseAuthorization()
+```
+
+Validated directly in this repo's tests rather than through a QuoteBox feature —
+same reasoning as `KeychainStore`: a public quotes app has no natural need for
+location. There's a second reason here too: automated tests never call
+`requestWhenInUseAuthorization()` against the real authorizer. When status is
+`.notDetermined`, that triggers an actual system permission alert XCTest can't
+dismiss headlessly — unlike `LocalNotifications`, where `--mock-*` launch
+arguments keep the real permission API out of UI tests entirely, testing that
+same interactive path here would risk hanging the run, not just failing it.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of
