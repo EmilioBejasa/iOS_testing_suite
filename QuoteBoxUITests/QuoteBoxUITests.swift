@@ -90,6 +90,21 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    /// The Debug tab only exists in Debug builds (`#if DEBUG` in `RootView`), which
+    /// is what every scheme in `project.yml` builds with by default — including the
+    /// one CI's `xcodebuild test` runs against — so it's expected to be present here.
+    func testDebugTabShowsLaunchArgumentsAndAppState() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["--mock-success"].exists)
+        XCTAssertTrue(app.staticTexts["Tip Jar"].exists)
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.

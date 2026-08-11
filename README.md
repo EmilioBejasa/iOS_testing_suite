@@ -284,6 +284,36 @@ regression on some simulator runtimes where `xcodebuild test` from the CLI (how
 StoreKit configuration to the simulator, even though it works from the Xcode IDE —
 unresolved upstream, not something this repo can work around.
 
+### `DebugOverlay` (Swift Package product)
+
+A drop-in SwiftUI panel (`DebugOverlayView`) that renders `[DebugSection]` — plain
+label/value rows grouped under a title — so a developer can see runtime state
+without attaching a debugger. It's deliberately generic: this module has no
+dependency on any other module in the kit, the same way `UITestHelpers` stays
+generic and lets the consuming app decide what's worth showing. The one thing it
+does provide out of the box is `DebugSection.launchArguments()`, since every
+kit-backed dependency in this repo already switches behavior on a `--flag` (see
+`--mock-success`/`--mock-error`/`--real-purchases`/`--deep-link <url>` throughout
+this README) — seeing which ones are active on a running build is otherwise
+invisible without re-reading the scheme.
+
+```swift
+import DebugOverlay
+
+DebugOverlayView(sections: [
+    .launchArguments(),
+    DebugSection("Session", rows: [DebugRow("User ID", currentUserID)])
+])
+```
+
+`QuoteBox` wires this into a `#if DEBUG`-gated "Debug" tab in `RootView` — visible
+in every scheme in `project.yml` builds by default, including the one CI's
+`xcodebuild test` runs against, so `QuoteBoxUITests/testDebugTabShowsLaunchArgumentsAndAppState`
+can assert against it directly — showing launch arguments alongside `QuoteStore`
+and `TipJarStore`'s current state (quote state, favorites count, reminder state,
+tip jar state), read directly off those stores rather than re-implemented, so the
+panel can't drift out of sync with the state machines it's reporting on.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

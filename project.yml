@@ -34,6 +34,8 @@ targets:
         product: DeepLinkTesting
       - package: iOSTestKit
         product: PurchaseSupport
+      - package: iOSTestKit
+        product: DebugOverlay
     info:
       path: QuoteBox/Info.plist
       properties:
