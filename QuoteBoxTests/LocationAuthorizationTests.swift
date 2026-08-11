@@ -7,7 +7,9 @@ final class LocationAuthorizationTests: XCTestCase {
         let authorizer = MockLocationAuthorizer(status: .authorizedWhenInUse)
 
         XCTAssertEqual(authorizer.currentAuthorizationStatus(), .authorizedWhenInUse)
-        XCTAssertEqual(await authorizer.requestWhenInUseAuthorization(), .authorizedWhenInUse)
+
+        let requestedStatus = await authorizer.requestWhenInUseAuthorization()
+        XCTAssertEqual(requestedStatus, .authorizedWhenInUse)
     }
 
     func testMockDefaultsToNotDetermined() {
