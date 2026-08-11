@@ -7,11 +7,13 @@ struct RootView: View {
     }
 
     @State private var store: QuoteStore
+    @State private var tipJarStore: TipJarStore
     @State private var selectedTab: Tab = .quote
     @Binding private var route: QuoteBoxRoute?
 
-    init(store: QuoteStore, route: Binding<QuoteBoxRoute?>) {
+    init(store: QuoteStore, tipJarStore: TipJarStore, route: Binding<QuoteBoxRoute?>) {
         _store = State(initialValue: store)
+        _tipJarStore = State(initialValue: tipJarStore)
         _route = route
         if case .favorites = route.wrappedValue {
             _selectedTab = State(initialValue: .favorites)
@@ -20,7 +22,7 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            QuoteView(store: store)
+            QuoteView(store: store, tipJarStore: tipJarStore)
                 .tabItem {
                     Label("Quote", systemImage: "quote.bubble")
                         .accessibilityIdentifier("tab.quote")

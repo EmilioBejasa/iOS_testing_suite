@@ -230,6 +230,41 @@ dismiss headlessly — unlike `LocalNotifications`, where `--mock-*` launch
 arguments keep the real permission API out of UI tests entirely, testing that
 same interactive path here would risk hanging the run, not just failing it.
 
+### `PurchaseSupport` (Swift Package product)
+
+A `PurchaseManaging` protocol wrapping StoreKit 2's `Product`/`Transaction` APIs.
+`StoreKitTest`'s `SKTestSession` is itself a local, offline StoreKit simulator —
+built with `disableDialogs = true` specifically to prevent interactive
+confirmation UI during automated tests — so `StoreKitPurchaseManager` is exercised
+for real against a `.storekit` configuration file, not just a hand-written fake.
+
+```swift
+import StoreKitTest
+import PurchaseSupport
+
+let session = try SKTestSession(configurationFileNamed: "Configuration")
+session.disableDialogs = true
+
+let manager = StoreKitPurchaseManager()
+let product = try await manager.product(for: "com.myapp.tip")
+let purchased = try await manager.purchase(product!)
+```
+
+`MockPurchaseManager` exists for app-logic tests that don't need to touch
+StoreKit at all — but `Product` has no public initializer, so unlike the kit's
+other fakes it can't fabricate one from nothing. It holds a real `Product`
+(typically fetched once via a real `StoreKitPurchaseManager` under
+`SKTestSession`) and fakes only the purchase outcome.
+
+`QuoteBox` wires this into a real "Tip Jar" feature (`StoreKitPurchaseManager` in
+production, `MockPurchaseManager` under `--mock-success`/`--mock-error`), the same
+DI pattern as every other kit-backed dependency in the app. It's validated at the
+kit level via `SKTestSession` in `QuoteBoxTests/PurchaseSupportTests.swift`, not
+through `QuoteBoxUITests` — driving a real purchase through the UI needs the Xcode
+*scheme* wired to the `.storekit` config (a separate mechanism from
+`SKTestSession`, since the UI-tested app runs in its own process), which wasn't
+pursued this round.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

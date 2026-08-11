@@ -32,6 +32,8 @@ targets:
         product: LocalNotifications
       - package: iOSTestKit
         product: DeepLinkTesting
+      - package: iOSTestKit
+        product: PurchaseSupport
     info:
       path: QuoteBox/Info.plist
       properties:
@@ -56,6 +58,8 @@ targets:
     platform: iOS
     sources:
       - path: QuoteBoxTests
+    resources:
+      - path: QuoteBoxTests/Configuration.storekit
     dependencies:
       - target: QuoteBox
         embed: false
@@ -75,6 +79,8 @@ targets:
         product: DeepLinkTesting
       - package: iOSTestKit
         product: LocationAuthorization
+      - package: iOSTestKit
+        product: PurchaseSupport
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
