@@ -18,7 +18,10 @@ let package = Package(
         .library(name: "DebugOverlay", targets: ["DebugOverlay"]),
         .library(name: "UserDefaultsStore", targets: ["UserDefaultsStore"]),
         .library(name: "PhotoLibraryAuthorization", targets: ["PhotoLibraryAuthorization"]),
-        .library(name: "BiometricAuthentication", targets: ["BiometricAuthentication"])
+        .library(name: "BiometricAuthentication", targets: ["BiometricAuthentication"]),
+        .library(name: "PushRegistering", targets: ["PushRegistering"]),
+        .library(name: "AppleSignIn", targets: ["AppleSignIn"]),
+        .library(name: "BackgroundTaskScheduling", targets: ["BackgroundTaskScheduling"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -34,6 +37,9 @@ let package = Package(
         .target(name: "DebugOverlay"),
         .target(name: "UserDefaultsStore"),
         .target(name: "PhotoLibraryAuthorization"),
-        .target(name: "BiometricAuthentication")
+        .target(name: "BiometricAuthentication"),
+        .target(name: "PushRegistering"),
+        .target(name: "AppleSignIn"),
+        .target(name: "BackgroundTaskScheduling")
     ]
 )

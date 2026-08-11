@@ -321,6 +321,93 @@ tests the mock fully, and the real authenticator is only exercised via
 `canEvaluate()` — never `evaluate()`, which would trigger the real,
 headless-undismissable Face ID/Touch ID system prompt.
 
+### `PushRegistering` (Swift Package product)
+
+Distinct from `LocalNotifications`'s `ReminderScheduling`, which covers the
+alert/badge/sound *authorization* prompt shared by local and remote
+notifications. This covers the separate second step: registering the device
+with APNs. Unlike a permission request, `registerForRemoteNotifications()`
+never shows a system dialog — the Simulator hands back a synthetic token
+instantly. `SystemPushRegistrar` bridges it to `async` via
+`CheckedContinuation`, but the result only arrives through
+`UIApplicationDelegate` callbacks (`didRegister(deviceToken:)`/
+`didFailToRegister(error:)`), not a completion handler, so a host app has to
+forward those two methods into it itself. `MockPushRegistrar` is a settable
+fake.
+
+```swift
+import PushRegistering
+
+let registrar: PushRegistering = MockPushRegistrar(outcome: .token(deviceTokenData))
+let outcome = await registrar.registerForRemoteNotifications()
+```
+
+Kit-level only — `QuoteBox` has no server that ever sends it a push, so it
+doesn't add the `UIApplicationDelegate` forwarding `SystemPushRegistrar` needs.
+That's *why* `QuoteBoxTests/PushRegisteringTests.swift` only constructs the real
+registrar rather than awaiting it: nothing routes the OS callback into it, so
+awaiting would hang forever waiting on a continuation nothing resumes — a
+structural reason, distinct from `LocationAuthorization`'s "would show a real
+dialog."
+
+### `AppleSignIn` (Swift Package product)
+
+`AppleSignInProviding` wraps `ASAuthorizationAppleIDProvider`/
+`ASAuthorizationController`. `credentialState(for:)` wraps a plain completion
+handler directly as `async` — no delegate, and it never prompts.
+`requestSignIn()` bridges `ASAuthorizationControllerDelegate`'s callbacks the
+same way `SystemLocationAuthorizer` bridges `CLLocationManagerDelegate`, and
+always shows the real system sign-in sheet. Returns a plain `AppleIDCredential`
+struct rather than Apple's own `ASAuthorizationAppleIDCredential` — that type has
+no public initializer (the same constraint `PurchaseSupport` documents for
+StoreKit's `Product`), so `MockAppleSignInProvider` couldn't construct one to
+return. `ASAuthorizationAppleIDProvider.CredentialState` doesn't have that
+problem (a plain enum), so it's kept as Apple's own type, same reasoning
+`LocationAuthorization` gives for keeping `CLAuthorizationStatus` as-is.
+
+```swift
+import AppleSignIn
+
+let provider: AppleSignInProviding = MockAppleSignInProvider()
+let credential = try await provider.requestSignIn()
+```
+
+Kit-level only, same reasoning as `LocationAuthorization`/`KeychainStore` — a
+quotes app has no natural need for user accounts. `credentialState(for:)` is
+safe to exercise for real (resolves quickly with `.notFound` for an unused ID,
+never prompts) and is tested against the real provider in
+`QuoteBoxTests/AppleSignInTests.swift`; `requestSignIn()` is never called
+against the real provider, since it always shows the actual system sheet.
+
+### `BackgroundTaskScheduling` (Swift Package product)
+
+Wraps `BGTaskScheduler.shared` directly — `SystemBackgroundTaskScheduler` needs
+no bridging, but also no safety net. `MockBackgroundTaskScheduler` records what
+a call site asked the scheduler to do (registered identifiers, submitted/
+cancelled requests) rather than faking real scheduling behavior: it can't invoke
+a registered launch handler with a working fake `BGTask`, since — like
+StoreKit's `Product` and `ASAuthorizationAppleIDCredential` above — `BGTask` has
+no public initializer.
+
+```swift
+import BackgroundTaskScheduling
+
+let scheduler: BackgroundTaskScheduling = MockBackgroundTaskScheduler()
+scheduler.register(forTaskWithIdentifier: "com.myapp.refresh") { task in /* ... */ }
+try scheduler.submit(BGAppRefreshTaskRequest(identifier: "com.myapp.refresh"))
+```
+
+Kit-level only, and — a third, distinct reason from `PushRegistering` and
+`AppleSignIn` above — the real implementation isn't exercised *at all* here, not
+even a safe subset. `BGTaskScheduler.register()`/`.submit()` have real,
+version-spanning crash reports tied to registration timing (must happen before
+the app finishes launching) and to identifiers missing from `Info.plist`'s
+`BGTaskSchedulerPermittedIdentifiers`. A plain `XCTest` run is exactly that kind
+of non-standard invocation context, so unlike a system dialog (avoidable) or an
+unresolved continuation (harmless if never awaited), there's credible risk the
+real scheduler crashes the test host outright.
+`QuoteBoxTests/BackgroundTaskSchedulingTests.swift` tests only the mock.
+
 ### `PurchaseSupport` (Swift Package product)
 
 A `PurchaseManaging` protocol wrapping StoreKit 2's `Product`/`Transaction` APIs.
