@@ -157,6 +157,26 @@ if status == .authorized {
 argument (mirroring `--mock-error`) to exercise the denied-permission UI path
 deterministically.
 
+### `SnapshotTesting` (Swift Package product)
+
+`assertSnapshot(of:size:named:)` renders a SwiftUI view via `ImageRenderer` (iOS
+16+) and compares it against a reference PNG checked into the repo next to the
+calling test file, under `__Snapshots__/<TestFileName>/`. Rendered at a fixed size
+and scale rather than the device's actual screen dimensions, so one reference
+image stays valid across an entire CI device matrix instead of needing a baseline
+per simulator — and since it reads/writes the PNG by file path (not as an app
+bundle resource), no Xcode resource wiring is needed either.
+
+```swift
+import SnapshotTesting
+
+assertSnapshot(of: MyView(), size: CGSize(width: 320, height: 500), named: "loaded")
+```
+
+Set `SNAPSHOT_RECORD=1` to write a new reference image instead of comparing — the
+test still fails when recording, so it can't be left on by accident. Runs as a
+plain unit test (no simulator UI interaction, no XCUITest involved).
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

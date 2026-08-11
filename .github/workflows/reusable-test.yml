@@ -98,3 +98,11 @@ jobs:
         with:
           name: test-results-${{ steps.device.outputs.slug }}
           path: TestResults.xcresult
+
+      - name: Upload snapshot test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-${{ steps.device.outputs.slug }}
+          path: '**/__Snapshots__/**'
+          if-no-files-found: ignore
