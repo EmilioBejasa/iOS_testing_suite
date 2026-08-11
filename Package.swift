@@ -13,7 +13,8 @@ let package = Package(
         .library(name: "LocalNotifications", targets: ["LocalNotifications"]),
         .library(name: "SnapshotTesting", targets: ["SnapshotTesting"]),
         .library(name: "DeepLinkTesting", targets: ["DeepLinkTesting"]),
-        .library(name: "LocationAuthorization", targets: ["LocationAuthorization"])
+        .library(name: "LocationAuthorization", targets: ["LocationAuthorization"]),
+        .library(name: "PurchaseSupport", targets: ["PurchaseSupport"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -24,6 +25,7 @@ let package = Package(
         .target(name: "LocalNotifications"),
         .target(name: "SnapshotTesting"),
         .target(name: "DeepLinkTesting"),
-        .target(name: "LocationAuthorization")
+        .target(name: "LocationAuthorization"),
+        .target(name: "PurchaseSupport")
     ]
 )

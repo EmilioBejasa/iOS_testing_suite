@@ -2,6 +2,7 @@ import SwiftUI
 
 struct QuoteView: View {
     let store: QuoteStore
+    let tipJarStore: TipJarStore
 
     var body: some View {
         ScrollView {
@@ -34,6 +35,25 @@ struct QuoteView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("quote.reminderDeniedMessage")
+                }
+
+                switch tipJarStore.state {
+                case .purchased:
+                    Text("Thanks for your support!")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("tipJar.thankYou")
+                case .failed:
+                    Text("Tip Jar isn't available right now.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("tipJar.unavailable")
+                case .idle, .purchasing:
+                    Button("Tip Jar") {
+                        Task { await tipJarStore.purchaseTip() }
+                    }
+                    .disabled(tipJarStore.state == .purchasing)
+                    .accessibilityIdentifier("tipJar.button")
                 }
             }
             .padding()

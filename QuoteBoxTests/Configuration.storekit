@@ -1,0 +1,33 @@
+{
+  "identifier" : "6E4E33F2",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "9C2A8E4A",
+      "localizations" : [
+        {
+          "description" : "Say thanks with a small tip",
+          "displayName" : "Tip Jar",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.quotebox.tip",
+      "referenceName" : "Tip",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}
