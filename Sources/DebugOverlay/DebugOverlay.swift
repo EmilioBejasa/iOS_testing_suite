@@ -56,6 +56,14 @@ public extension DebugSection {
 /// carries no dependency on any other module in this kit, the same way
 /// `UITestHelpers` stays generic and lets the consuming app decide what's worth
 /// showing.
+///
+/// `Package.swift` keeps this package's floor at iOS 13 so the rest of the kit
+/// stays broadly compatible, but this view's body relies on APIs newer than
+/// that (`Section(_:content:)` is iOS 15+, this `foregroundStyle` overload is
+/// iOS 17+) — so it opts in per-symbol here, the same way
+/// `SystemLocationAuthorizer` marks itself `@available(iOS 14.0, *)` rather than
+/// raising the whole package's minimum.
+@available(iOS 17.0, *)
 public struct DebugOverlayView: View {
     private let sections: [DebugSection]
 
