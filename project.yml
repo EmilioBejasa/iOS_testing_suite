@@ -33,6 +33,7 @@ targets:
       - package: iOSTestKit
         product: DeepLinkTesting
     info:
+      path: QuoteBox/Info.plist
       properties:
         CFBundleDisplayName: QuoteBox
         UIApplicationSceneManifest:
