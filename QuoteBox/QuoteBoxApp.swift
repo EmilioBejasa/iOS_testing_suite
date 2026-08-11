@@ -68,16 +68,17 @@ struct QuoteBoxApp: App {
         // Under --mock-*, userDefaultsStore is a fresh InMemoryUserDefaultsStore
         // per launch, so this is always 1 - keeping the Debug tab's Launch Count
         // deterministic for QuoteBoxUITests instead of drifting with however many
-        // times a real device has been launched. --launch-count <n> seeds the
-        // starting value before the increment below, so a UI test can force a
-        // specific launch count deterministically to reach the review-request
-        // threshold without relying on real persisted state.
+        // times a real device has been launched. --launch-count <n> overrides
+        // that directly (launchCount becomes exactly n for this launch), so a UI
+        // test can force a specific value deterministically to reach the
+        // review-request threshold without relying on real persisted state.
         if let index = arguments.firstIndex(of: "--launch-count"),
            arguments.indices.contains(index + 1),
-           let forcedStartingCount = Int(arguments[index + 1]) {
-            userDefaultsStore.setInteger(forcedStartingCount - 1, for: "launchCount")
+           let forcedLaunchCount = Int(arguments[index + 1]) {
+            launchCount = forcedLaunchCount
+        } else {
+            launchCount = userDefaultsStore.integer(for: "launchCount") + 1
         }
-        launchCount = userDefaultsStore.integer(for: "launchCount") + 1
         userDefaultsStore.setInteger(launchCount, for: "launchCount")
 
         didRequestReviewThisLaunch = launchCount == Self.reviewRequestThreshold

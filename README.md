@@ -205,9 +205,9 @@ showed anything either, so the Debug tab's new "App" row honestly reflects only
 "did our own trigger logic fire." Under `--mock-success`,
 `InMemoryUserDefaultsStore` always makes `launchCount == 1`, so a new
 `--launch-count <n>` launch argument (parsed the same way
-`--mock-notifications-denied` already is) seeds the starting count before the
-increment, letting `QuoteBoxUITests.testReviewRequestedAtLaunchCountThreshold`
-force `launchCount` to land on `3` deterministically.
+`--mock-notifications-denied` already is) overrides `launchCount` directly to
+`n` for that launch, letting `QuoteBoxUITests.testReviewRequestedAtLaunchCountThreshold`
+force it to `3` deterministically.
 `QuoteBoxTests/ReviewRequestingTests.swift` calls `SystemReviewRequester()` for
 real — unlike `PushRegistering`/`AppleSignIn`'s prompting halves, this is
 genuinely side-effect-safe, so there's nothing to avoid.

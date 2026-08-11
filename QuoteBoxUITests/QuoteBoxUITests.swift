@@ -129,12 +129,12 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
-    /// --launch-count 2 seeds InMemoryUserDefaultsStore so the increment in
-    /// QuoteBoxApp.init() lands launchCount on 3 - QuoteBoxApp.reviewRequestThreshold
-    /// - deterministically reaching the branch that calls reviewRequester.requestReview()
-    /// without depending on real persisted launch history.
+    /// --launch-count 3 forces launchCount directly to
+    /// QuoteBoxApp.reviewRequestThreshold, deterministically reaching the branch
+    /// that calls reviewRequester.requestReview() without depending on real
+    /// persisted launch history.
     func testReviewRequestedAtLaunchCountThreshold() throws {
-        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--launch-count", "2"])
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--launch-count", "3"])
         XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
 
         app.tab("Debug").tap()
