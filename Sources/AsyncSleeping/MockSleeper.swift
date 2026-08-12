@@ -2,6 +2,7 @@
 /// and returns immediately instead of actually waiting, so tests exercising
 /// retry/backoff/debounce logic run at full speed rather than racing real
 /// wall-clock time, same motivation `TestDateProvider` gives for `TimeControl`.
+@available(iOS 16.0, *)
 public final class MockSleeper: AsyncSleeping {
     public private(set) var requestedDurations: [Duration] = []
 
