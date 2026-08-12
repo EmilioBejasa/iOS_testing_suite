@@ -25,7 +25,10 @@ let package = Package(
         .library(name: "ContactsAuthorization", targets: ["ContactsAuthorization"]),
         .library(name: "NetworkReachabilityMonitoring", targets: ["NetworkReachabilityMonitoring"]),
         .library(name: "CloudKitAccountChecking", targets: ["CloudKitAccountChecking"]),
-        .library(name: "ReviewRequesting", targets: ["ReviewRequesting"])
+        .library(name: "ReviewRequesting", targets: ["ReviewRequesting"]),
+        .library(name: "CameraAuthorization", targets: ["CameraAuthorization"]),
+        .library(name: "MicrophoneAuthorization", targets: ["MicrophoneAuthorization"]),
+        .library(name: "SpeechRecognitionAuthorization", targets: ["SpeechRecognitionAuthorization"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -48,6 +51,9 @@ let package = Package(
         .target(name: "ContactsAuthorization"),
         .target(name: "NetworkReachabilityMonitoring"),
         .target(name: "CloudKitAccountChecking"),
-        .target(name: "ReviewRequesting")
+        .target(name: "ReviewRequesting"),
+        .target(name: "CameraAuthorization"),
+        .target(name: "MicrophoneAuthorization"),
+        .target(name: "SpeechRecognitionAuthorization")
     ]
 )

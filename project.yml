@@ -109,6 +109,12 @@ targets:
         product: CloudKitAccountChecking
       - package: iOSTestKit
         product: ReviewRequesting
+      - package: iOSTestKit
+        product: CameraAuthorization
+      - package: iOSTestKit
+        product: MicrophoneAuthorization
+      - package: iOSTestKit
+        product: SpeechRecognitionAuthorization
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
