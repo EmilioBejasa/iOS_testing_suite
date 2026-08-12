@@ -119,6 +119,8 @@ targets:
         product: CalendarAuthorization
       - package: iOSTestKit
         product: TrackingAuthorization
+      - package: iOSTestKit
+        product: AsyncSleeping
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

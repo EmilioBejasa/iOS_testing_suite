@@ -14,4 +14,18 @@ public extension XCTestCase {
             _ = XCUIApplication().launched(withArguments: arguments)
         }
     }
+
+    /// Same no-fixed-threshold reasoning as `measureLaunch`, applied to memory
+    /// and CPU instead of launch time: `measure`'s baseline comparison doesn't
+    /// travel across a CI matrix of ephemeral, variable-hardware runners, so
+    /// this asserts nothing about the numbers themselves - it exists to get
+    /// `XCTMemoryMetric`/`XCTCPUMetric` readings into the `.xcresult` (already
+    /// uploaded as a CI artifact by `reusable-test.yml`) for anyone tracking
+    /// the trend over time. Takes a block instead of launch arguments, unlike
+    /// `measureLaunch`, since what's worth profiling here is a specific
+    /// in-app interaction (scrolling a list, switching tabs) against an
+    /// already-running app, not the launch itself.
+    func measureMemoryAndCPU(around block: () -> Void) {
+        measure(metrics: [XCTMemoryMetric(), XCTCPUMetric()], block: block)
+    }
 }

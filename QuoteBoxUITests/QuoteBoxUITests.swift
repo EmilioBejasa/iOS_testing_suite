@@ -153,6 +153,23 @@ final class QuoteBoxUITests: XCTestCase {
         measureLaunch(withArguments: ["--mock-success"])
     }
 
+    /// Same "no pass/fail assertion" reasoning as testAppLaunchPerformance,
+    /// applied to memory/CPU instead of launch time - see
+    /// measureMemoryAndCPU's doc comment in UITestHelpers. Repeatedly tapping
+    /// "New Quote" exercises QuoteStore's fetch-and-replace cycle (network
+    /// stub round trip + view re-render) enough times to be worth profiling,
+    /// unlike a single tap.
+    func testFetchingNewQuotesRepeatedlyPerformance() {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        measureMemoryAndCPU {
+            for _ in 0..<5 {
+                app.element("quote.newButton").tap()
+            }
+        }
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.
