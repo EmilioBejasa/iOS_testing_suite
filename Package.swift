@@ -45,7 +45,10 @@ let package = Package(
         .library(name: "CellularDataRestrictionChecking", targets: ["CellularDataRestrictionChecking"]),
         .library(name: "AccessibilityStateProviding", targets: ["AccessibilityStateProviding"]),
         .library(name: "HapticFeedbackProviding", targets: ["HapticFeedbackProviding"]),
-        .library(name: "IdleTimerControlling", targets: ["IdleTimerControlling"])
+        .library(name: "IdleTimerControlling", targets: ["IdleTimerControlling"]),
+        .library(name: "RemindersAuthorization", targets: ["RemindersAuthorization"]),
+        .library(name: "LiveActivityAuthorization", targets: ["LiveActivityAuthorization"]),
+        .library(name: "ClipboardProviding", targets: ["ClipboardProviding"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -88,6 +91,9 @@ let package = Package(
         .target(name: "CellularDataRestrictionChecking"),
         .target(name: "AccessibilityStateProviding"),
         .target(name: "HapticFeedbackProviding"),
-        .target(name: "IdleTimerControlling")
+        .target(name: "IdleTimerControlling"),
+        .target(name: "RemindersAuthorization"),
+        .target(name: "LiveActivityAuthorization"),
+        .target(name: "ClipboardProviding")
     ]
 )

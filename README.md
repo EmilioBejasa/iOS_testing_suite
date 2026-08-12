@@ -1186,6 +1186,74 @@ back round-trips cleanly against the real `UIApplication.shared`, with no
 persistent side effect beyond the test process's lifetime
 (`QuoteBoxTests/IdleTimerControllingTests.swift` does).
 
+### `RemindersAuthorization` (Swift Package product)
+
+Sibling to `CalendarAuthorization`, same `EventKit` framework, different
+entity type (`.reminder`, not `.event`). Uses `EKAuthorizationStatus`
+directly. `SystemRemindersAuthorizer` — `@available(iOS 17.0, *)`, same shape
+as `SystemCalendarAuthorizer`: `requestFullAccessToReminders()` is already a
+native `async throws` API, no completion-handler bridging needed (confirmed
+via WebSearch before writing this: same iOS 17+ shape as
+`requestFullAccessToEvents()`, no entitlement quirk beyond the usual
+usage-description key). `MockRemindersAuthorizer` mirrors
+`MockCalendarAuthorizer`.
+
+```swift
+import RemindersAuthorization
+
+let authorizer: RemindersAuthorizing = MockRemindersAuthorizer(status: .fullAccess)
+let granted = await authorizer.requestAccess()
+```
+
+Kit-level only, no `NSRemindersFullAccessUsageDescription` key in
+`Info.plist` — `QuoteBoxTests/RemindersAuthorizationTests.swift` reads
+status only, matching `CalendarAuthorizationTests`' already-proven treatment.
+
+### `LiveActivityAuthorization` (Swift Package product)
+
+No explicit request API — the user manages Live Activities via Settings, not
+an in-app prompt, same structural shape as `MotionAuthorizing`/
+`BluetoothAuthorizing`. `ActivityAuthorizationInfo` itself is `@available(iOS
+16.1, *)` in Apple's headers (confirmed via WebSearch before writing this) —
+newer than the package's iOS 13 floor, so the protocol,
+`SystemLiveActivityAuthorizer`, AND `MockLiveActivityAuthorizer` are all
+annotated from the start, the same class of fix `BluetoothAuthorizing`
+needed for `CBManagerAuthorization`. `SystemLiveActivityAuthorizer` reads
+`ActivityAuthorizationInfo().areActivitiesEnabled` — no entitlement, no
+prompt.
+
+```swift
+import LiveActivityAuthorization
+
+let authorizer: LiveActivityAuthorizing = MockLiveActivityAuthorizer(areActivitiesEnabled: true)
+```
+
+Kit-level only. Safe to exercise the real authorizer for real
+(`QuoteBoxTests/LiveActivityAuthorizationTests.swift` does).
+
+### `ClipboardProviding` (Swift Package product)
+
+Lets app code copy to/read from the system clipboard through an injectable
+dependency instead of touching `UIPasteboard` directly, so a test can assert
+"did my code copy the right string." `SystemClipboardProvider` wraps
+`UIPasteboard.general.string` (get/set) — deliberately kept synchronous,
+unlike `AccessibilityStateProviding`/`HapticFeedbackProviding`/
+`IdleTimerControlling`: `UIPasteboard` is documented by Apple as safe to use
+off the main thread (designed for cross-process access, unlike most UIKit
+surface), so it hasn't picked up the same `@MainActor` isolation those other
+UIKit types have. `MockClipboardProvider` is a settable fake.
+
+```swift
+import ClipboardProviding
+
+let clipboard: ClipboardProviding = MockClipboardProvider()
+clipboard.copy("hello")
+```
+
+Kit-level only. Safe to exercise the real provider for real — a copy/read
+round trip against the real Simulator pasteboard has no lasting side effect
+worth avoiding (`QuoteBoxTests/ClipboardProvidingTests.swift` does).
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

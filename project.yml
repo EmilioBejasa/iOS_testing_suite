@@ -149,6 +149,12 @@ targets:
         product: HapticFeedbackProviding
       - package: iOSTestKit
         product: IdleTimerControlling
+      - package: iOSTestKit
+        product: RemindersAuthorization
+      - package: iOSTestKit
+        product: LiveActivityAuthorization
+      - package: iOSTestKit
+        product: ClipboardProviding
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
