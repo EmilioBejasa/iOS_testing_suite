@@ -442,6 +442,141 @@ tests the mock fully, and the real authenticator is only exercised via
 `canEvaluate()` — never `evaluate()`, which would trigger the real,
 headless-undismissable Face ID/Touch ID system prompt.
 
+### `CameraAuthorization` (Swift Package product)
+
+A fifth permission-gated system service, same protocol+real+fake shape as
+`LocationAuthorization`/`PhotoLibraryAuthorization`/`ContactsAuthorization`.
+Uses `AVAuthorizationStatus` directly, same reasoning every other module here
+gives for keeping a framework's own status type. `SystemCameraAuthorizer`
+wraps `AVCaptureDevice`: `requestAccess(for:completionHandler:)` is already a
+plain completion handler (not a delegate), so it bridges to `async` directly
+via `CheckedContinuation` — no delegate subclass needed, the same shape as
+`SystemContactsAuthorizer`. `MockCameraAuthorizer` is a settable fake.
+
+```swift
+import CameraAuthorization
+
+let authorizer: CameraAuthorizing = MockCameraAuthorizer(status: .authorized)
+let granted = await authorizer.requestAccess()
+```
+
+Same "kit-level only" treatment as `LocationAuthorization`/`ContactsAuthorization`:
+a quotes app has no natural need for the camera, and automated tests never call
+`requestAccess()` against the real authorizer — only the safe, non-prompting
+`AVCaptureDevice.authorizationStatus(for:)` read
+(`QuoteBoxTests/CameraAuthorizationTests.swift`). Calling the real
+`requestAccess()` here would be worse than just prompting: QuoteBox's
+`Info.plist` has no `NSCameraUsageDescription` key, so it would crash the test
+host outright rather than show a dialog XCTest merely can't dismiss.
+
+### `MicrophoneAuthorization` (Swift Package product)
+
+A sixth permission-gated system service, same shape as `CameraAuthorization`.
+Deliberately checks the `.audio` media type through `AVCaptureDevice` rather
+than `AVAudioApplication`'s `recordPermission` (the other native option, iOS
+17+) — that would raise this module's floor above the package's iOS 13
+minimum for a distinction (audio-session recording vs. capture-device audio)
+no app in this kit needs, and it would give `CameraAuthorization`/
+`MicrophoneAuthorization` two different status enum families instead of
+sharing `AVAuthorizationStatus`. `SystemMicrophoneAuthorizer` bridges the same
+way `SystemCameraAuthorizer` does; `MockMicrophoneAuthorizer` is a settable
+fake.
+
+```swift
+import MicrophoneAuthorization
+
+let authorizer: MicrophoneAuthorizing = MockMicrophoneAuthorizer(status: .authorized)
+let granted = await authorizer.requestAccess()
+```
+
+Same "kit-level only" treatment again, for the same two reasons
+`CameraAuthorization` gives: no natural QuoteBox need, and no
+`NSMicrophoneUsageDescription` key in `Info.plist` to safely request against
+the real authorizer (`QuoteBoxTests/MicrophoneAuthorizationTests.swift` reads
+status only).
+
+### `SpeechRecognitionAuthorization` (Swift Package product)
+
+A seventh permission-gated system service, same protocol+real+fake shape
+again. Uses `SFSpeechRecognizerAuthorizationStatus` directly — it has no
+`.limited`/`.restricted`-style nuance the others carry, but reinventing an
+enum here would make this module the odd one out. `SystemSpeechRecognitionAuthorizer`
+wraps `SFSpeechRecognizer`: `requestAuthorization(_:)` is already a plain
+completion handler, bridged to `async` via `CheckedContinuation` the same way
+`SystemContactsAuthorizer` is. `MockSpeechRecognitionAuthorizer` is a settable
+fake.
+
+```swift
+import SpeechRecognitionAuthorization
+
+let authorizer: SpeechRecognitionAuthorizing = MockSpeechRecognitionAuthorizer(status: .authorized)
+let result = await authorizer.requestAuthorization()
+```
+
+Same "kit-level only" treatment again: no natural QuoteBox need, and no
+`NSSpeechRecognitionUsageDescription` key in `Info.plist` to safely request
+against the real recognizer
+(`QuoteBoxTests/SpeechRecognitionAuthorizationTests.swift` reads status only).
+
+### `CalendarAuthorization` (Swift Package product)
+
+An eighth permission-gated system service, same protocol+real+fake shape as
+`ContactsAuthorization`/`CameraAuthorization`. Uses `EKAuthorizationStatus`
+directly — iOS 17 added `.fullAccess`/`.writeOnly` cases this module would
+lose by reinventing a simplified enum. `SystemCalendarAuthorizer` wraps
+`EKEventStore`: unlike `SystemContactsAuthorizer`, no completion-handler
+bridging is needed — `requestFullAccessToEvents()` (iOS 17+) is already a
+native `async throws` API, the same "already async" story
+`SystemPhotoLibraryAuthorizer` gives for `PHPhotoLibrary`. Deliberately
+targets that iOS 17 API rather than the older, deprecated
+`requestAccess(to:completion:)`: QuoteBox's own deployment target is already
+17.0 (`project.yml`'s `IPHONEOS_DEPLOYMENT_TARGET`), so there's no floor this
+module needs to stay under the way `MicrophoneAuthorization` does for
+`AVAudioApplication`. `MockCalendarAuthorizer` is a settable fake.
+
+```swift
+import CalendarAuthorization
+
+let authorizer: CalendarAuthorizing = MockCalendarAuthorizer(status: .fullAccess)
+let granted = await authorizer.requestAccess()
+```
+
+Same "kit-level only" treatment as `ContactsAuthorization`: a quotes app has
+no natural need for calendar access, and automated tests never call
+`requestAccess()` against the real authorizer — only the safe, non-prompting
+`EKEventStore.authorizationStatus(for:)` read
+(`QuoteBoxTests/CalendarAuthorizationTests.swift`). QuoteBox's `Info.plist`
+has no `NSCalendarsFullAccessUsageDescription` key, so calling the real
+`requestAccess()` here would crash the test host outright rather than just
+show a dialog XCTest can't dismiss.
+
+### `TrackingAuthorization` (Swift Package product)
+
+A ninth permission-gated system service, same shape as the others. Uses
+`ATTrackingManager.AuthorizationStatus` directly, same reasoning every other
+module here gives for keeping a framework's own status type.
+`SystemTrackingAuthorizer` wraps `ATTrackingManager`:
+`requestTrackingAuthorization(completionHandler:)` is a plain completion
+handler, bridged to `async` via `CheckedContinuation` the same way
+`SystemContactsAuthorizer` is. `MockTrackingAuthorizer` is a settable fake.
+
+```swift
+import TrackingAuthorization
+
+let authorizer: TrackingAuthorizing = MockTrackingAuthorizer(status: .authorized)
+let result = await authorizer.requestAuthorization()
+```
+
+Distinct from every other permission in this kit in *why* it matters: it's
+the one gate here tied directly to App Store review requirements (Apple
+rejects apps that track across other companies' apps/websites without first
+showing this prompt), not just a nice-to-have capability check. Still
+kit-level only, for the same structural reasons as the rest: no natural
+QuoteBox need (it doesn't track anything), and no
+`NSUserTrackingUsageDescription` key in `Info.plist` to safely request
+against the real manager
+(`QuoteBoxTests/TrackingAuthorizationTests.swift` reads status only).
+
 ### `PushRegistering` (Swift Package product)
 
 Distinct from `LocalNotifications`'s `ReminderScheduling`, which covers the
