@@ -39,7 +39,16 @@ let package = Package(
         .library(name: "MediaLibraryAuthorization", targets: ["MediaLibraryAuthorization"]),
         .library(name: "DiagnosticReporting", targets: ["DiagnosticReporting"]),
         .library(name: "FeatureFlagging", targets: ["FeatureFlagging"]),
-        .library(name: "AnalyticsLogging", targets: ["AnalyticsLogging"])
+        .library(name: "AnalyticsLogging", targets: ["AnalyticsLogging"]),
+        .library(name: "PowerStateProviding", targets: ["PowerStateProviding"]),
+        .library(name: "BundleInfoProviding", targets: ["BundleInfoProviding"]),
+        .library(name: "CellularDataRestrictionChecking", targets: ["CellularDataRestrictionChecking"]),
+        .library(name: "AccessibilityStateProviding", targets: ["AccessibilityStateProviding"]),
+        .library(name: "HapticFeedbackProviding", targets: ["HapticFeedbackProviding"]),
+        .library(name: "IdleTimerControlling", targets: ["IdleTimerControlling"]),
+        .library(name: "RemindersAuthorization", targets: ["RemindersAuthorization"]),
+        .library(name: "LiveActivityAuthorization", targets: ["LiveActivityAuthorization"]),
+        .library(name: "ClipboardProviding", targets: ["ClipboardProviding"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -76,6 +85,15 @@ let package = Package(
         .target(name: "MediaLibraryAuthorization"),
         .target(name: "DiagnosticReporting"),
         .target(name: "FeatureFlagging"),
-        .target(name: "AnalyticsLogging")
+        .target(name: "AnalyticsLogging"),
+        .target(name: "PowerStateProviding"),
+        .target(name: "BundleInfoProviding"),
+        .target(name: "CellularDataRestrictionChecking"),
+        .target(name: "AccessibilityStateProviding"),
+        .target(name: "HapticFeedbackProviding"),
+        .target(name: "IdleTimerControlling"),
+        .target(name: "RemindersAuthorization"),
+        .target(name: "LiveActivityAuthorization"),
+        .target(name: "ClipboardProviding")
     ]
 )

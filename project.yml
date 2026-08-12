@@ -137,6 +137,24 @@ targets:
         product: FeatureFlagging
       - package: iOSTestKit
         product: AnalyticsLogging
+      - package: iOSTestKit
+        product: PowerStateProviding
+      - package: iOSTestKit
+        product: BundleInfoProviding
+      - package: iOSTestKit
+        product: CellularDataRestrictionChecking
+      - package: iOSTestKit
+        product: AccessibilityStateProviding
+      - package: iOSTestKit
+        product: HapticFeedbackProviding
+      - package: iOSTestKit
+        product: IdleTimerControlling
+      - package: iOSTestKit
+        product: RemindersAuthorization
+      - package: iOSTestKit
+        product: LiveActivityAuthorization
+      - package: iOSTestKit
+        product: ClipboardProviding
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
