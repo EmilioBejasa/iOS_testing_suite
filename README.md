@@ -14,6 +14,74 @@ surface (local persistence, not just network).
 
 ## What's reusable
 
+<details>
+<summary><strong>Table of contents</strong> (50 modules, grouped by theme)</summary>
+
+**Permissions & authorization**
+[Location](#locationauthorization-swift-package-product) ·
+[Photo Library](#photolibraryauthorization-swift-package-product) ·
+[Contacts](#contactsauthorization-swift-package-product) ·
+[Biometric](#biometricauthentication-swift-package-product) ·
+[Camera](#cameraauthorization-swift-package-product) ·
+[Microphone](#microphoneauthorization-swift-package-product) ·
+[Speech Recognition](#speechrecognitionauthorization-swift-package-product) ·
+[Calendar](#calendarauthorization-swift-package-product) ·
+[Reminders](#remindersauthorization-swift-package-product) ·
+[Tracking (ATT)](#trackingauthorization-swift-package-product) ·
+[Health](#healthauthorization-swift-package-product) ·
+[Motion](#motionauthorization-swift-package-product) ·
+[Bluetooth](#bluetoothauthorization-swift-package-product) ·
+[Siri](#siriauthorization-swift-package-product) ·
+[Media Library](#medialibraryauthorization-swift-package-product) ·
+[HomeKit](#homekitauthorization-swift-package-product) ·
+[Focus Status](#focusstatusauthorization-swift-package-product) ·
+[Family Controls](#familycontrolsauthorization-swift-package-product) ·
+[Live Activity](#liveactivityauthorization-swift-package-product) ·
+[Push Registering](#pushregistering-swift-package-product) ·
+[Apple Sign In](#applesignin-swift-package-product) ·
+[Background Task Scheduling](#backgroundtaskscheduling-swift-package-product) ·
+[CloudKit Account Checking](#cloudkitaccountchecking-swift-package-product)
+
+**Device & app state**
+[Power State](#powerstateproviding-swift-package-product) ·
+[Bundle Info](#bundleinfoproviding-swift-package-product) ·
+[Cellular Data Restriction](#cellulardatarestrictionchecking-swift-package-product) ·
+[Accessibility State](#accessibilitystateproviding-swift-package-product) ·
+[Haptic Feedback](#hapticfeedbackproviding-swift-package-product) ·
+[Idle Timer](#idletimercontrolling-swift-package-product) ·
+[Clipboard](#clipboardproviding-swift-package-product) ·
+[Watch Connectivity](#watchconnectivitystateproviding-swift-package-product) ·
+[Network Reachability](#networkreachabilitymonitoring-swift-package-product)
+
+**Persistence & networking**
+[Network Stub](#networkstub-swift-package-product) ·
+[Keychain Store](#keychainstore-swift-package-product) ·
+[UserDefaults Store](#userdefaultsstore-swift-package-product) ·
+[Core Data Test Support](#coredatatestsupport-swift-package-product) ·
+[Purchase Support](#purchasesupport-swift-package-product)
+
+**Testing infrastructure & utilities**
+[UI Test Helpers](#uitesthelpers-swift-package-product) ·
+[Async Sleeping](#asyncsleeping-swift-package-product) ·
+[Time Control](#timecontrol-swift-package-product) ·
+[Snapshot Testing](#snapshottesting-swift-package-product) ·
+[Deep Link Testing](#deeplinktesting-swift-package-product) ·
+[JSON Fixture Loading](#jsonfixtureloading-swift-package-product) ·
+[Localization Completeness Checking](#localizationcompletenesschecking-swift-package-product) ·
+[Debug Overlay](#debugoverlay-swift-package-product)
+
+**App behavior**
+[Review Requesting](#reviewrequesting-swift-package-product) ·
+[Local Notifications](#localnotifications-swift-package-product) ·
+[Diagnostic Reporting](#diagnosticreporting-swift-package-product) ·
+[Feature Flagging](#featureflagging-swift-package-product) ·
+[Analytics Logging](#analyticslogging-swift-package-product)
+
+**Also see:** [why CarPlay/MultipeerConnectivity/NFC aren't covered](#a-note-on-frameworks-this-kit-doesnt-cover) ·
+[Reusable GitHub Actions workflows](#reusable-github-actions-workflows)
+
+</details>
+
 ### `NetworkStub` (Swift Package product)
 
 `URLProtocolStub` intercepts requests on a configured `URLSession` so any
