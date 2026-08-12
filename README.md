@@ -786,9 +786,15 @@ let authorizer: SiriAuthorizing = MockSiriAuthorizer(status: .authorized)
 let result = await authorizer.requestAuthorization()
 ```
 
-Kit-level only, no `NSSiriUsageDescription` key in `Info.plist` - same
-crash-risk-if-requested-for-real story as Camera/Mic/Speech/Tracking/Calendar,
-so `QuoteBoxTests/SiriAuthorizationTests.swift` reads status only.
+Kit-level only, and stricter than every other permission module in this kit:
+`INPreferences` requires the `com.apple.developer.siri` entitlement QuoteBox
+doesn't have just to *use the class at all* - even the normally-safe status
+read crashes without it (`NSInternalInconsistencyException`, found via a
+failed CI run, not assumed in advance). So
+`QuoteBoxTests/SiriAuthorizationTests.swift` doesn't call any method on the
+real authorizer, only constructs it - the same "documented risk, untested
+real path" treatment `HealthAuthorizationTests`/`CloudKitAccountCheckingTests`
+give their real authorizers.
 
 ### `MediaLibraryAuthorization` (Swift Package product)
 
