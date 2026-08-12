@@ -48,7 +48,10 @@ let package = Package(
         .library(name: "IdleTimerControlling", targets: ["IdleTimerControlling"]),
         .library(name: "RemindersAuthorization", targets: ["RemindersAuthorization"]),
         .library(name: "LiveActivityAuthorization", targets: ["LiveActivityAuthorization"]),
-        .library(name: "ClipboardProviding", targets: ["ClipboardProviding"])
+        .library(name: "ClipboardProviding", targets: ["ClipboardProviding"]),
+        .library(name: "FocusStatusAuthorization", targets: ["FocusStatusAuthorization"]),
+        .library(name: "FamilyControlsAuthorization", targets: ["FamilyControlsAuthorization"]),
+        .library(name: "JSONFixtureLoading", targets: ["JSONFixtureLoading"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -94,6 +97,9 @@ let package = Package(
         .target(name: "IdleTimerControlling"),
         .target(name: "RemindersAuthorization"),
         .target(name: "LiveActivityAuthorization"),
-        .target(name: "ClipboardProviding")
+        .target(name: "ClipboardProviding"),
+        .target(name: "FocusStatusAuthorization"),
+        .target(name: "FamilyControlsAuthorization"),
+        .target(name: "JSONFixtureLoading")
     ]
 )

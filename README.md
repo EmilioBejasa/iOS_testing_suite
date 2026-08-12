@@ -1254,6 +1254,88 @@ Kit-level only. Safe to exercise the real provider for real — a copy/read
 round trip against the real Simulator pasteboard has no lasting side effect
 worth avoiding (`QuoteBoxTests/ClipboardProvidingTests.swift` does).
 
+### `FocusStatusAuthorization` (Swift Package product)
+
+Same protocol+real+fake shape as `SiriAuthorization`. Uses
+`INFocusStatusAuthorizationStatus` directly.
+`INFocusStatusCenter`/`INFocusStatusAuthorizationStatus` is `@available(iOS
+15.0, *)` (confirmed via WebSearch before writing this), annotated on the
+protocol, mock, AND system class from the start. `SystemFocusStatusAuthorizer`
+wraps `INFocusStatusCenter`: `requestAuthorization(_:)` is a plain completion
+handler, bridged to `async` via `CheckedContinuation` — same shape as
+`SystemSiriAuthorizer`. `MockFocusStatusAuthorizer` is a settable fake.
+
+```swift
+import FocusStatusAuthorization
+
+let authorizer: FocusStatusAuthorizing = MockFocusStatusAuthorizer(status: .authorized)
+let result = await authorizer.requestAuthorization()
+```
+
+`INFocusStatusCenter` is in the same Intents-framework family as
+`INPreferences` (Siri) and requires the "Communication Notifications"
+capability just to use the class — same "documented risk, untested real
+path" treatment `SiriAuthorizationTests` already learned to give
+`INPreferences`, applied here proactively:
+`QuoteBoxTests/FocusStatusAuthorizationTests.swift` only constructs
+`SystemFocusStatusAuthorizer()`, never calls a method on it for real.
+
+### `FamilyControlsAuthorization` (Swift Package product)
+
+Wraps Screen Time's `AuthorizationCenter`. Uses `AuthorizationStatus`
+directly — a top-level type in the `FamilyControls` module, not nested
+inside `AuthorizationCenter` despite `authorizationStatus` being one of its
+properties (a real compile failure caught this wrong assumption, not
+something verified in advance — fixed here). The `FamilyControls`
+framework is `@available(iOS 16.0, *)`, annotated on the protocol, mock, AND
+system class from the start. `SystemFamilyControlsAuthorizer` wraps
+`AuthorizationCenter.shared`: `requestAuthorization(for:)` is already a
+native `async throws` API (unlike Siri/Focus Status's completion-handler
+shape) — any thrown error collapses to `false`, the same "collapse thrown
+error" pattern `CloudKitAccountChecking` uses for `CKContainer.accountStatus()`.
+`MockFamilyControlsAuthorizer` is a settable fake.
+
+```swift
+import FamilyControlsAuthorization
+
+let authorizer: FamilyControlsAuthorizing = MockFamilyControlsAuthorizer(status: .approved)
+```
+
+Requires the privileged `com.apple.developer.family-controls` entitlement
+(confirmed via WebSearch — Apple approval required to ship, an even
+stricter tier than `HealthAuthorization`'s entitlement) — QuoteBox doesn't
+have it. Treated with `HealthAuthorization`/`CloudKitAccountChecking`'s most
+conservative test caution as a result:
+`QuoteBoxTests/FamilyControlsAuthorizationTests.swift` only constructs
+`SystemFamilyControlsAuthorizer()`, genuinely uncertain whether even the
+status read would be crash-safe without the entitlement (unlike Siri/Focus
+Status, `requestAuthorization` here is `async throws` rather than a
+hard-crashing call, so the failure mode might differ) — defaulting to the
+conservative option rather than guessing.
+
+### `JSONFixtureLoading` (Swift Package product)
+
+Not a protocol+real+fake module — there's nothing to fake, it's already a
+pure, deterministic function, same "single-purpose utility" shape as
+`SnapshotTesting`/`DeepLinkTesting`. Complements `NetworkStub`'s canned HTTP
+responses with canned local JSON fixtures for tests that need realistic
+decoded data without a network round trip at all.
+
+```swift
+import JSONFixtureLoading
+
+struct SampleQuote: Decodable { let text: String }
+
+let quote = try JSONFixtureLoading.load("sample-quote", as: SampleQuote.self, bundle: Bundle(for: Self.self))
+```
+
+`JSONFixtureLoading.load(_:as:bundle:decoder:)` looks up `"\(name).json"` in
+the given bundle and decodes it, throwing `FixtureLoadingError.fixtureNotFound(name)`
+if the resource is missing. Validated against a real fixture file checked
+into the repo (`QuoteBoxTests/Fixtures/sample-fixture.json`, wired into
+`project.yml`'s `QuoteBoxTests` `resources:`) in
+`QuoteBoxTests/JSONFixtureLoadingTests.swift`.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

@@ -68,6 +68,7 @@ targets:
       - path: QuoteBoxTests
     resources:
       - path: QuoteBoxTests/Configuration.storekit
+      - path: QuoteBoxTests/Fixtures/sample-fixture.json
     dependencies:
       - target: QuoteBox
         embed: false
@@ -155,6 +156,12 @@ targets:
         product: LiveActivityAuthorization
       - package: iOSTestKit
         product: ClipboardProviding
+      - package: iOSTestKit
+        product: FocusStatusAuthorization
+      - package: iOSTestKit
+        product: FamilyControlsAuthorization
+      - package: iOSTestKit
+        product: JSONFixtureLoading
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
