@@ -34,7 +34,10 @@ let package = Package(
         .library(name: "AsyncSleeping", targets: ["AsyncSleeping"]),
         .library(name: "HealthAuthorization", targets: ["HealthAuthorization"]),
         .library(name: "MotionAuthorization", targets: ["MotionAuthorization"]),
-        .library(name: "BluetoothAuthorization", targets: ["BluetoothAuthorization"])
+        .library(name: "BluetoothAuthorization", targets: ["BluetoothAuthorization"]),
+        .library(name: "SiriAuthorization", targets: ["SiriAuthorization"]),
+        .library(name: "MediaLibraryAuthorization", targets: ["MediaLibraryAuthorization"]),
+        .library(name: "DiagnosticReporting", targets: ["DiagnosticReporting"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -66,6 +69,9 @@ let package = Package(
         .target(name: "AsyncSleeping"),
         .target(name: "HealthAuthorization"),
         .target(name: "MotionAuthorization"),
-        .target(name: "BluetoothAuthorization")
+        .target(name: "BluetoothAuthorization"),
+        .target(name: "SiriAuthorization"),
+        .target(name: "MediaLibraryAuthorization"),
+        .target(name: "DiagnosticReporting")
     ]
 )

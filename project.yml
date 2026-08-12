@@ -127,6 +127,12 @@ targets:
         product: MotionAuthorization
       - package: iOSTestKit
         product: BluetoothAuthorization
+      - package: iOSTestKit
+        product: SiriAuthorization
+      - package: iOSTestKit
+        product: MediaLibraryAuthorization
+      - package: iOSTestKit
+        product: DiagnosticReporting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

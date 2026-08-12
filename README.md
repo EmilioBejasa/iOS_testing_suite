@@ -711,6 +711,71 @@ let status = authorizer.currentAuthorizationStatus()
 Kit-level only; the real status read is safe to exercise for real
 (`QuoteBoxTests/BluetoothAuthorizationTests.swift` does).
 
+### `SiriAuthorization` (Swift Package product)
+
+A thirteenth permission-gated system service, same protocol+real+fake shape
+as `SpeechRecognitionAuthorization`. Uses `INSiriAuthorizationStatus`
+directly. `SystemSiriAuthorizer` wraps `INPreferences`:
+`requestSiriAuthorization(_:)` is a plain completion handler, bridged to
+`async` via `CheckedContinuation`. `MockSiriAuthorizer` is a settable fake.
+
+```swift
+import SiriAuthorization
+
+let authorizer: SiriAuthorizing = MockSiriAuthorizer(status: .authorized)
+let result = await authorizer.requestAuthorization()
+```
+
+Kit-level only, no `NSSiriUsageDescription` key in `Info.plist` - same
+crash-risk-if-requested-for-real story as Camera/Mic/Speech/Tracking/Calendar,
+so `QuoteBoxTests/SiriAuthorizationTests.swift` reads status only.
+
+### `MediaLibraryAuthorization` (Swift Package product)
+
+A fourteenth permission-gated system service, same shape again. Uses
+`MPMediaLibraryAuthorizationStatus` directly. `SystemMediaLibraryAuthorizer`
+wraps `MPMediaLibrary`: `requestAuthorization(_:)` is a plain completion
+handler, bridged to `async` via `CheckedContinuation`.
+`MockMediaLibraryAuthorizer` is a settable fake.
+
+```swift
+import MediaLibraryAuthorization
+
+let authorizer: MediaLibraryAuthorizing = MockMediaLibraryAuthorizer(status: .authorized)
+let result = await authorizer.requestAuthorization()
+```
+
+Kit-level only, no `NSAppleMusicUsageDescription` key in `Info.plist` -
+`QuoteBoxTests/MediaLibraryAuthorizationTests.swift` reads status only.
+
+### `DiagnosticReporting` (Swift Package product)
+
+Wraps `MetricKit`, a system framework with a completely different shape from
+every authorization module above: there's no permission prompt and no status
+enum at all - `MXMetricManager.shared.add(subscriber:)`/`.remove(subscriber:)`
+is pure opt-in subscription, so this protocol just exposes start/stop rather
+than a status read. `SystemDiagnosticReporter` is an `NSObject` subclass
+(`MXMetricManagerSubscriber` requires `NSObjectProtocol` conformance, unlike
+most other `System*` types in this kit) with no-op `didReceive` handlers -
+`MXMetricPayload`/`MXDiagnosticPayload` have no public initializer, the same
+"can't fabricate Apple's own type" story `BackgroundTaskScheduling`/
+`PurchaseSupport`/`AppleSignIn` already give. `MockDiagnosticReporter` records
+whether reporting was started rather than faking real payloads, the same
+"records what a call site asked for" shape `MockBackgroundTaskScheduler` uses.
+
+```swift
+import DiagnosticReporting
+
+let reporter: DiagnosticReporting = MockDiagnosticReporter()
+reporter.startReporting()
+```
+
+Kit-level only - no natural QuoteBox feature - but unlike every other
+kit-level-only module, MetricKit has no prompt and no crash risk from a
+missing entitlement, so `QuoteBoxTests/DiagnosticReportingTests.swift`
+exercises the real reporter's start/stop fully, the same "safe to call for
+real" category `ReviewRequesting` is in.
+
 ### `PushRegistering` (Swift Package product)
 
 Distinct from `LocalNotifications`'s `ReminderScheduling`, which covers the
