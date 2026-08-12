@@ -625,6 +625,92 @@ QuoteBox need (it doesn't track anything), and no
 against the real manager
 (`QuoteBoxTests/TrackingAuthorizationTests.swift` reads status only).
 
+### `HealthAuthorization` (Swift Package product)
+
+A tenth permission-gated system service, same protocol+real+fake shape as
+`ContactsAuthorization`. Uses `HKAuthorizationStatus` directly, same reasoning
+every other module here gives for keeping a framework's own status type.
+Parameterized by `HKObjectType` rather than a single fixed data type, since
+HealthKit authorization is always scoped per data type - there's no single
+"is HealthKit authorized" status the way Contacts or Photos have.
+`SystemHealthAuthorizer` wraps `HKHealthStore`, deliberately bridging the
+older completion-handler `requestAuthorization(toShare:read:completion:)`
+(available since iOS 8) via `CheckedContinuation` rather than adopting the
+iOS 15+ native `async throws` overload - keeps this module at the package's
+iOS 13 floor with no extra `@available` annotations needed anywhere, same
+reasoning `MicrophoneAuthorization` gives for avoiding `AVAudioApplication`.
+`MockHealthAuthorizer` is a settable fake whose `currentAuthorizationStatus(for:)`
+ignores its `type` parameter and returns the one stored status - a per-type
+dictionary would be premature abstraction nothing here needs.
+
+```swift
+import HealthAuthorization
+
+let authorizer: HealthAuthorizing = MockHealthAuthorizer(status: .sharingAuthorized)
+let granted = await authorizer.requestAuthorization(toShare: [], read: [stepCountType])
+```
+
+Treated with `CloudKitAccountChecking`'s most conservative caution, not
+Contacts/Location's: HealthKit needs the `com.apple.developer.healthkit`
+entitlement QuoteBox doesn't have, and HealthKit is unavailable on iPad
+entirely (`HKHealthStore.isHealthDataAvailable()` is always `false` there) -
+this repo's own CI device matrix includes an iPad. So
+`QuoteBoxTests/HealthAuthorizationTests.swift` doesn't even call the
+normally-safe status read against the real authorizer - it only constructs
+`SystemHealthAuthorizer()`, the same "documented risk, untested real path"
+treatment `CloudKitAccountCheckingTests` gives `CKContainer.accountStatus()`.
+
+### `MotionAuthorization` (Swift Package product)
+
+An eleventh permission-gated system service - but unlike every other
+authorization module in this kit, there's no explicit "request authorization"
+API: Core Motion prompts implicitly the first time the app starts using the
+service (`CMMotionActivityManager.startActivityUpdates`), not via a separate
+async call. So `MotionAuthorizing` only has a status read, no
+`requestAuthorization()`. Uses `CMAuthorizationStatus` directly.
+`SystemMotionAuthorizer` wraps `CMMotionActivityManager.authorizationStatus()`
+- a static, synchronous, non-prompting read, so no bridging is needed.
+`MockMotionAuthorizer` is a settable fake.
+
+```swift
+import MotionAuthorization
+
+let authorizer: MotionAuthorizing = MockMotionAuthorizer(status: .authorized)
+let status = authorizer.currentAuthorizationStatus()
+```
+
+Kit-level only - no natural QuoteBox need - but the real authorizer's status
+read is safe to exercise for real (`QuoteBoxTests/MotionAuthorizationTests.swift`
+does), same as most other modules' status-only-safe pattern.
+
+### `BluetoothAuthorization` (Swift Package product)
+
+A twelfth permission-gated system service, same structural outlier as
+`MotionAuthorization`: Bluetooth authorization is requested implicitly when a
+`CBCentralManager` is instantiated and used, not via a separate explicit
+request call, so this protocol only has a status read too.
+
+`CBManagerAuthorization`/`CBManager.authorization` is `@available(iOS 13.1, *)`
+in Apple's headers - newer than the package's iOS 13 floor - so merely naming
+the type requires this annotation on the protocol, `SystemBluetoothAuthorizer`,
+*and* `MockBluetoothAuthorizer` alike, the same class of fix
+`TrackingAuthorizing` needed for `ATTrackingManager` and `AsyncSleeping`
+needed for `Duration`. Applied here from the start rather than discovered via
+a failed CI run. `SystemBluetoothAuthorizer` reads `CBManager.authorization`
+(static, non-prompting - reading it doesn't trigger the prompt, only
+actually starting/using a `CBCentralManager` does). `MockBluetoothAuthorizer`
+is a settable fake.
+
+```swift
+import BluetoothAuthorization
+
+let authorizer: BluetoothAuthorizing = MockBluetoothAuthorizer(status: .allowedAlways)
+let status = authorizer.currentAuthorizationStatus()
+```
+
+Kit-level only; the real status read is safe to exercise for real
+(`QuoteBoxTests/BluetoothAuthorizationTests.swift` does).
+
 ### `PushRegistering` (Swift Package product)
 
 Distinct from `LocalNotifications`'s `ReminderScheduling`, which covers the
