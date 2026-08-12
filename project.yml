@@ -121,6 +121,12 @@ targets:
         product: TrackingAuthorization
       - package: iOSTestKit
         product: AsyncSleeping
+      - package: iOSTestKit
+        product: HealthAuthorization
+      - package: iOSTestKit
+        product: MotionAuthorization
+      - package: iOSTestKit
+        product: BluetoothAuthorization
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
