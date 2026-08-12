@@ -133,6 +133,66 @@ also exercises `SystemSleeper` for real with a short duration: unlike the
 permission-gated modules above, there's no system prompt or crash risk here,
 just an actual (brief) wait.
 
+### `FeatureFlagging` (Swift Package product)
+
+The one module pair in this kit (with `AnalyticsLogging` below) that doesn't
+wrap a single Apple framework — every other module here wraps a real system
+API; this fills a very common real-world testing need instead: letting app
+code ask "is this flag on?" through an injectable dependency so a test can
+force either side of a flag-gated code path deterministically.
+`SystemFeatureFlags` wraps raw `UserDefaults` directly rather than depending
+on this kit's own `UserDefaultsStore` target — every module in this kit stays
+independent (see `DebugOverlay`'s note on staying dependency-free below), so
+this doesn't introduce the kit's first intra-module dependency. **Scope
+note**, matching `SnapshotTesting`'s honesty pattern for what it doesn't
+cover: this is a local override/QA-toggle mechanism (a bool read from
+`"featureFlag.<name>"`), not a remote-config client — there's no single
+vendor-neutral Apple framework for server-fetched flags the way there is for
+every permission module above. `MockFeatureFlags` is a dictionary-backed
+settable fake (`overrides: [String: Bool]`, unset flags default `false`) —
+the actually valuable half for deterministic tests.
+
+```swift
+import FeatureFlagging
+
+let flags: FeatureFlagging = MockFeatureFlags(overrides: ["newQuoteLayout": true])
+if flags.isEnabled("newQuoteLayout") { /* ... */ }
+```
+
+Kit-level only — no code in `QuoteBox` is currently flag-gated. Both halves
+are safe to test for real: `UserDefaults` reads/writes never prompt or crash,
+so `QuoteBoxTests/FeatureFlaggingTests.swift` exercises `SystemFeatureFlags`
+against a real (scratch, suite-scoped) `UserDefaults` instance, not just the
+mock.
+
+### `AnalyticsLogging` (Swift Package product)
+
+Same scope as `FeatureFlagging`: lets app code report an analytics event
+through an injectable dependency instead of calling a hardcoded analytics SDK
+directly, so a test can assert on what was logged instead of needing a real
+analytics backend. `SystemAnalyticsLogger` wraps `os.Logger` (`OSLog`, iOS
+14+) as the closest first-party fit — there's no single Apple framework for
+custom event analytics the way there is for, say, location or contacts, so
+this isn't a stand-in for a specific vendor SDK. Only `SystemAnalyticsLogger`
+itself needs `@available(iOS 14.0, *)`: unlike `BluetoothAuthorization`'s
+`CBManagerAuthorization`, `Logger` never appears in `AnalyticsLogging`'s own
+protocol signature, so the gate doesn't need to propagate there.
+`MockAnalyticsLogger` records every logged call as a `[LoggedEvent]` (a small
+`Equatable` struct, not a raw tuple, so tests can `XCTAssertEqual` cleanly) —
+the valuable half for asserting "did my code log the right event."
+
+```swift
+import AnalyticsLogging
+
+let logger: AnalyticsLogging = MockAnalyticsLogger()
+logger.log(event: "quote_favorited", parameters: ["quoteID": "42"])
+```
+
+Kit-level only — no analytics events exist in `QuoteBox` yet. Both halves
+safe to test for real: logging never prompts or crashes, so
+`QuoteBoxTests/AnalyticsLoggingTests.swift` exercises `SystemAnalyticsLogger`
+for real too, not just the mock.
+
 ### `TimeControl` (Swift Package product)
 
 A `DateProviding` protocol so app code asks "what time is it?" through an
