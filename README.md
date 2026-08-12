@@ -1282,8 +1282,11 @@ path" treatment `SiriAuthorizationTests` already learned to give
 
 ### `FamilyControlsAuthorization` (Swift Package product)
 
-Wraps Screen Time's `AuthorizationCenter`. Uses
-`AuthorizationCenter.AuthorizationStatus` directly. The `FamilyControls`
+Wraps Screen Time's `AuthorizationCenter`. Uses `AuthorizationStatus`
+directly — a top-level type in the `FamilyControls` module, not nested
+inside `AuthorizationCenter` despite `authorizationStatus` being one of its
+properties (a real compile failure caught this wrong assumption, not
+something verified in advance — fixed here). The `FamilyControls`
 framework is `@available(iOS 16.0, *)`, annotated on the protocol, mock, AND
 system class from the start. `SystemFamilyControlsAuthorizer` wraps
 `AuthorizationCenter.shared`: `requestAuthorization(for:)` is already a

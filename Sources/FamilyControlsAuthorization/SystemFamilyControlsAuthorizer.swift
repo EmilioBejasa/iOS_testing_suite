@@ -9,7 +9,7 @@ import FamilyControls
 public final class SystemFamilyControlsAuthorizer: FamilyControlsAuthorizing {
     public init() {}
 
-    public func currentAuthorizationStatus() -> AuthorizationCenter.AuthorizationStatus {
+    public func currentAuthorizationStatus() -> AuthorizationStatus {
         AuthorizationCenter.shared.authorizationStatus
     }
 
