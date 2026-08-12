@@ -3,6 +3,7 @@ import AppTrackingTransparency
 /// Deterministic stand-in for `SystemTrackingAuthorizer` - safe to exercise in
 /// any test, since it never touches the real tracking manager or shows a
 /// system prompt.
+@available(iOS 14.0, *)
 public final class MockTrackingAuthorizer: TrackingAuthorizing {
     public var status: ATTrackingManager.AuthorizationStatus
     public var authorizationResult: ATTrackingManager.AuthorizationStatus
