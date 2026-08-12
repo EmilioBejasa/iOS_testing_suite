@@ -85,6 +85,54 @@ hardware noise, not real regressions. The numbers still land in the `.xcresult`
 (already uploaded as a CI artifact by `reusable-test.yml`) for anyone tracking the
 trend over time. `QuoteBoxUITests.testAppLaunchPerformance` exercises it.
 
+`measureMemoryAndCPU(around:)` applies the same no-fixed-threshold reasoning to
+`XCTMemoryMetric`/`XCTCPUMetric` instead of launch time. It takes a block
+rather than launch arguments, unlike `measureLaunch` — what's worth profiling
+here is a specific in-app interaction against an already-running app (scrolling
+a list, switching tabs, repeating a fetch), not the launch itself:
+
+```swift
+func testScrollingPerformance() {
+    let app = XCUIApplication().launched(withArguments: ["--mock-success"])
+    measureMemoryAndCPU {
+        app.element("myList.list").swipeUp()
+    }
+}
+```
+
+`QuoteBoxUITests.testFetchingNewQuotesRepeatedlyPerformance` exercises it,
+repeatedly tapping "New Quote" to put `QuoteStore`'s fetch-and-replace cycle
+(network stub round trip + view re-render) through enough iterations to be
+worth profiling.
+
+### `AsyncSleeping` (Swift Package product)
+
+The async counterpart to `TimeControl`'s `DateProviding` — that lets app code
+ask "what time is it?" through an injectable dependency instead of calling
+`Date()` directly; this lets app code ask "wait this long" through an
+injectable dependency instead of calling `Task.sleep` directly. Matters for
+any code that delays itself (retry backoff, debounce, polling loops) rather
+than just reading the current time — a test driving that code through
+`TimeControl` alone would still sit through the real wait.
+`SystemSleeper` wraps `Task.sleep(for:)` (iOS 16+) directly — no bridging
+needed, it's already the real `async throws` primitive every other module's
+`System*` type is built on top of. `MockSleeper` records requested durations
+and returns immediately instead of actually waiting.
+
+```swift
+import AsyncSleeping
+
+let sleeper: AsyncSleeping = MockSleeper()
+try await sleeper.sleep(for: .seconds(30)) // returns immediately in tests
+```
+
+Kit-level only — no code in `QuoteBox` currently self-delays (no retry
+backoff, debounce, or polling loop), so there's nothing natural to wire it
+into yet. `QuoteBoxTests/AsyncSleepingTests.swift` tests the mock fully, and
+also exercises `SystemSleeper` for real with a short duration: unlike the
+permission-gated modules above, there's no system prompt or crash risk here,
+just an actual (brief) wait.
+
 ### `TimeControl` (Swift Package product)
 
 A `DateProviding` protocol so app code asks "what time is it?" through an

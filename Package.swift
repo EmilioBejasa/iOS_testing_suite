@@ -30,7 +30,8 @@ let package = Package(
         .library(name: "MicrophoneAuthorization", targets: ["MicrophoneAuthorization"]),
         .library(name: "SpeechRecognitionAuthorization", targets: ["SpeechRecognitionAuthorization"]),
         .library(name: "CalendarAuthorization", targets: ["CalendarAuthorization"]),
-        .library(name: "TrackingAuthorization", targets: ["TrackingAuthorization"])
+        .library(name: "TrackingAuthorization", targets: ["TrackingAuthorization"]),
+        .library(name: "AsyncSleeping", targets: ["AsyncSleeping"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -58,6 +59,7 @@ let package = Package(
         .target(name: "MicrophoneAuthorization"),
         .target(name: "SpeechRecognitionAuthorization"),
         .target(name: "CalendarAuthorization"),
-        .target(name: "TrackingAuthorization")
+        .target(name: "TrackingAuthorization"),
+        .target(name: "AsyncSleeping")
     ]
 )
