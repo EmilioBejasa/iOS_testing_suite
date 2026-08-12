@@ -133,6 +133,10 @@ targets:
         product: MediaLibraryAuthorization
       - package: iOSTestKit
         product: DiagnosticReporting
+      - package: iOSTestKit
+        product: FeatureFlagging
+      - package: iOSTestKit
+        product: AnalyticsLogging
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

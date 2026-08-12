@@ -37,7 +37,9 @@ let package = Package(
         .library(name: "BluetoothAuthorization", targets: ["BluetoothAuthorization"]),
         .library(name: "SiriAuthorization", targets: ["SiriAuthorization"]),
         .library(name: "MediaLibraryAuthorization", targets: ["MediaLibraryAuthorization"]),
-        .library(name: "DiagnosticReporting", targets: ["DiagnosticReporting"])
+        .library(name: "DiagnosticReporting", targets: ["DiagnosticReporting"]),
+        .library(name: "FeatureFlagging", targets: ["FeatureFlagging"]),
+        .library(name: "AnalyticsLogging", targets: ["AnalyticsLogging"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -72,6 +74,8 @@ let package = Package(
         .target(name: "BluetoothAuthorization"),
         .target(name: "SiriAuthorization"),
         .target(name: "MediaLibraryAuthorization"),
-        .target(name: "DiagnosticReporting")
+        .target(name: "DiagnosticReporting"),
+        .target(name: "FeatureFlagging"),
+        .target(name: "AnalyticsLogging")
     ]
 )
