@@ -42,7 +42,10 @@ let package = Package(
         .library(name: "AnalyticsLogging", targets: ["AnalyticsLogging"]),
         .library(name: "PowerStateProviding", targets: ["PowerStateProviding"]),
         .library(name: "BundleInfoProviding", targets: ["BundleInfoProviding"]),
-        .library(name: "CellularDataRestrictionChecking", targets: ["CellularDataRestrictionChecking"])
+        .library(name: "CellularDataRestrictionChecking", targets: ["CellularDataRestrictionChecking"]),
+        .library(name: "AccessibilityStateProviding", targets: ["AccessibilityStateProviding"]),
+        .library(name: "HapticFeedbackProviding", targets: ["HapticFeedbackProviding"]),
+        .library(name: "IdleTimerControlling", targets: ["IdleTimerControlling"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -82,6 +85,9 @@ let package = Package(
         .target(name: "AnalyticsLogging"),
         .target(name: "PowerStateProviding"),
         .target(name: "BundleInfoProviding"),
-        .target(name: "CellularDataRestrictionChecking")
+        .target(name: "CellularDataRestrictionChecking"),
+        .target(name: "AccessibilityStateProviding"),
+        .target(name: "HapticFeedbackProviding"),
+        .target(name: "IdleTimerControlling")
     ]
 )

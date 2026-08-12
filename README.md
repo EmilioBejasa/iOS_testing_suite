@@ -1113,6 +1113,79 @@ safe given no entitlement is required, though a fresh Simulator with no
 cellular hardware may just report `.restrictedStateUnknown` rather than a
 real value.
 
+### `AccessibilityStateProviding` (Swift Package product)
+
+Lets app code ask "is VoiceOver/Reduce Motion on?" through an injectable
+dependency instead of reading `UIAccessibility` directly, so a test can
+force either side of an accessibility-aware code path (skip an animation,
+announce state changes) deterministically. Methods are `async` from the
+start, not because the underlying reads are slow, but because
+`UIAccessibility`'s properties are UIKit and recent SDKs increasingly mark
+UIKit surface `@MainActor` — same reasoning `SystemReviewRequester` already
+established for `UIApplication.shared` in this repo, applied proactively
+here rather than discovered via a build failure.
+`SystemAccessibilityStateProvider` bridges `UIAccessibility.isVoiceOverRunning`/
+`.isReduceMotionEnabled` through `await MainActor.run { ... }`.
+`MockAccessibilityStateProvider` is a settable fake.
+
+```swift
+import AccessibilityStateProviding
+
+let accessibility: AccessibilityStateProviding = MockAccessibilityStateProvider(voiceOverRunning: true)
+let voiceOverOn = await accessibility.isVoiceOverRunning()
+```
+
+Kit-level only. Safe to exercise the real provider for real — `UIAccessibility`
+reads never prompt or crash
+(`QuoteBoxTests/AccessibilityStateProvidingTests.swift` does).
+
+### `HapticFeedbackProviding` (Swift Package product)
+
+Lets app code trigger haptic feedback through an injectable dependency
+instead of constructing `UIImpactFeedbackGenerator` directly, so a test can
+assert "did my code fire the right haptic" without depending on real
+hardware (haptics silently no-op on the Simulator). `async` for the same
+`@MainActor`-proofing reason `AccessibilityStateProviding` is.
+`SystemHapticFeedbackProvider` bridges
+`UIImpactFeedbackGenerator(style:).impactOccurred()` through
+`await MainActor.run { ... }`. `MockHapticFeedbackProvider` records every
+requested style in `[UIImpactFeedbackGenerator.FeedbackStyle]`.
+
+```swift
+import HapticFeedbackProviding
+
+let haptics: HapticFeedbackProviding = MockHapticFeedbackProvider()
+await haptics.impact(style: .light)
+```
+
+Kit-level only. Safe to exercise the real provider for real — no crash on
+the Simulator, just a silent no-op
+(`QuoteBoxTests/HapticFeedbackProvidingTests.swift` does).
+
+### `IdleTimerControlling` (Swift Package product)
+
+Lets app code disable/re-enable the screen-lock idle timer through an
+injectable dependency instead of touching `UIApplication.shared` directly (a
+video player, a long-running scan flow). `async` for the same reason
+`AccessibilityStateProviding`/`HapticFeedbackProviding` are —
+`UIApplication.shared.isIdleTimerDisabled` is exactly the touchpoint
+`SystemReviewRequester` already had to defer into a `@MainActor` context for
+in this repo, applied here from the start. `SystemIdleTimerControl` bridges
+the get/set through `await MainActor.run { ... }`. `MockIdleTimerControl` is
+a settable fake.
+
+```swift
+import IdleTimerControlling
+
+let idleTimer: IdleTimerControlling = MockIdleTimerControl()
+await idleTimer.setIdleTimerDisabled(true)
+```
+
+Kit-level only. Safe to exercise the real control for real — set then read
+back round-trips cleanly against the real `UIApplication.shared`, with no
+persistent side effect beyond the test process's lifetime
+(`QuoteBoxTests/IdleTimerControllingTests.swift` does).
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

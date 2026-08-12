@@ -143,6 +143,12 @@ targets:
         product: BundleInfoProviding
       - package: iOSTestKit
         product: CellularDataRestrictionChecking
+      - package: iOSTestKit
+        product: AccessibilityStateProviding
+      - package: iOSTestKit
+        product: HapticFeedbackProviding
+      - package: iOSTestKit
+        product: IdleTimerControlling
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
