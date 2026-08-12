@@ -1336,6 +1336,76 @@ into the repo (`QuoteBoxTests/Fixtures/sample-fixture.json`, wired into
 `project.yml`'s `QuoteBoxTests` `resources:`) in
 `QuoteBoxTests/JSONFixtureLoadingTests.swift`.
 
+### `HomeKitAuthorization` (Swift Package product)
+
+No explicit request API — HomeKit prompts implicitly on first real use, same
+structural shape as `MotionAuthorizing`/`BluetoothAuthorizing`.
+`HMHomeManagerAuthorizationStatus` is this kit's first `OptionSet` status
+type — every other module keeps a plain enum. "Not determined" is the
+**empty set `[]`**, not a named case (confirmed against the actual header
+before writing this: three members — `.determined`, `.restricted`,
+`.authorized` — no `.notDetermined`). `SystemHomeKitAuthorizer` deliberately
+does **not** hold `HMHomeManager` as an eager stored property the way
+`SystemHealthAuthorizer`/`SystemCalendarAuthorizer` hold
+`HKHealthStore`/`EKEventStore` — HomeKit is documented to crash on first
+*use* without `NSHomeKitUsageDescription` in `Info.plist`, and merely
+constructing `HMHomeManager` may itself count as that use, so it's
+constructed lazily inside the method body instead.
+`MockHomeKitAuthorizer` is a settable fake defaulting to `[]`.
+
+```swift
+import HomeKitAuthorization
+
+let authorizer: HomeKitAuthorizing = MockHomeKitAuthorizer(status: .authorized)
+```
+
+Kit-level only, treated with `HealthAuthorization`/`FamilyControlsAuthorization`'s
+most conservative test caution: QuoteBox has neither
+`NSHomeKitUsageDescription` nor the `com.apple.developer.homekit`
+entitlement, so `QuoteBoxTests/HomeKitAuthorizationTests.swift` only
+constructs `SystemHomeKitAuthorizer()` — which, thanks to the lazy
+construction above, never touches HomeKit at all — and never calls
+`currentAuthorizationStatus()` on it for real.
+
+### `WatchConnectivityStateProviding` (Swift Package product)
+
+No permission concept at all, unlike every authorization module in this kit
+— `WatchConnectivity` never prompts. Lets app code ask "is a Watch
+paired/does it have our app?" through an injectable dependency.
+`SystemWatchConnectivityStateProvider` wraps `WCSession`: `WCSession` isn't
+supported on every device this kit's CI matrix runs against (confirmed via
+WebSearch — notably unsupported on iPad), so every access guards with
+`WCSession.isSupported()` first and never force-touches `.default` on an
+unsupported device — that's the actual crash risk here, not a permission
+prompt. `MockWatchConnectivityStateProvider` is a settable fake (three
+independent `Bool`s).
+
+```swift
+import WatchConnectivityStateProviding
+
+let watch: WatchConnectivityStateProviding = MockWatchConnectivityStateProvider(paired: true)
+```
+
+Kit-level only. Safe to exercise the real provider for real on every CI
+device, including iPad — expected to gracefully report `isSupported() == false`
+there rather than crash
+(`QuoteBoxTests/WatchConnectivityStateProvidingTests.swift` does).
+
+### A note on frameworks this kit doesn't cover
+
+Not every system framework fits this kit's pattern — a real,
+non-prompting status read a `System*` implementation can safely expose.
+**CarPlay, MultipeerConnectivity, and Core NFC were evaluated and excluded**,
+the same way earlier rounds ruled out Local Network privacy: CarPlay has no
+runtime permission system at all (app approval happens via a special Apple
+entitlement at review time, not a user-facing prompt — nothing for a
+protocol to model); MultipeerConnectivity's Local Network permission has no
+official status API Apple has ever exposed (the only workarounds are hacky
+network probes, not a pattern used anywhere else in this kit); Core NFC has
+the same gap — no authorization-status read exists. Forcing a module onto
+any of these three would mean faking a capability this kit doesn't actually
+have, rather than documenting the gap honestly.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

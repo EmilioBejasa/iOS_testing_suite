@@ -51,7 +51,9 @@ let package = Package(
         .library(name: "ClipboardProviding", targets: ["ClipboardProviding"]),
         .library(name: "FocusStatusAuthorization", targets: ["FocusStatusAuthorization"]),
         .library(name: "FamilyControlsAuthorization", targets: ["FamilyControlsAuthorization"]),
-        .library(name: "JSONFixtureLoading", targets: ["JSONFixtureLoading"])
+        .library(name: "JSONFixtureLoading", targets: ["JSONFixtureLoading"]),
+        .library(name: "HomeKitAuthorization", targets: ["HomeKitAuthorization"]),
+        .library(name: "WatchConnectivityStateProviding", targets: ["WatchConnectivityStateProviding"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -100,6 +102,8 @@ let package = Package(
         .target(name: "ClipboardProviding"),
         .target(name: "FocusStatusAuthorization"),
         .target(name: "FamilyControlsAuthorization"),
-        .target(name: "JSONFixtureLoading")
+        .target(name: "JSONFixtureLoading"),
+        .target(name: "HomeKitAuthorization"),
+        .target(name: "WatchConnectivityStateProviding")
     ]
 )

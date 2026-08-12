@@ -162,6 +162,10 @@ targets:
         product: FamilyControlsAuthorization
       - package: iOSTestKit
         product: JSONFixtureLoading
+      - package: iOSTestKit
+        product: HomeKitAuthorization
+      - package: iOSTestKit
+        product: WatchConnectivityStateProviding
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
