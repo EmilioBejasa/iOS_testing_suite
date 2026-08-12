@@ -55,6 +55,7 @@ jobs:
         run: echo "slug=$(echo '${{ matrix.destination_name }}' | tr -c '[:alnum:]' '_')" >> "$GITHUB_OUTPUT"
 
       - name: Run tests
+        shell: bash
         env:
           PROJECT: ${{ inputs.project }}
           SCHEME: ${{ inputs.scheme }}
@@ -72,14 +73,41 @@ jobs:
             COVERAGE_FLAG="YES"
           fi
 
-          xcodebuild test \
-            -project "$PROJECT" \
-            -scheme "$SCHEME" \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            "${SKIP_ARGS[@]}" \
-            -enableCodeCoverage "$COVERAGE_FLAG" \
-            -resultBundlePath TestResults.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+          # Retry only on the specific flake signatures this repo has actually hit
+          # (simulator provisioning, StoreKit config propagation, accessibility
+          # audit timeout) - never on a plain test/compile failure, so a real
+          # regression still fails fast instead of being silently retried.
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*tipJar\.button|Audit failed to complete in time'
+
+          attempt=1
+          max_attempts=3
+          while true; do
+            rm -rf TestResults.xcresult
+
+            set +e
+            xcodebuild test \
+              -project "$PROJECT" \
+              -scheme "$SCHEME" \
+              -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+              "${SKIP_ARGS[@]}" \
+              -enableCodeCoverage "$COVERAGE_FLAG" \
+              -resultBundlePath TestResults.xcresult \
+              CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
+            exit_code=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$exit_code" -eq 0 ]; then
+              break
+            fi
+
+            if [ "$attempt" -ge "$max_attempts" ] || ! grep -qE "$KNOWN_FLAKE_PATTERN" build.log; then
+              exit "$exit_code"
+            fi
+
+            echo "::warning::Known flake detected (attempt $attempt/$max_attempts) - retrying in 15s..."
+            attempt=$((attempt + 1))
+            sleep 15
+          done
 
       - name: Report code coverage
         if: always() && inputs.enable_coverage
