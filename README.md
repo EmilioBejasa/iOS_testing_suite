@@ -1048,6 +1048,71 @@ favorites count, reminder state, tip jar state), read directly off those stores
 rather than re-implemented, so the panel can't drift out of sync with the state
 machines it's reporting on.
 
+### `PowerStateProviding` (Swift Package product)
+
+Lets app code ask "is Low Power Mode on?" through an injectable dependency
+instead of calling `ProcessInfo.processInfo.isLowPowerModeEnabled` directly,
+so a test can force either side of a power-aware code path (reduced polling,
+disabled animations) deterministically. `SystemPowerStateProvider` wraps that
+read directly — Foundation, not UIKit, so no `@MainActor` bridging is needed
+the way `IdleTimerControlling`'s `UIApplication.shared` touchpoint requires.
+`MockPowerStateProvider` is a settable fake.
+
+```swift
+import PowerStateProviding
+
+let power: PowerStateProviding = MockPowerStateProvider(isLowPowerModeEnabled: true)
+```
+
+Kit-level only. Safe to exercise the real provider for real — a plain,
+synchronous, non-prompting read
+(`QuoteBoxTests/PowerStateProvidingTests.swift` does).
+
+### `BundleInfoProviding` (Swift Package product)
+
+Lets app code ask "what version/build is this?" through an injectable
+dependency instead of reading `Bundle.main.infoDictionary` directly, so a
+test can force a specific version string (a "what's new" screen, a
+support-email footer) deterministically. `SystemBundleInfoProvider` wraps
+`Bundle.infoDictionary`'s `CFBundleShortVersionString`/`CFBundleVersion`
+keys, defaulting to `"unknown"` rather than crashing when a key is missing.
+`MockBundleInfoProvider` is a settable fake.
+
+```swift
+import BundleInfoProviding
+
+let bundleInfo: BundleInfoProviding = MockBundleInfoProvider(appVersion: "2.3", buildNumber: "42")
+```
+
+Kit-level only. Safe to exercise the real provider for real — a plain,
+synchronous Foundation read — but
+`QuoteBoxTests/BundleInfoProvidingTests.swift` only asserts non-empty, not
+exact values, since it reads whatever the test bundle's own Info.plist
+reports rather than a fixed value.
+
+### `CellularDataRestrictionChecking` (Swift Package product)
+
+Lets app code ask "has the user restricted this app from cellular data?"
+(Settings > Cellular's per-app toggle) through an injectable dependency.
+Uses `CTCellularDataRestrictedState` directly, same reasoning every other
+module here gives for keeping a framework's own status type.
+`SystemCellularDataChecker` wraps `CTCellularData().restrictedState` — no
+entitlement required (verified before writing this module — unlike most
+CoreTelephony APIs, `CTCellularData` doesn't need one), available since iOS 9.
+`MockCellularDataChecker` is a settable fake.
+
+```swift
+import CellularDataRestrictionChecking
+
+let checker: CellularDataRestrictionChecking = MockCellularDataChecker(state: .restricted)
+```
+
+Kit-level only. The real checker's status read is exercised for real in
+`QuoteBoxTests/CellularDataRestrictionCheckingTests.swift` — expected to be
+safe given no entitlement is required, though a fresh Simulator with no
+cellular hardware may just report `.restrictedStateUnknown` rather than a
+real value.
+
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of

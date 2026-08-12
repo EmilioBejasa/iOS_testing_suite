@@ -137,6 +137,12 @@ targets:
         product: FeatureFlagging
       - package: iOSTestKit
         product: AnalyticsLogging
+      - package: iOSTestKit
+        product: PowerStateProviding
+      - package: iOSTestKit
+        product: BundleInfoProviding
+      - package: iOSTestKit
+        product: CellularDataRestrictionChecking
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

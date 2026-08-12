@@ -39,7 +39,10 @@ let package = Package(
         .library(name: "MediaLibraryAuthorization", targets: ["MediaLibraryAuthorization"]),
         .library(name: "DiagnosticReporting", targets: ["DiagnosticReporting"]),
         .library(name: "FeatureFlagging", targets: ["FeatureFlagging"]),
-        .library(name: "AnalyticsLogging", targets: ["AnalyticsLogging"])
+        .library(name: "AnalyticsLogging", targets: ["AnalyticsLogging"]),
+        .library(name: "PowerStateProviding", targets: ["PowerStateProviding"]),
+        .library(name: "BundleInfoProviding", targets: ["BundleInfoProviding"]),
+        .library(name: "CellularDataRestrictionChecking", targets: ["CellularDataRestrictionChecking"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -76,6 +79,9 @@ let package = Package(
         .target(name: "MediaLibraryAuthorization"),
         .target(name: "DiagnosticReporting"),
         .target(name: "FeatureFlagging"),
-        .target(name: "AnalyticsLogging")
+        .target(name: "AnalyticsLogging"),
+        .target(name: "PowerStateProviding"),
+        .target(name: "BundleInfoProviding"),
+        .target(name: "CellularDataRestrictionChecking")
     ]
 )
