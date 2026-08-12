@@ -8,6 +8,12 @@ import MetricKit
 /// `BackgroundTaskScheduling`/`PurchaseSupport`/`AppleSignIn` already give,
 /// so there's nothing this kit can construct to feed a caller-supplied
 /// handler with anyway.
+///
+/// `MXDiagnosticPayload` is `@available(iOS 14.0, *)` - one version newer
+/// than `MXMetricPayload`/`MXMetricManager` itself (iOS 13) - so the whole
+/// class needs to be pinned to the higher watermark, same class of fix
+/// `BluetoothAuthorization` needed for `CBManagerAuthorization`.
+@available(iOS 14.0, *)
 public final class SystemDiagnosticReporter: NSObject, DiagnosticReporting, MXMetricManagerSubscriber {
     public override init() {
         super.init()
