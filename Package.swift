@@ -28,7 +28,9 @@ let package = Package(
         .library(name: "ReviewRequesting", targets: ["ReviewRequesting"]),
         .library(name: "CameraAuthorization", targets: ["CameraAuthorization"]),
         .library(name: "MicrophoneAuthorization", targets: ["MicrophoneAuthorization"]),
-        .library(name: "SpeechRecognitionAuthorization", targets: ["SpeechRecognitionAuthorization"])
+        .library(name: "SpeechRecognitionAuthorization", targets: ["SpeechRecognitionAuthorization"]),
+        .library(name: "CalendarAuthorization", targets: ["CalendarAuthorization"]),
+        .library(name: "TrackingAuthorization", targets: ["TrackingAuthorization"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -54,6 +56,8 @@ let package = Package(
         .target(name: "ReviewRequesting"),
         .target(name: "CameraAuthorization"),
         .target(name: "MicrophoneAuthorization"),
-        .target(name: "SpeechRecognitionAuthorization")
+        .target(name: "SpeechRecognitionAuthorization"),
+        .target(name: "CalendarAuthorization"),
+        .target(name: "TrackingAuthorization")
     ]
 )

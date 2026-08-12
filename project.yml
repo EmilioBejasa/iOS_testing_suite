@@ -115,6 +115,10 @@ targets:
         product: MicrophoneAuthorization
       - package: iOSTestKit
         product: SpeechRecognitionAuthorization
+      - package: iOSTestKit
+        product: CalendarAuthorization
+      - package: iOSTestKit
+        product: TrackingAuthorization
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
