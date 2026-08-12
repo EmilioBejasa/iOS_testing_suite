@@ -69,6 +69,7 @@ targets:
     resources:
       - path: QuoteBoxTests/Configuration.storekit
       - path: QuoteBoxTests/Fixtures/sample-fixture.json
+      - path: QuoteBoxTests/Fixtures/sample-catalog.json
     dependencies:
       - target: QuoteBox
         embed: false
@@ -166,6 +167,8 @@ targets:
         product: HomeKitAuthorization
       - package: iOSTestKit
         product: WatchConnectivityStateProviding
+      - package: iOSTestKit
+        product: LocalizationCompletenessChecking
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

@@ -53,7 +53,8 @@ let package = Package(
         .library(name: "FamilyControlsAuthorization", targets: ["FamilyControlsAuthorization"]),
         .library(name: "JSONFixtureLoading", targets: ["JSONFixtureLoading"]),
         .library(name: "HomeKitAuthorization", targets: ["HomeKitAuthorization"]),
-        .library(name: "WatchConnectivityStateProviding", targets: ["WatchConnectivityStateProviding"])
+        .library(name: "WatchConnectivityStateProviding", targets: ["WatchConnectivityStateProviding"]),
+        .library(name: "LocalizationCompletenessChecking", targets: ["LocalizationCompletenessChecking"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -104,6 +105,7 @@ let package = Package(
         .target(name: "FamilyControlsAuthorization"),
         .target(name: "JSONFixtureLoading"),
         .target(name: "HomeKitAuthorization"),
-        .target(name: "WatchConnectivityStateProviding")
+        .target(name: "WatchConnectivityStateProviding"),
+        .target(name: "LocalizationCompletenessChecking")
     ]
 )
