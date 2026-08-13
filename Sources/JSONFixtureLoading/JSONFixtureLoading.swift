@@ -1,14 +1,15 @@
 import Foundation
 
+/// Thrown when `"\(name).json"` can't be found in the given bundle.
+public enum FixtureLoadingError: Error {
+    case fixtureNotFound(String)
+}
+
 /// Not a protocol+real+fake module - there's nothing to fake, it's already a
 /// pure, deterministic function - same "single-purpose utility" shape as
 /// `SnapshotTesting`/`DeepLinkTesting`. Complements `NetworkStub`'s canned
 /// HTTP responses with canned local JSON fixtures for tests that need
 /// realistic decoded data without a network round trip at all.
-public enum FixtureLoadingError: Error {
-    case fixtureNotFound(String)
-}
-
 public enum JSONFixtureLoading {
     /// Looks up `"\(name).json"` in `bundle` and decodes it as `T`.
     public static func load<T: Decodable>(

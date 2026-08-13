@@ -1404,6 +1404,52 @@ into the repo (`QuoteBoxTests/Fixtures/sample-fixture.json`, wired into
 `project.yml`'s `QuoteBoxTests` `resources:`) in
 `QuoteBoxTests/JSONFixtureLoadingTests.swift`.
 
+### `LocalizationCompletenessChecking` (Swift Package product)
+
+A single-file utility, same shape as `JSONFixtureLoading`/`SnapshotTesting`
+— nothing to fake, no system framework to wrap, just a pure deterministic
+function operating on a `.xcstrings` String Catalog the calling project
+already has. Complements `SnapshotTesting`'s `locale:` parameter rather than
+overlapping it: that renders a view under a specific `Locale` and compares
+pixels, but can only catch a bug if a translation *already exists and got
+loaded*. This checks one layer earlier — whether a translation was ever
+written at all — catching "nobody ever translated this key" before a
+snapshot test would ever surface it visually.
+
+```swift
+import LocalizationCompletenessChecking
+
+let missing = try LocalizationCompletenessChecking.missingTranslations(
+    inCatalogAt: catalogURL,
+    for: ["en", "es", "fr"]
+)
+// [MissingLocalization(key: "Settings", locale: "fr"), ...]
+```
+
+Reads the catalog with `JSONSerialization` into loose `[String: Any]`
+dictionaries rather than strict `Decodable` structs, since a String
+Catalog's `variations` shape (plural categories, device variants) isn't
+being modeled — a loose dictionary walk is more robust to catalog-format
+drift across Xcode versions than a brittle typed model would be. **Scope
+note**, matching this kit's existing honesty pattern (`SnapshotTesting`'s
+own scope note, `FeatureFlagging`'s "not a remote-config client" note):
+this checks that a locale has *some* translated content for a key (a
+`stringUnit` with `state: "translated"`, or a `variations` block present at
+all), not that every plural category within a `variations` block is
+individually translated — catching "this locale was never touched" covers
+the common real bug without hand-rolling a schema for Apple's
+plural-category/device-variant shape.
+
+Kit-level only — QuoteBox has no String Catalog of its own. Validated
+against a real fixture checked into the repo
+(`QuoteBoxTests/Fixtures/sample-catalog.json` — deliberately named `.json`,
+not `.xcstrings`, so Xcode's build system doesn't treat it as a real String
+Catalog resource to compile; wired into `project.yml`'s `QuoteBoxTests`
+`resources:` the same way `sample-fixture.json` is) in
+`QuoteBoxTests/LocalizationCompletenessCheckingTests.swift` — no
+permission/crash-risk caution needed anywhere here, it's pure file I/O and
+JSON parsing.
+
 ### `HomeKitAuthorization` (Swift Package product)
 
 No explicit request API — HomeKit prompts implicitly on first real use, same
@@ -1474,52 +1520,6 @@ the same gap — no authorization-status read exists. Forcing a module onto
 any of these three would mean faking a capability this kit doesn't actually
 have, rather than documenting the gap honestly.
 
-### `LocalizationCompletenessChecking` (Swift Package product)
-
-A single-file utility, same shape as `JSONFixtureLoading`/`SnapshotTesting`
-— nothing to fake, no system framework to wrap, just a pure deterministic
-function operating on a `.xcstrings` String Catalog the calling project
-already has. Complements `SnapshotTesting`'s `locale:` parameter rather than
-overlapping it: that renders a view under a specific `Locale` and compares
-pixels, but can only catch a bug if a translation *already exists and got
-loaded*. This checks one layer earlier — whether a translation was ever
-written at all — catching "nobody ever translated this key" before a
-snapshot test would ever surface it visually.
-
-```swift
-import LocalizationCompletenessChecking
-
-let missing = try LocalizationCompletenessChecking.missingTranslations(
-    inCatalogAt: catalogURL,
-    for: ["en", "es", "fr"]
-)
-// [MissingLocalization(key: "Settings", locale: "fr"), ...]
-```
-
-Reads the catalog with `JSONSerialization` into loose `[String: Any]`
-dictionaries rather than strict `Decodable` structs, since a String
-Catalog's `variations` shape (plural categories, device variants) isn't
-being modeled — a loose dictionary walk is more robust to catalog-format
-drift across Xcode versions than a brittle typed model would be. **Scope
-note**, matching this kit's existing honesty pattern (`SnapshotTesting`'s
-own scope note, `FeatureFlagging`'s "not a remote-config client" note):
-this checks that a locale has *some* translated content for a key (a
-`stringUnit` with `state: "translated"`, or a `variations` block present at
-all), not that every plural category within a `variations` block is
-individually translated — catching "this locale was never touched" covers
-the common real bug without hand-rolling a schema for Apple's
-plural-category/device-variant shape.
-
-Kit-level only — QuoteBox has no String Catalog of its own. Validated
-against a real fixture checked into the repo
-(`QuoteBoxTests/Fixtures/sample-catalog.json` — deliberately named `.json`,
-not `.xcstrings`, so Xcode's build system doesn't treat it as a real String
-Catalog resource to compile; wired into `project.yml`'s `QuoteBoxTests`
-`resources:` the same way `sample-fixture.json` is) in
-`QuoteBoxTests/LocalizationCompletenessCheckingTests.swift` — no
-permission/crash-risk caution needed anywhere here, it's pure file I/O and
-JSON parsing.
-
 ### Reusable GitHub Actions workflows
 
 `.github/workflows/reusable-test.yml` runs `xcodebuild test` across a matrix of
@@ -1566,3 +1566,10 @@ package (`packages: iOSTestKit: path: .`), and `.github/workflows/ci.yml` /
 `live-api-contract.yml` call the reusable workflows with QuoteBox-specific inputs.
 Any other app would do the same thing from its own repo, pointing `.package(url:)`
 at a tagged release of this one instead of a local path.
+
+## More
+
+- [CHANGELOG.md](CHANGELOG.md) — what changed in each tagged version.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to add a module, run tests locally,
+  and what a PR is expected to include.
+- [LICENSE](LICENSE) — MIT.

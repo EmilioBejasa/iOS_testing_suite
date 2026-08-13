@@ -11,6 +11,8 @@ public struct MissingLocalization: Equatable {
     }
 }
 
+/// Thrown when the file at the given URL isn't valid String Catalog JSON
+/// (missing or malformed top-level `"strings"` object).
 public enum LocalizationCatalogError: Error {
     case invalidCatalog
 }
