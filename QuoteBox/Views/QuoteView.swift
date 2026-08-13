@@ -55,6 +55,25 @@ struct QuoteView: View {
                     .disabled(tipJarStore.state == .purchasing)
                     .accessibilityIdentifier("tipJar.button")
                 }
+
+                switch tipJarStore.supporterState {
+                case .active:
+                    Text("Thanks for being a supporter!")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("supporter.thankYou")
+                case .failed:
+                    Text("Supporter subscription isn't available right now.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("supporter.unavailable")
+                case .idle, .purchasing:
+                    Button("Become a Supporter") {
+                        Task { await tipJarStore.purchaseSupporterSubscription() }
+                    }
+                    .disabled(tipJarStore.supporterState == .purchasing)
+                    .accessibilityIdentifier("supporter.button")
+                }
             }
             .padding()
         }
@@ -62,6 +81,7 @@ struct QuoteView: View {
             if case .idle = store.state {
                 await store.fetchNewQuote()
             }
+            await tipJarStore.refreshSupporterStatus()
         }
     }
 

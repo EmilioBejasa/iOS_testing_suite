@@ -24,7 +24,40 @@
 
   },
   "subscriptionGroups" : [
+    {
+      "id" : "6E4E33F3",
+      "localizations" : [
 
+      ],
+      "name" : "Support",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "0.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "9C2A8E4B",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Support ongoing development",
+              "displayName" : "Monthly Supporter",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.quotebox.supporter.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly Supporter",
+          "subscriptionGroupID" : "6E4E33F3",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
   ],
   "version" : {
     "major" : 2,

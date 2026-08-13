@@ -169,6 +169,12 @@ targets:
         product: WatchConnectivityStateProviding
       - package: iOSTestKit
         product: LocalizationCompletenessChecking
+      - package: iOSTestKit
+        product: MemoryLeakDetection
+      - package: iOSTestKit
+        product: AsyncSequenceCollecting
+      - package: iOSTestKit
+        product: WidgetTimelineTesting
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

@@ -62,12 +62,15 @@ surface (local persistence, not just network).
 
 **Testing infrastructure & utilities**
 [UI Test Helpers](#uitesthelpers-swift-package-product) ·
+[Memory Leak Detection](#memoryleakdetection-swift-package-product) ·
 [Async Sleeping](#asyncsleeping-swift-package-product) ·
+[Async Sequence Collecting](#asyncsequencecollecting-swift-package-product) ·
 [Time Control](#timecontrol-swift-package-product) ·
 [Snapshot Testing](#snapshottesting-swift-package-product) ·
 [Deep Link Testing](#deeplinktesting-swift-package-product) ·
 [JSON Fixture Loading](#jsonfixtureloading-swift-package-product) ·
 [Localization Completeness Checking](#localizationcompletenesschecking-swift-package-product) ·
+[Widget Timeline Testing](#widgettimelinetesting-swift-package-product) ·
 [Debug Overlay](#debugoverlay-swift-package-product)
 
 **App behavior**
@@ -173,6 +176,37 @@ repeatedly tapping "New Quote" to put `QuoteStore`'s fetch-and-replace cycle
 (network stub round trip + view re-render) through enough iterations to be
 worth profiling.
 
+### `MemoryLeakDetection` (Swift Package product)
+
+A third module shape, alongside `UITestHelpers`: an `XCTestCase` extension
+usable only from a test target, not a protocol+`System`+`Mock` triad or a
+pure-function utility — deallocation tracking has no real system framework
+to wrap or fake, it's a property of ARC itself.
+
+```swift
+import MemoryLeakDetection
+
+func testTipJarStoreDeallocatesAfterPurchasing() async {
+    var store: TipJarStore? = TipJarStore(purchaseManager: MockPurchaseManager())
+    trackForMemoryLeaks(store!)
+
+    await store!.purchaseTip()
+
+    store = nil
+}
+```
+
+`trackForMemoryLeaks(_:file:line:)` registers a teardown block that asserts
+the instance is `nil` by the end of the test via a `[weak instance]`
+capture — call it right after constructing whatever you're tracking, and
+hold no other strong reference to it for the rest of the test. A passing
+assertion after teardown means nothing else (a delegate closure, an async
+subscription, a parent-child retain cycle) is still keeping it alive.
+Validated in `QuoteBoxTests/MemoryLeakDetectionTests.swift` against three of
+QuoteBox's real reference-counted stores — `QuoteStore`, `TipJarStore`,
+`CoreDataFavoritesStore` — each run through one real lifecycle action
+(fetch, purchase, save) before being released.
+
 ### `AsyncSleeping` (Swift Package product)
 
 The async counterpart to `TimeControl`'s `DateProviding` — that lets app code
@@ -200,6 +234,45 @@ into yet. `QuoteBoxTests/AsyncSleepingTests.swift` tests the mock fully, and
 also exercises `SystemSleeper` for real with a short duration: unlike the
 permission-gated modules above, there's no system prompt or crash risk here,
 just an actual (brief) wait.
+
+### `AsyncSequenceCollecting` (Swift Package product)
+
+Not a protocol+real+fake module — there's nothing to fake, it's already a
+pure, deterministic function, same "single-purpose utility" shape as
+`JSONFixtureLoading`/`DeepLinkTesting`. Complements `AsyncSleeping`'s "inject
+the wait" with "wait for the result": `AsyncSleeping` lets app code ask
+"wait this long" through an injectable dependency, while this lets a *test*
+await a bounded number of elements from a long-lived `AsyncSequence` without
+hanging forever if fewer than expected ever arrive.
+
+```swift
+import AsyncSequenceCollecting
+
+let transactions = try await AsyncSequenceCollecting.collect(
+    Transaction.updates,
+    count: 1,
+    timeout: .seconds(5)
+)
+```
+
+Deliberately covers `AsyncSequence`, not Combine: no `import Combine` exists
+anywhere in this kit or in QuoteBox (`TipJarStore` is `@Observable`, not
+`ObservableObject`), so bridging Combine publishers here would fake a
+paradigm this kit's own consumer app never uses — the same "don't fake a
+capability this kit doesn't have" reasoning behind excluding
+CarPlay/MultipeerConnectivity/Core NFC below. `AsyncSequence` is different:
+it's what Apple's own frameworks expose today, including `PurchaseSupport`'s
+own `Transaction.updates` support (see `PurchaseSupport` below).
+
+Not kit-level-only: `QuoteBoxTests/AsyncSequenceCollectingTests.swift`
+purchases a real product under `SKTestSession`, then calls
+`collect(Transaction.updates, count: 1, timeout: .seconds(5))` and asserts
+the collected transaction's `productID` — exactly the scenario this exists
+for, since a bare `for try await` loop over `Transaction.updates` would
+otherwise hang the test forever if the purchase somehow didn't post an
+update. A second test drives an `AsyncStream` that never emits, to verify
+`.timedOut` is thrown (reporting however many elements did arrive) rather
+than silently returning a short array.
 
 ### `FeatureFlagging` (Swift Package product)
 
@@ -1085,6 +1158,43 @@ macOS runner image pins a specific Xcode version per run, and StoreKit's local
 testing certificate is scoped to that install; re-running the job is the fix, not
 a code change here.
 
+`PurchaseManaging` also covers subscriptions, not just the one-shot tip above:
+`isEntitled(to:)` wraps `Transaction.currentEntitlements` (true for a
+subscription still in its billing period, or a non-revoked non-consumable),
+and `observeTransactionUpdates(_:)` wraps `Transaction.updates` in a
+`Task<Void, Never>` the caller owns and cancels — StoreKit's own update
+sequence never finishes on its own. `MockPurchaseManager` gains a settable
+`isEntitledResult` and a `simulateTransactionUpdate(_:)` test hook, the same
+"settable state" shape as every other `Mock*`.
+
+```swift
+let isSupporter = await manager.isEntitled(to: "com.myapp.supporter.monthly")
+let observation = manager.observeTransactionUpdates { transaction in
+    print("Renewed:", transaction.productID)
+}
+// observation.cancel() when the observing feature goes away
+```
+
+`QuoteBox` wires this into a "Become a Supporter" monthly subscription
+alongside Tip Jar — same `TipJarStore`, same UI pattern, new
+`com.quotebox.supporter.monthly` product in `Configuration.storekit`'s
+`subscriptionGroups`. `TipJarStore.refreshSupporterStatus()` calls
+`isEntitled(to:)` in the same `.task` that already triggers
+`store.fetchNewQuote()`, checking entitlement rather than assuming purchase
+success implies an active subscription — a completed purchase can later
+lapse (cancellation, billing failure) without the store observing that
+renewal event directly. Validated via `SKTestSession` in
+`PurchaseSupportTests.testIsEntitledReflectsRealPurchaseUnderTestSession`.
+
+**Scope note**, matching this kit's existing honesty pattern
+(`SnapshotTesting`'s and `LocalizationCompletenessChecking`'s scope notes):
+this covers one subscription tier exercised locally via `SKTestSession`, not
+App Store Server Notifications or receipt/JWS validation against Apple's
+servers — this kit has no server component, so a lapsed-and-since-renewed
+subscription the app hasn't relaunched to re-check is a gap `isEntitled(to:)`
+alone can't close. `observeTransactionUpdates(_:)` narrows that window (it
+fires on renewal while the app is running) but doesn't eliminate it.
+
 ### `DebugOverlay` (Swift Package product)
 
 A drop-in SwiftUI panel (`DebugOverlayView`) that renders `[DebugSection]` — plain
@@ -1449,6 +1559,42 @@ Catalog resource to compile; wired into `project.yml`'s `QuoteBoxTests`
 `QuoteBoxTests/LocalizationCompletenessCheckingTests.swift` — no
 permission/crash-risk caution needed anywhere here, it's pure file I/O and
 JSON parsing.
+
+### `WidgetTimelineTesting` (Swift Package product)
+
+Bridges WidgetKit's completion-handler-based timeline provider to `async` —
+the same category of value `SystemSleeper` provides over raw `Task.sleep`:
+`getTimeline(in:completion:)` predates Swift concurrency and has no `async`
+variant of its own. Deliberately doesn't constrain to Apple's own
+`TimelineProvider` protocol: `TimelineProviderContext` has no public
+initializer (the same "framework type with no public init" problem
+`MockPurchaseManager`'s doc comment documents for StoreKit's `Product`), so
+a test could never construct one to drive a real `TimelineProvider` with.
+`TimelineProviding` here is structurally equivalent instead, with a generic
+`Context` associated type — a real widget's provider satisfies it with a
+one-line added conformance, while a test passes a lightweight local
+`Context` type it can actually construct.
+
+```swift
+import WidgetTimelineTesting
+
+let timeline = await WidgetTimelineTesting.collectTimeline(from: provider, in: context)
+XCTAssertEqual(timeline.entries.count, 3)
+```
+
+**Scope note**, matching this kit's existing honesty pattern
+(`SnapshotTesting`'s and `LocalizationCompletenessChecking`'s scope notes):
+QuoteBox has no widget extension target. A real one was evaluated and
+deferred — it would need a new XcodeGen `app-extension` target, a
+widgetkit-extension `Info.plist`, and an App Group entitlement to share
+data with the host app, a materially bigger lift than any other module in
+this kit for a demo app whose job is exercising kit modules, not shipping a
+widget feature. Kit-level only as a result, but not thinly so:
+`QuoteBoxTests/WidgetTimelineTestingTests.swift` drives a dummy provider
+whose data source is real — it reads from the same `CoreDataFavoritesStore`
+fixture `CoreDataFavoritesStoreTests.swift` already uses, so timeline
+entries reflect real (test) favorite-quote data even though nothing renders
+them as widget UI.
 
 ### `HomeKitAuthorization` (Swift Package product)
 

@@ -25,4 +25,24 @@ public struct StoreKitPurchaseManager: PurchaseManaging {
             return false
         }
     }
+
+    public func isEntitled(to identifier: String) async -> Bool {
+        for await verification in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = verification else { continue }
+            if transaction.productID == identifier && transaction.revocationDate == nil {
+                return true
+            }
+        }
+        return false
+    }
+
+    @discardableResult
+    public func observeTransactionUpdates(_ onUpdate: @escaping (Transaction) -> Void) -> Task<Void, Never> {
+        Task.detached {
+            for await verification in Transaction.updates {
+                guard case .verified(let transaction) = verification else { continue }
+                onUpdate(transaction)
+            }
+        }
+    }
 }

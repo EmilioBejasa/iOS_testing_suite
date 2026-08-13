@@ -54,7 +54,10 @@ let package = Package(
         .library(name: "JSONFixtureLoading", targets: ["JSONFixtureLoading"]),
         .library(name: "HomeKitAuthorization", targets: ["HomeKitAuthorization"]),
         .library(name: "WatchConnectivityStateProviding", targets: ["WatchConnectivityStateProviding"]),
-        .library(name: "LocalizationCompletenessChecking", targets: ["LocalizationCompletenessChecking"])
+        .library(name: "LocalizationCompletenessChecking", targets: ["LocalizationCompletenessChecking"]),
+        .library(name: "MemoryLeakDetection", targets: ["MemoryLeakDetection"]),
+        .library(name: "AsyncSequenceCollecting", targets: ["AsyncSequenceCollecting"]),
+        .library(name: "WidgetTimelineTesting", targets: ["WidgetTimelineTesting"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -106,6 +109,9 @@ let package = Package(
         .target(name: "JSONFixtureLoading"),
         .target(name: "HomeKitAuthorization"),
         .target(name: "WatchConnectivityStateProviding"),
-        .target(name: "LocalizationCompletenessChecking")
+        .target(name: "LocalizationCompletenessChecking"),
+        .target(name: "MemoryLeakDetection"),
+        .target(name: "AsyncSequenceCollecting"),
+        .target(name: "WidgetTimelineTesting")
     ]
 )

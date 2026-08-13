@@ -4,6 +4,19 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [Unreleased]
+
+Added 3 modules, bringing the kit from 50 to 53: `MemoryLeakDetection` (an
+`XCTestCase` extension asserting deallocation via a teardown block),
+`AsyncSequenceCollecting` (awaits a bounded number of elements from an
+`AsyncSequence` without hanging), `WidgetTimelineTesting` (bridges
+WidgetKit's completion-handler timeline provider to `async`).
+
+Also: `PurchaseSupport` gains subscription/entitlement support —
+`isEntitled(to:)` and `observeTransactionUpdates(_:)` — exercised through a
+new "Become a Supporter" monthly subscription in QuoteBox alongside the
+existing Tip Jar.
+
 ## [1.2.0] - 2026-08-12
 
 Added 40 modules, bringing the kit from 10 to 50: `AccessibilityStateProviding`,
