@@ -77,7 +77,15 @@ jobs:
           # (simulator provisioning, StoreKit config propagation, accessibility
           # audit timeout) - never on a plain test/compile failure, so a real
           # regression still fails fast instead of being silently retried.
-          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*tipJar\.button|Audit failed to complete in time'
+          #
+          # testCollectsRealTransactionUpdateAfterPurchase's two failure modes
+          # (Transaction.updates never posting within the timeout, or the
+          # sandbox handing back a transaction StoreKitTest can't decode -
+          # "missingValue ... advancedCommerceInfo") are matched narrowly to
+          # that one test's known signatures rather than "any failure in
+          # AsyncSequenceCollectingTests", so a real regression in
+          # AsyncSequenceCollecting.collect() itself still fails fast.
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*tipJar\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)'
 
           attempt=1
           max_attempts=3

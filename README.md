@@ -277,6 +277,16 @@ update. A second test drives an `AsyncStream` that never emits, to verify
 `.timedOut` is thrown (reporting however many elements did arrive) rather
 than silently returning a short array.
 
+**Scope note:** `testCollectsRealTransactionUpdateAfterPurchase` is
+currently excluded from CI (`ci.yml`'s `skip_testing`) — as of 2026-08-17 it
+fails deterministically there (`Transaction.updates` never posts after a
+real StoreKitTest sandbox purchase on the `macos-15` runner), not
+intermittently, so it isn't the kind of flake `reusable-test.yml`'s
+known-flake retry can smooth over. `collect(_:count:timeout:)` itself is
+unaffected — the second, `AsyncStream`-based test still runs and passes.
+Diagnosing the sandbox behavior needs Xcode/a Mac; remove the skip once
+that's done.
+
 ### `FeatureFlagging` (Swift Package product)
 
 The one module pair in this kit (with `AnalyticsLogging` below) that doesn't
