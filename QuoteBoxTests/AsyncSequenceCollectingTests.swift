@@ -2,7 +2,6 @@ import XCTest
 import StoreKit
 import StoreKitTest
 import AsyncSequenceCollecting
-import PurchaseSupport
 
 final class AsyncSequenceCollectingTests: XCTestCase {
     private var session: SKTestSession!
@@ -21,13 +20,26 @@ final class AsyncSequenceCollectingTests: XCTestCase {
     /// `for try await` loop over it would hang this test forever if the
     /// purchase below somehow didn't post an update. `collect` bounds that
     /// wait instead.
-    func testCollectsRealTransactionUpdateAfterPurchase() async throws {
-        let manager = StoreKitPurchaseManager()
-        let product = try await manager.product(for: "com.quotebox.tip")
-        let unwrappedProduct = try XCTUnwrap(product)
-
-        async let collected = AsyncSequenceCollecting.collect(Transaction.updates, count: 1, timeout: .seconds(5))
-        _ = try await manager.purchase(unwrappedProduct)
+    ///
+    /// Uses `SKTestSession.buyProduct(identifier:options:)` rather than
+    /// `StoreKitPurchaseManager.purchase()` (a direct, same-device in-app
+    /// purchase) deliberately: Apple's own documentation for
+    /// `Transaction.updates` says it "receives transactions that occur
+    /// outside of the app" (Ask to Buy, offer code redemptions, purchases
+    /// from the App Store or another device), and explicitly notes "after a
+    /// successful in-app purchase on the same device, StoreKit returns the
+    /// transaction through `Product.PurchaseResult.success(_:)`" instead -
+    /// never through `Transaction.updates`. `SKTestSession.buyProduct`
+    /// simulates exactly that external scenario, so it's the one that
+    /// actually reaches `Transaction.updates`. An earlier version of this
+    /// test raced a same-device `StoreKitPurchaseManager.purchase()` against
+    /// `collect`, which timed out in CI deterministically (0 collected, 3/3
+    /// retries, every device) even after widening the timeout to 15s and
+    /// adding a pre-purchase delay - ruling out a timing race, since the
+    /// actual problem was the documented contract, not timing.
+    func testCollectsRealTransactionUpdateAfterExternalPurchase() async throws {
+        async let collected = AsyncSequenceCollecting.collect(Transaction.updates, count: 1, timeout: .seconds(10))
+        _ = try await session.buyProduct(identifier: "com.quotebox.tip")
 
         let transactions = try await collected
         let verification = try XCTUnwrap(transactions.first)

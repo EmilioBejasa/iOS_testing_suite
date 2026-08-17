@@ -268,8 +268,9 @@ it's what Apple's own frameworks expose today, including `PurchaseSupport`'s
 own `Transaction.updates` support (see `PurchaseSupport` below).
 
 Not kit-level-only: `QuoteBoxTests/AsyncSequenceCollectingTests.swift`
-purchases a real product under `SKTestSession`, then calls
-`collect(Transaction.updates, count: 1, timeout: .seconds(5))` and asserts
+simulates a purchase made *outside* the app via
+`SKTestSession.buyProduct(identifier:options:)`, then calls
+`collect(Transaction.updates, count: 1, timeout: .seconds(10))` and asserts
 the collected transaction's `productID` — exactly the scenario this exists
 for, since a bare `for try await` loop over `Transaction.updates` would
 otherwise hang the test forever if the purchase somehow didn't post an
@@ -277,15 +278,17 @@ update. A second test drives an `AsyncStream` that never emits, to verify
 `.timedOut` is thrown (reporting however many elements did arrive) rather
 than silently returning a short array.
 
-**Scope note:** `testCollectsRealTransactionUpdateAfterPurchase` is
-currently excluded from CI (`ci.yml`'s `skip_testing`) — as of 2026-08-17 it
-fails deterministically there (`Transaction.updates` never posts after a
-real StoreKitTest sandbox purchase on the `macos-15` runner), not
-intermittently, so it isn't the kind of flake `reusable-test.yml`'s
-known-flake retry can smooth over. `collect(_:count:timeout:)` itself is
-unaffected — the second, `AsyncStream`-based test still runs and passes.
-Diagnosing the sandbox behavior needs Xcode/a Mac; remove the skip once
-that's done.
+Deliberately doesn't purchase through `StoreKitPurchaseManager`/
+`Product.purchase()` (a direct, same-device in-app purchase) the way an
+earlier version of this test did: Apple's own documentation for
+`Transaction.updates` says it receives transactions that occur *outside*
+the app (Ask to Buy, offer codes, purchases from the App Store or another
+device), and explicitly notes that a same-device in-app purchase's
+transaction arrives through `Product.PurchaseResult.success(_:)` instead —
+never through `Transaction.updates`. That earlier version timed out in CI
+deterministically (0 collected, 3/3 retries, every device) even after
+widening the timeout and adding a pre-purchase delay, which ruled out a
+timing race — the actual problem was the documented contract, not timing.
 
 ### `FeatureFlagging` (Swift Package product)
 

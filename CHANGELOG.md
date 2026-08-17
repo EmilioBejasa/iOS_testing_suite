@@ -22,16 +22,18 @@ via `ASAuthorizationPlatformPublicKeyCredentialProvider`, distinct from
 Also: fixed a pre-existing build break in
 `QuoteBoxTests/AsyncSequenceCollectingTests.swift` (unwrapped
 `VerificationResult<Transaction>` incorrectly) found via this round's CI run.
-`reusable-test.yml`'s known-flake retry pattern now also covers
-`testCollectsRealTransactionUpdateAfterPurchase`'s two observed StoreKit
-sandbox failure modes (a `Transaction.updates` timeout, and a
-`missingValue`/`advancedCommerceInfo` decode error), matched narrowly to
-that one test so a real regression in `AsyncSequenceCollecting.collect()`
-still fails fast. That retry confirmed the failure is deterministic (3/3
-attempts, every device) rather than intermittent, so `ci.yml` now also
-skips `testCollectsRealTransactionUpdateAfterPurchase` until someone with
-Xcode/a Mac can diagnose why `Transaction.updates` isn't posting after a
-real StoreKitTest sandbox purchase on the `macos-15` runner.
+`reusable-test.yml`'s known-flake retry pattern now also covers two StoreKit
+sandbox failure signatures a since-fixed version of that test hit along the
+way. The test itself was renamed to
+`testCollectsRealTransactionUpdateAfterExternalPurchase` and now drives
+`SKTestSession.buyProduct(identifier:options:)` instead of
+`StoreKitPurchaseManager.purchase()`/`Product.purchase()`: the old,
+same-device in-app purchase deterministically never showed up on
+`Transaction.updates` in CI, which turned out to be correct per Apple's own
+documentation — `Transaction.updates` only receives transactions that occur
+*outside* the app; a same-device purchase's transaction arrives through
+`Product.PurchaseResult.success(_:)` instead. `buyProduct` simulates that
+external scenario, so it's the one that actually reaches `Transaction.updates`.
 
 Also: `PurchaseSupport` gains subscription/entitlement support —
 `isEntitled(to:)` and `observeTransactionUpdates(_:)` — exercised through a
