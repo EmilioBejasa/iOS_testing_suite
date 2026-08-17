@@ -4,7 +4,7 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
-## [Unreleased]
+## [1.3.0] - 2026-08-17
 
 Added 9 modules, bringing the kit from 50 to 59: `MemoryLeakDetection` (an
 `XCTestCase` extension asserting deallocation via a teardown block),
