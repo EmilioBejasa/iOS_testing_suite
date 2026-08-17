@@ -6,7 +6,7 @@ depend on it.
 
 ## [Unreleased]
 
-Added 6 modules, bringing the kit from 50 to 56: `MemoryLeakDetection` (an
+Added 9 modules, bringing the kit from 50 to 59: `MemoryLeakDetection` (an
 `XCTestCase` extension asserting deallocation via a teardown block),
 `AsyncSequenceCollecting` (awaits a bounded number of elements from an
 `AsyncSequence` without hanging), `WidgetTimelineTesting` (bridges
@@ -17,7 +17,12 @@ Mode/thermal reads), `SwiftDataTestSupport` (an in-memory `ModelContainer`
 builder, the SwiftData counterpart to `CoreDataTestSupport`),
 `PasskeyAuthentication` (WebAuthn/FIDO2 passkey registration and assertion
 via `ASAuthorizationPlatformPublicKeyCredentialProvider`, distinct from
-`AppleSignIn`'s single-vendor Sign in with Apple).
+`AppleSignIn`'s single-vendor Sign in with Apple), `ScreenCaptureStateProviding`
+(screen recording/mirroring/AirPlay detection via `UIScreen.isCaptured`),
+`ProtectedDataAvailabilityProviding` (whether file-protected/Keychain data
+is accessible right now, via `UIApplication.isProtectedDataAvailable`),
+`DiskSpaceChecking` (available/total volume capacity via
+`URLResourceValues`).
 
 Also: fixed a pre-existing build break in
 `QuoteBoxTests/AsyncSequenceCollectingTests.swift` (unwrapped

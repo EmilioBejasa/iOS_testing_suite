@@ -181,6 +181,12 @@ targets:
         product: SwiftDataTestSupport
       - package: iOSTestKit
         product: PasskeyAuthentication
+      - package: iOSTestKit
+        product: ScreenCaptureStateProviding
+      - package: iOSTestKit
+        product: ProtectedDataAvailabilityProviding
+      - package: iOSTestKit
+        product: DiskSpaceChecking
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
