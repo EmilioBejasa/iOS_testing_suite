@@ -2,7 +2,6 @@ import XCTest
 import StoreKit
 import StoreKitTest
 import AsyncSequenceCollecting
-import PurchaseSupport
 
 final class AsyncSequenceCollectingTests: XCTestCase {
     private var session: SKTestSession!
@@ -22,26 +21,25 @@ final class AsyncSequenceCollectingTests: XCTestCase {
     /// purchase below somehow didn't post an update. `collect` bounds that
     /// wait instead.
     ///
-    /// `Transaction.updates` is a live stream, not a replay buffer -
-    /// starting `collect`'s `async let` doesn't guarantee its nested task
-    /// group has actually reached `for try await` over `Transaction.updates`
-    /// before the next line runs, and a subscriber that hasn't started
-    /// listening yet can miss an update posted in that window (a documented
-    /// StoreKit gray area - see "First transaction not appearing in
-    /// Transaction.updates" on Apple's developer forums). The brief sleep
-    /// below gives the collector a chance to actually start listening before
-    /// the purchase fires; the longer timeout gives CI's typically slower,
-    /// more contended runners headroom the 5s original didn't have. Added
-    /// after this test failed deterministically (3/3 retries, every device)
-    /// in CI with `timedOut(collected: 0, expected: 1)`.
-    func testCollectsRealTransactionUpdateAfterPurchase() async throws {
-        let manager = StoreKitPurchaseManager()
-        let product = try await manager.product(for: "com.quotebox.tip")
-        let unwrappedProduct = try XCTUnwrap(product)
-
-        async let collected = AsyncSequenceCollecting.collect(Transaction.updates, count: 1, timeout: .seconds(15))
-        try await Task.sleep(for: .milliseconds(200))
-        _ = try await manager.purchase(unwrappedProduct)
+    /// Uses `SKTestSession.buyProduct(identifier:options:)` rather than
+    /// `StoreKitPurchaseManager.purchase()` (a direct, same-device in-app
+    /// purchase) deliberately: Apple's own documentation for
+    /// `Transaction.updates` says it "receives transactions that occur
+    /// outside of the app" (Ask to Buy, offer code redemptions, purchases
+    /// from the App Store or another device), and explicitly notes "after a
+    /// successful in-app purchase on the same device, StoreKit returns the
+    /// transaction through `Product.PurchaseResult.success(_:)`" instead -
+    /// never through `Transaction.updates`. `SKTestSession.buyProduct`
+    /// simulates exactly that external scenario, so it's the one that
+    /// actually reaches `Transaction.updates`. An earlier version of this
+    /// test raced a same-device `StoreKitPurchaseManager.purchase()` against
+    /// `collect`, which timed out in CI deterministically (0 collected, 3/3
+    /// retries, every device) even after widening the timeout to 15s and
+    /// adding a pre-purchase delay - ruling out a timing race, since the
+    /// actual problem was the documented contract, not timing.
+    func testCollectsRealTransactionUpdateAfterExternalPurchase() async throws {
+        async let collected = AsyncSequenceCollecting.collect(Transaction.updates, count: 1, timeout: .seconds(10))
+        _ = try await session.buyProduct(identifier: "com.quotebox.tip")
 
         let transactions = try await collected
         let verification = try XCTUnwrap(transactions.first)
