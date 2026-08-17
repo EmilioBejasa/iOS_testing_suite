@@ -1369,7 +1369,11 @@ on.
 
 Kit-level only. Safe to exercise the real provider for real — toggling
 monitoring and reading level/state never prompts or crashes
-(`QuoteBoxTests/BatteryStateProvidingTests.swift` does).
+(`QuoteBoxTests/BatteryStateProvidingTests.swift` does) — but unlike
+`IdleTimerControlling`'s equivalent round-trip, the test doesn't assert
+`isBatteryMonitoringEnabled()` reads back `true` after being set: the
+Simulator has no real battery, and the flag doesn't reliably stick there
+(found via a failed CI run).
 
 ### `BundleInfoProviding` (Swift Package product)
 
