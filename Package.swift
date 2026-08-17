@@ -59,7 +59,8 @@ let package = Package(
         .library(name: "AsyncSequenceCollecting", targets: ["AsyncSequenceCollecting"]),
         .library(name: "WidgetTimelineTesting", targets: ["WidgetTimelineTesting"]),
         .library(name: "BatteryStateProviding", targets: ["BatteryStateProviding"]),
-        .library(name: "SwiftDataTestSupport", targets: ["SwiftDataTestSupport"])
+        .library(name: "SwiftDataTestSupport", targets: ["SwiftDataTestSupport"]),
+        .library(name: "PasskeyAuthentication", targets: ["PasskeyAuthentication"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -116,6 +117,7 @@ let package = Package(
         .target(name: "AsyncSequenceCollecting"),
         .target(name: "WidgetTimelineTesting"),
         .target(name: "BatteryStateProviding"),
-        .target(name: "SwiftDataTestSupport")
+        .target(name: "SwiftDataTestSupport"),
+        .target(name: "PasskeyAuthentication")
     ]
 )

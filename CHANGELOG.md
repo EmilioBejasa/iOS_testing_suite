@@ -6,7 +6,7 @@ depend on it.
 
 ## [Unreleased]
 
-Added 5 modules, bringing the kit from 50 to 55: `MemoryLeakDetection` (an
+Added 6 modules, bringing the kit from 50 to 56: `MemoryLeakDetection` (an
 `XCTestCase` extension asserting deallocation via a teardown block),
 `AsyncSequenceCollecting` (awaits a bounded number of elements from an
 `AsyncSequence` without hanging), `WidgetTimelineTesting` (bridges
@@ -14,7 +14,14 @@ WidgetKit's completion-handler timeline provider to `async`),
 `BatteryStateProviding` (charge level/charging state via `UIDevice`,
 distinct from `PowerStateProviding`'s `ProcessInfo`-backed Low Power
 Mode/thermal reads), `SwiftDataTestSupport` (an in-memory `ModelContainer`
-builder, the SwiftData counterpart to `CoreDataTestSupport`).
+builder, the SwiftData counterpart to `CoreDataTestSupport`),
+`PasskeyAuthentication` (WebAuthn/FIDO2 passkey registration and assertion
+via `ASAuthorizationPlatformPublicKeyCredentialProvider`, distinct from
+`AppleSignIn`'s single-vendor Sign in with Apple).
+
+Also: fixed a pre-existing build break in
+`QuoteBoxTests/AsyncSequenceCollectingTests.swift` (unwrapped
+`VerificationResult<Transaction>` incorrectly) found via this round's CI run.
 
 Also: `PurchaseSupport` gains subscription/entitlement support —
 `isEntitled(to:)` and `observeTransactionUpdates(_:)` — exercised through a

@@ -179,6 +179,8 @@ targets:
         product: BatteryStateProviding
       - package: iOSTestKit
         product: SwiftDataTestSupport
+      - package: iOSTestKit
+        product: PasskeyAuthentication
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

@@ -15,7 +15,7 @@ surface (local persistence, not just network).
 ## What's reusable
 
 <details>
-<summary><strong>Table of contents</strong> (55 modules, grouped by theme)</summary>
+<summary><strong>Table of contents</strong> (56 modules, grouped by theme)</summary>
 
 **Permissions & authorization**
 [Location](#locationauthorization-swift-package-product) ·
@@ -39,6 +39,7 @@ surface (local persistence, not just network).
 [Live Activity](#liveactivityauthorization-swift-package-product) ·
 [Push Registering](#pushregistering-swift-package-product) ·
 [Apple Sign In](#applesignin-swift-package-product) ·
+[Passkey Authentication](#passkeyauthentication-swift-package-product) ·
 [Background Task Scheduling](#backgroundtaskscheduling-swift-package-product) ·
 [CloudKit Account Checking](#cloudkitaccountchecking-swift-package-product)
 
@@ -1073,6 +1074,47 @@ safe to exercise for real (resolves quickly with `.notFound` for an unused ID,
 never prompts) and is tested against the real provider in
 `QuoteBoxTests/AppleSignInTests.swift`; `requestSignIn()` is never called
 against the real provider, since it always shows the actual system sheet.
+
+### `PasskeyAuthentication` (Swift Package product)
+
+Distinct from `AppleSignIn`: that wraps Sign in with Apple
+(`ASAuthorizationAppleIDProvider`), a single-vendor identity; this wraps
+passkeys (`ASAuthorizationPlatformPublicKeyCredentialProvider`), the
+standards-based WebAuthn/FIDO2 credential every platform is converging on as
+a passwordless replacement for passwords. Scoped to registration (creating a
+new passkey) and assertion (signing in with an existing one) — the two
+operations a relying-party server actually needs, not a full WebAuthn
+client. `SystemPasskeyAuthenticator` bridges
+`ASAuthorizationControllerDelegate`'s callbacks the same way
+`SystemAppleSignInProvider` does. Returns plain `PasskeyRegistration`/
+`PasskeyAssertion` structs rather than Apple's own
+`ASAuthorizationPlatformPublicKeyCredentialRegistration`/`...Assertion` —
+those are classes with no public initializer (the same constraint
+`AppleSignIn` already documents for `ASAuthorizationAppleIDCredential`), so
+`MockPasskeyAuthenticator` couldn't construct one to return.
+
+```swift
+import PasskeyAuthentication
+
+let authenticator: PasskeyAuthenticating = MockPasskeyAuthenticator()
+let registration = try await authenticator.requestRegistration(challenge: challenge, userName: "user@example.com", userID: userID)
+```
+
+Neither `PasskeyAuthenticating` nor `MockPasskeyAuthenticator` names an
+`AuthenticationServices` passkey type directly, so unlike
+`BluetoothAuthorization`/`CalendarAuthorization` neither needs an
+`@available` annotation — only `SystemPasskeyAuthenticator`, which
+constructs `ASAuthorizationPlatformPublicKeyCredentialProvider` directly,
+needs `@available(iOS 15.0, *)`.
+
+Kit-level only, same reasoning as `AppleSignIn` — a quotes app has no
+natural need for user accounts. Unlike `AppleSignIn`, there's no
+non-prompting half here at all: both `requestRegistration`/
+`requestAssertion` always show the real system passkey sheet, so
+`QuoteBoxTests/PasskeyAuthenticationTests.swift` only constructs
+`SystemPasskeyAuthenticator` for real (safe — `relyingPartyIdentifier` is
+just stored, no `AuthenticationServices` call happens until a request is
+made) and tests the mock fully.
 
 ### `BackgroundTaskScheduling` (Swift Package product)
 
