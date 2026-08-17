@@ -30,7 +30,12 @@ final class AsyncSequenceCollectingTests: XCTestCase {
         _ = try await manager.purchase(unwrappedProduct)
 
         let transactions = try await collected
-        XCTAssertEqual(transactions.first?.productID, "com.quotebox.tip")
+        let verification = try XCTUnwrap(transactions.first)
+        guard case .verified(let transaction) = verification else {
+            XCTFail("Expected a verified transaction")
+            return
+        }
+        XCTAssertEqual(transaction.productID, "com.quotebox.tip")
     }
 
     func testThrowsTimeoutWhenFewerElementsArriveThanExpected() async {
