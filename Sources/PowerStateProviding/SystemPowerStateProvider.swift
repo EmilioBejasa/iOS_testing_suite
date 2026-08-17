@@ -20,6 +20,7 @@ public final class SystemPowerStateProvider: PowerStateProviding {
     }
 
     public func startMonitoringThermalState(onChange: @escaping (ProcessInfo.ThermalState) -> Void) {
+        stopMonitoringThermalState()
         observer = NotificationCenter.default.addObserver(
             forName: ProcessInfo.thermalStateDidChangeNotification,
             object: nil,
