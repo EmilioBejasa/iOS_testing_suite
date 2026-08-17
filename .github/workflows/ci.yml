@@ -16,13 +16,4 @@ jobs:
       devices: '["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]'
       # DummyJSONLiveContractTests hits a real network API; runs on a schedule
       # via live-api-contract.yml instead.
-      #
-      # testCollectsRealTransactionUpdateAfterPurchase is skipped too: as of
-      # 2026-08-17 it fails 100% of the time in CI (Transaction.updates never
-      # posts after a real StoreKitTest sandbox purchase - confirmed across 3
-      # devices x 3 retry attempts each, so this isn't the intermittent flake
-      # reusable-test.yml's known-flake retry is meant to smooth over, it's a
-      # deterministic environmental issue on the macos-15 runner). Needs
-      # Xcode/a Mac to actually debug; remove this skip once that's diagnosed
-      # and fixed.
-      skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests QuoteBoxTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterPurchase"
+      skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
