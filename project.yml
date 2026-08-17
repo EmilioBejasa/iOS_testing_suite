@@ -175,6 +175,10 @@ targets:
         product: AsyncSequenceCollecting
       - package: iOSTestKit
         product: WidgetTimelineTesting
+      - package: iOSTestKit
+        product: BatteryStateProviding
+      - package: iOSTestKit
+        product: SwiftDataTestSupport
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

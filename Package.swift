@@ -57,7 +57,9 @@ let package = Package(
         .library(name: "LocalizationCompletenessChecking", targets: ["LocalizationCompletenessChecking"]),
         .library(name: "MemoryLeakDetection", targets: ["MemoryLeakDetection"]),
         .library(name: "AsyncSequenceCollecting", targets: ["AsyncSequenceCollecting"]),
-        .library(name: "WidgetTimelineTesting", targets: ["WidgetTimelineTesting"])
+        .library(name: "WidgetTimelineTesting", targets: ["WidgetTimelineTesting"]),
+        .library(name: "BatteryStateProviding", targets: ["BatteryStateProviding"]),
+        .library(name: "SwiftDataTestSupport", targets: ["SwiftDataTestSupport"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -112,6 +114,8 @@ let package = Package(
         .target(name: "LocalizationCompletenessChecking"),
         .target(name: "MemoryLeakDetection"),
         .target(name: "AsyncSequenceCollecting"),
-        .target(name: "WidgetTimelineTesting")
+        .target(name: "WidgetTimelineTesting"),
+        .target(name: "BatteryStateProviding"),
+        .target(name: "SwiftDataTestSupport")
     ]
 )

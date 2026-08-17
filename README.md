@@ -15,7 +15,7 @@ surface (local persistence, not just network).
 ## What's reusable
 
 <details>
-<summary><strong>Table of contents</strong> (50 modules, grouped by theme)</summary>
+<summary><strong>Table of contents</strong> (55 modules, grouped by theme)</summary>
 
 **Permissions & authorization**
 [Location](#locationauthorization-swift-package-product) ·
@@ -44,6 +44,7 @@ surface (local persistence, not just network).
 
 **Device & app state**
 [Power State](#powerstateproviding-swift-package-product) ·
+[Battery State](#batterystateproviding-swift-package-product) ·
 [Bundle Info](#bundleinfoproviding-swift-package-product) ·
 [Cellular Data Restriction](#cellulardatarestrictionchecking-swift-package-product) ·
 [Accessibility State](#accessibilitystateproviding-swift-package-product) ·
@@ -58,6 +59,7 @@ surface (local persistence, not just network).
 [Keychain Store](#keychainstore-swift-package-product) ·
 [UserDefaults Store](#userdefaultsstore-swift-package-product) ·
 [Core Data Test Support](#coredatatestsupport-swift-package-product) ·
+[SwiftData Test Support](#swiftdatatestsupport-swift-package-product) ·
 [Purchase Support](#purchasesupport-swift-package-product)
 
 **Testing infrastructure & utilities**
@@ -479,6 +481,37 @@ let store = MyCoreDataBackedStore(container: container)
 production persistence (`QuoteBoxApp` builds a real on-disk container), and
 `QuoteBoxTests/CoreDataFavoritesStoreTests.swift` proves it with the in-memory
 container above — the same relationship `NetworkStub` has to the real `QuoteAPIClient`.
+
+### `SwiftDataTestSupport` (Swift Package product)
+
+`InMemoryModelContainer.make(for:)` builds a `ModelContainer` backed by an
+in-memory store instead of SQLite on disk — the SwiftData counterpart to
+`CoreDataTestSupport`'s `InMemoryPersistentContainer`, works for any app's
+`@Model` types. Takes a plain `[any PersistentModel.Type]` array rather than
+a variadic parameter: `ModelContainer`'s own initializer is itself variadic,
+and Swift doesn't let one variadic parameter forward into another without
+first collecting it into a `Schema`, so this builds the `Schema` (which does
+take an array) explicitly rather than passing types straight through.
+`@available(iOS 17.0, *)` since SwiftData itself is — newer than the
+package's iOS 13 floor (`Package.swift`), same class of annotation
+`BluetoothAuthorization` needed for `CBManagerAuthorization`.
+
+```swift
+import SwiftData
+import SwiftDataTestSupport
+
+let container = InMemoryModelContainer.make(for: [MyModel.self])
+let context = ModelContext(container)
+// exercise insert/fetch/save logic with no disk I/O and no state leaking between tests
+```
+
+**Scope note:** kit-level only, unlike `CoreDataTestSupport` — QuoteBox
+already persists favorites through Core Data, and a second, parallel
+SwiftData feature for the same data would be duplicative, not a natural
+consumer. Exercised in `QuoteBoxTests/SwiftDataTestSupportTests.swift`
+against a throwaway `@Model` type defined just for that test file instead,
+the same "no natural QuoteBox need" treatment `KeychainStore`/
+`LocationAuthorization` give their own kit-level-only modules.
 
 ### `LocalNotifications` (Swift Package product)
 
@@ -1242,9 +1275,59 @@ import PowerStateProviding
 let power: PowerStateProviding = MockPowerStateProvider(isLowPowerModeEnabled: true)
 ```
 
-Kit-level only. Safe to exercise the real provider for real — a plain,
-synchronous, non-prompting read
-(`QuoteBoxTests/PowerStateProvidingTests.swift` does).
+Also covers thermal state, the same `ProcessInfo` framework's other
+power-adjacent read — kept in this module rather than split into a second
+one, the same "don't fragment one framework across modules" reasoning
+`PurchaseSupport`'s subscription support was added under. `thermalState`/
+`startMonitoringThermalState`/`stopMonitoringThermalState` follow
+`NetworkReachabilityMonitoring`'s `current<X> { get }` +
+`startMonitoring`/`stopMonitoring` shape: `SystemPowerStateProvider` observes
+`ProcessInfo.thermalStateDidChangeNotification` via `NotificationCenter`
+rather than polling; `MockPowerStateProvider` gets a matching
+`simulateThermalStateChange(to:)`.
+
+```swift
+power.startMonitoringThermalState { state in print(state) }
+```
+
+Kit-level only. Safe to exercise the real provider for real — plain,
+synchronous, non-prompting reads, and constructing/tearing down the real
+notification observer never prompts or crashes either, even though nothing
+in CI can force an actual thermal state change to fire it
+(`QuoteBoxTests/PowerStateProvidingTests.swift` does both).
+
+### `BatteryStateProviding` (Swift Package product)
+
+Lets app code ask "how much charge is left, and is the device plugged in?"
+through an injectable dependency instead of reading `UIDevice.current`
+directly, so a test can force any battery level/charging combination
+deterministically (skip a background sync below 20% unplugged, badge a
+"charging" indicator). Distinct from `PowerStateProviding`: that wraps
+`ProcessInfo` (Low Power Mode, thermal state) — plain Foundation reads with
+no `@MainActor` concern; this wraps `UIDevice`, UIKit surface, so methods are
+`async` from the start, the same reasoning `IdleTimerControlling`/
+`AccessibilityStateProviding` give for their own `UIApplication`/
+`UIAccessibility` touchpoints. Keeps `UIDevice.BatteryState` directly
+(`.unknown`/`.unplugged`/`.charging`/`.full`), same reasoning every
+status-checking module gives for keeping a framework's own type.
+`SystemBatteryStateProvider` bridges through `await MainActor.run { ... }`,
+the same technique `SystemIdleTimerControl` already established.
+`MockBatteryStateProvider` is a settable fake.
+
+```swift
+import BatteryStateProviding
+
+let battery: BatteryStateProviding = MockBatteryStateProvider(monitoringEnabled: true, level: 0.42, state: .charging)
+```
+
+Reading `batteryLevel()`/`batteryState()` requires monitoring to be enabled
+first — `UIDevice` returns `-1.0`/`.unknown` otherwise — so this protocol
+exposes `setBatteryMonitoringEnabled(_:)` rather than assuming it's already
+on.
+
+Kit-level only. Safe to exercise the real provider for real — toggling
+monitoring and reading level/state never prompts or crashes
+(`QuoteBoxTests/BatteryStateProvidingTests.swift` does).
 
 ### `BundleInfoProviding` (Swift Package product)
 

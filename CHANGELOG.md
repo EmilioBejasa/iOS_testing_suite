@@ -6,16 +6,23 @@ depend on it.
 
 ## [Unreleased]
 
-Added 3 modules, bringing the kit from 50 to 53: `MemoryLeakDetection` (an
+Added 5 modules, bringing the kit from 50 to 55: `MemoryLeakDetection` (an
 `XCTestCase` extension asserting deallocation via a teardown block),
 `AsyncSequenceCollecting` (awaits a bounded number of elements from an
 `AsyncSequence` without hanging), `WidgetTimelineTesting` (bridges
-WidgetKit's completion-handler timeline provider to `async`).
+WidgetKit's completion-handler timeline provider to `async`),
+`BatteryStateProviding` (charge level/charging state via `UIDevice`,
+distinct from `PowerStateProviding`'s `ProcessInfo`-backed Low Power
+Mode/thermal reads), `SwiftDataTestSupport` (an in-memory `ModelContainer`
+builder, the SwiftData counterpart to `CoreDataTestSupport`).
 
 Also: `PurchaseSupport` gains subscription/entitlement support —
 `isEntitled(to:)` and `observeTransactionUpdates(_:)` — exercised through a
 new "Become a Supporter" monthly subscription in QuoteBox alongside the
-existing Tip Jar.
+existing Tip Jar. `PowerStateProviding` gains thermal state —
+`thermalState`, `startMonitoringThermalState(onChange:)`,
+`stopMonitoringThermalState()` — the same `ProcessInfo` framework's other
+power-adjacent read.
 
 ## [1.2.0] - 2026-08-12
 
