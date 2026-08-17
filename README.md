@@ -15,7 +15,7 @@ surface (local persistence, not just network).
 ## What's reusable
 
 <details>
-<summary><strong>Table of contents</strong> (56 modules, grouped by theme)</summary>
+<summary><strong>Table of contents</strong> (59 modules, grouped by theme)</summary>
 
 **Permissions & authorization**
 [Location](#locationauthorization-swift-package-product) ·
@@ -46,8 +46,11 @@ surface (local persistence, not just network).
 **Device & app state**
 [Power State](#powerstateproviding-swift-package-product) ·
 [Battery State](#batterystateproviding-swift-package-product) ·
+[Screen Capture State](#screencapturestateproviding-swift-package-product) ·
+[Protected Data Availability](#protecteddataavailabilityproviding-swift-package-product) ·
 [Bundle Info](#bundleinfoproviding-swift-package-product) ·
 [Cellular Data Restriction](#cellulardatarestrictionchecking-swift-package-product) ·
+[Disk Space](#diskspacechecking-swift-package-product) ·
 [Accessibility State](#accessibilitystateproviding-swift-package-product) ·
 [Haptic Feedback](#hapticfeedbackproviding-swift-package-product) ·
 [Idle Timer](#idletimercontrolling-swift-package-product) ·
@@ -1388,6 +1391,78 @@ monitoring and reading level/state never prompts or crashes
 Simulator has no real battery, and the flag doesn't reliably stick there
 (found via a failed CI run).
 
+### `ScreenCaptureStateProviding` (Swift Package product)
+
+Lets app code ask "is the screen being recorded, mirrored, or AirPlayed
+right now?" through an injectable dependency instead of reading
+`UIScreen.main.isCaptured` directly, so a test can force either side of a
+capture-aware code path (blur sensitive content, pause media playback)
+deterministically. `UIScreen` is `@MainActor`-isolated, so methods are
+`async`, same reasoning `AccessibilityStateProviding`/`IdleTimerControlling`
+give for their own UIKit touchpoints. Mirrors `PowerStateProviding`'s
+thermal-state shape — a read plus `startMonitoring`/`stopMonitoring`, since
+capture state can change mid-session. `SystemScreenCaptureStateProvider`
+observes `UIScreen.capturedDidChangeNotification` via `NotificationCenter`
+on the main queue; `MockScreenCaptureStateProvider` gets a matching
+`simulateScreenCaptureChange(to:)`.
+
+```swift
+import ScreenCaptureStateProviding
+
+let screenCapture: ScreenCaptureStateProviding = MockScreenCaptureStateProvider(isCaptured: true)
+```
+
+**Scope note:** `UIScreen.isCaptured` is deprecated in Apple's own headers
+in favor of `sceneCaptureState` — but that replacement isn't available in
+the SDK this kit's own CI actually builds against (Xcode 16.4 / iOS 18.5),
+and its exact API surface isn't findable in Apple's public documentation
+yet either, the same "can't verify, won't guess" caution
+`SwiftDataTestSupport`/`PasskeyAuthentication` were built with instead of
+chasing an unconfirmed signature. `isCaptured` still works (iOS 11+, well
+under this module's floor) and only emits a compiler deprecation warning,
+not a build failure.
+
+Kit-level only. Safe to exercise the real provider for real — reading
+`isCaptured` and constructing/tearing down the real notification observer
+never prompt or crash, even though nothing in CI can force an actual screen
+recording to start and fire it
+(`QuoteBoxTests/ScreenCaptureStateProvidingTests.swift` does both).
+
+### `ProtectedDataAvailabilityProviding` (Swift Package product)
+
+Lets app code ask "is file-protected/Keychain data actually accessible
+right now?" through an injectable dependency instead of reading
+`UIApplication.shared.isProtectedDataAvailable` directly, so a test can
+force either side of a protection-aware code path (defer a Keychain read
+until after first unlock) deterministically. `false` means the device is
+locked and files with `.complete`/`.completeUnlessOpen` data protection
+can't be read or written yet. Unlike every other `UIApplication.shared`
+touchpoint in this kit, Apple's own headers mark `isProtectedDataAvailable`
+`nonisolated` on an otherwise `@MainActor` class — a deliberate exemption,
+since it has to be safely readable from any context, including very early
+in app launch. So this protocol's read is a plain synchronous function, not
+`async` — the one UIKit module in this kit that isn't.
+`SystemProtectedDataAvailabilityProvider` monitors both
+`protectedDataDidBecomeAvailableNotification` and
+`protectedDataWillBecomeUnavailableNotification` via `NotificationCenter`;
+`MockProtectedDataAvailabilityProvider` gets a matching
+`simulateProtectedDataAvailabilityChange(to:)`.
+
+```swift
+import ProtectedDataAvailabilityProviding
+
+let dataProtection: ProtectedDataAvailabilityProviding = MockProtectedDataAvailabilityProvider(isProtectedDataAvailable: false)
+```
+
+Kit-level only. Safe to exercise the real provider for real — reading
+`isProtectedDataAvailable` and constructing/tearing down the real
+notification observers never prompt or crash, but the test deliberately
+doesn't assert the value itself is `true`: unlike a real device, nothing
+guarantees a CI Simulator's data-protection state during an automated run —
+the same caution `BatteryStateProvidingTests` was corrected to use after a
+real CI run showed a Simulator-state assumption didn't hold
+(`QuoteBoxTests/ProtectedDataAvailabilityProvidingTests.swift`).
+
 ### `BundleInfoProviding` (Swift Package product)
 
 Lets app code ask "what version/build is this?" through an injectable
@@ -1432,6 +1507,39 @@ Kit-level only. The real checker's status read is exercised for real in
 safe given no entitlement is required, though a fresh Simulator with no
 cellular hardware may just report `.restrictedStateUnknown` rather than a
 real value.
+
+### `DiskSpaceChecking` (Swift Package product)
+
+Lets app code ask "how much disk space is available/does this device have
+in total?" through an injectable dependency instead of reading
+`URLResourceValues`' volume capacity keys directly, so a test can force a
+low-space scenario (skip a cache prefetch, warn before a large download)
+deterministically. Plain, synchronous Foundation reads, not UIKit, so no
+`@MainActor` bridging is needed — same reasoning `PowerStateProviding`/
+`BundleInfoProviding` give for their own Foundation-only touchpoints.
+`SystemDiskSpaceChecker` wraps `URL.resourceValues(forKeys:)` against the
+app's home directory, `try?`-collapsing failure to `nil` rather than
+throwing — a disk space check failing shouldn't itself crash or propagate
+an error, the same fail-soft reasoning `BundleInfoProviding` gives for
+defaulting to `"unknown"`. `availableCapacity()` wraps
+`volumeAvailableCapacityForImportantUsage` rather than the plainer
+`volumeAvailableCapacity` — Apple's own guidance is that the "important
+usage" key is the one to check before an operation the user actually asked
+for, since it accounts for space the system might reclaim from
+purgeable/opportunistic data. `MockDiskSpaceChecker` is a settable fake.
+
+```swift
+import DiskSpaceChecking
+
+let diskSpace: DiskSpaceChecking = MockDiskSpaceChecker(available: 1_000_000, total: 64_000_000_000)
+```
+
+Kit-level only. Safe to exercise the real checker for real — a plain,
+synchronous, non-prompting read against the app's own home directory —
+but `QuoteBoxTests/DiskSpaceCheckingTests.swift` only asserts the values
+are positive and internally consistent (`available <= total`), not exact
+figures, since the real numbers depend entirely on the CI Simulator host's
+actual disk state.
 
 ### `AccessibilityStateProviding` (Swift Package product)
 

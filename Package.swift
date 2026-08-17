@@ -60,7 +60,10 @@ let package = Package(
         .library(name: "WidgetTimelineTesting", targets: ["WidgetTimelineTesting"]),
         .library(name: "BatteryStateProviding", targets: ["BatteryStateProviding"]),
         .library(name: "SwiftDataTestSupport", targets: ["SwiftDataTestSupport"]),
-        .library(name: "PasskeyAuthentication", targets: ["PasskeyAuthentication"])
+        .library(name: "PasskeyAuthentication", targets: ["PasskeyAuthentication"]),
+        .library(name: "ScreenCaptureStateProviding", targets: ["ScreenCaptureStateProviding"]),
+        .library(name: "ProtectedDataAvailabilityProviding", targets: ["ProtectedDataAvailabilityProviding"]),
+        .library(name: "DiskSpaceChecking", targets: ["DiskSpaceChecking"])
     ],
     targets: [
         .target(name: "NetworkStub"),
@@ -118,6 +121,9 @@ let package = Package(
         .target(name: "WidgetTimelineTesting"),
         .target(name: "BatteryStateProviding"),
         .target(name: "SwiftDataTestSupport"),
-        .target(name: "PasskeyAuthentication")
+        .target(name: "PasskeyAuthentication"),
+        .target(name: "ScreenCaptureStateProviding"),
+        .target(name: "ProtectedDataAvailabilityProviding"),
+        .target(name: "DiskSpaceChecking")
     ]
 )
