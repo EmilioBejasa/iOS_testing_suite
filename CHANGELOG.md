@@ -22,6 +22,12 @@ via `ASAuthorizationPlatformPublicKeyCredentialProvider`, distinct from
 Also: fixed a pre-existing build break in
 `QuoteBoxTests/AsyncSequenceCollectingTests.swift` (unwrapped
 `VerificationResult<Transaction>` incorrectly) found via this round's CI run.
+`reusable-test.yml`'s known-flake retry pattern now also covers
+`testCollectsRealTransactionUpdateAfterPurchase`'s two observed StoreKit
+sandbox failure modes (a `Transaction.updates` timeout, and a
+`missingValue`/`advancedCommerceInfo` decode error), matched narrowly to
+that one test so a real regression in `AsyncSequenceCollecting.collect()`
+still fails fast.
 
 Also: `PurchaseSupport` gains subscription/entitlement support —
 `isEntitled(to:)` and `observeTransactionUpdates(_:)` — exercised through a
