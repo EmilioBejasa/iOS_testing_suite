@@ -597,10 +597,16 @@ assertSnapshot(of: MyView(), dynamicTypeSize: .accessibility3, named: "loaded-ac
 This replaces relying on an accessibility audit's allow-listed exception with
 actually rendering and comparing the larger size — no automatic filename
 suffixing, the caller names each variant explicitly via `named:`, same as today.
-**Scope note:** this round ships the capability only; it isn't accompanied by a
-new committed reference image for `QuoteBox` itself. Recording one needs
-`SNAPSHOT_RECORD=1` run on a Mac with Xcode/Simulator, which wasn't available
-while building this — a real gap, not a hidden one.
+`QuoteBoxTests/QuoteViewSnapshotTests.swift`'s
+`testQuoteContentViewLoadedAccessibility3` exercises this against
+`QuoteContentView` — a taller frame than the default-size snapshot
+(`CGSize(width: 300, height: 400)` vs. 150), since `.accessibility3` text
+needs materially more vertical room to lay out without clipping. Recorded via
+`.github/workflows/record-snapshots.yml` rather than a local Mac (see that
+workflow's own history: the first attempt surfaced a real bug — a shell-level
+`SNAPSHOT_RECORD=1` never reached the Simulator-hosted test process until
+`project.yml`'s `test` scheme gained an explicit `SNAPSHOT_RECORD:
+$(SNAPSHOT_RECORD)` environment-variable mapping).
 
 ### `DeepLinkTesting` (Swift Package product)
 
