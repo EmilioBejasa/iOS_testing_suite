@@ -577,7 +577,14 @@ assertSnapshot(of: MyView(), size: CGSize(width: 320, height: 500), named: "load
 
 Set `SNAPSHOT_RECORD=1` to write a new reference image instead of comparing — the
 test still fails when recording, so it can't be left on by accident. Runs as a
-plain unit test (no simulator UI interaction, no XCUITest involved).
+plain unit test (no simulator UI interaction, no XCUITest involved). Pass it as
+a bare `xcodebuild` build-setting override —
+`xcodebuild test ... SNAPSHOT_RECORD=1`, the same style as
+`CODE_SIGNING_ALLOWED=NO` — rather than a shell `export`: a Simulator-hosted
+test process only sees environment variables the scheme explicitly maps in
+(`project.yml`'s `test` scheme sets `SNAPSHOT_RECORD: $(SNAPSHOT_RECORD)`), not
+the invoking shell's environment. `.github/workflows/record-snapshots.yml`
+does this for you if you don't have a local Mac.
 
 `assertSnapshot` also takes optional `locale:`/`dynamicTypeSize:` parameters,
 defaulting to `nil` so every existing call site (QuoteBox's included) renders
@@ -590,10 +597,16 @@ assertSnapshot(of: MyView(), dynamicTypeSize: .accessibility3, named: "loaded-ac
 This replaces relying on an accessibility audit's allow-listed exception with
 actually rendering and comparing the larger size — no automatic filename
 suffixing, the caller names each variant explicitly via `named:`, same as today.
-**Scope note:** this round ships the capability only; it isn't accompanied by a
-new committed reference image for `QuoteBox` itself. Recording one needs
-`SNAPSHOT_RECORD=1` run on a Mac with Xcode/Simulator, which wasn't available
-while building this — a real gap, not a hidden one.
+`QuoteBoxTests/QuoteViewSnapshotTests.swift`'s
+`testQuoteContentViewLoadedAccessibility3` exercises this against
+`QuoteContentView` — a taller frame than the default-size snapshot
+(`CGSize(width: 300, height: 400)` vs. 150), since `.accessibility3` text
+needs materially more vertical room to lay out without clipping. Recorded via
+`.github/workflows/record-snapshots.yml` rather than a local Mac (see that
+workflow's own history: the first attempt surfaced a real bug — a shell-level
+`SNAPSHOT_RECORD=1` never reached the Simulator-hosted test process until
+`project.yml`'s `test` scheme gained an explicit `SNAPSHOT_RECORD:
+$(SNAPSHOT_RECORD)` environment-variable mapping).
 
 ### `DeepLinkTesting` (Swift Package product)
 

@@ -55,17 +55,25 @@ jobs:
           SCHEME: ${{ inputs.scheme }}
           DEVICE_NAME: ${{ inputs.device }}
           ONLY_TESTING: ${{ inputs.only_testing }}
-          SNAPSHOT_RECORD: "1"
         run: |
           # assertSnapshot deliberately fails the test even while recording
           # (see Sources/SnapshotTesting/assertSnapshot.swift), so a non-zero
           # exit here is expected - what matters is the artifact upload below.
+          #
+          # SNAPSHOT_RECORD is passed as a bare xcodebuild build-setting
+          # override (like CODE_SIGNING_ALLOWED below), not a shell `env:`
+          # var - the Simulator-hosted test process only sees environment
+          # variables the scheme's TestAction explicitly maps in via a
+          # $(BUILD_SETTING) macro (see project.yml's `SNAPSHOT_RECORD:
+          # $(SNAPSHOT_RECORD)`), it doesn't inherit the invoking shell's
+          # environment.
           xcodebuild test \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
             -only-testing:"$ONLY_TESTING" \
-            CODE_SIGNING_ALLOWED=NO || true
+            CODE_SIGNING_ALLOWED=NO \
+            SNAPSHOT_RECORD=1 || true
 
       - name: Upload recorded snapshot
         uses: actions/upload-artifact@v4
