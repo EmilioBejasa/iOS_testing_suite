@@ -1,5 +1,7 @@
 # iOS Test Kit
 
+[![iOS Build](https://github.com/EmilioBejasa/iOS_testing_suite/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/EmilioBejasa/iOS_testing_suite/actions/workflows/ci.yml)
+
 A reusable iOS testing setup — a Swift package of test helpers, plus GitHub Actions
 workflows any iOS repo can call by reference instead of copy-pasting CI config.
 
