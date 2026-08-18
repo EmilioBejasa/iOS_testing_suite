@@ -54,6 +54,14 @@ runs on a schedule via `.github/workflows/live-api-contract.yml` instead.
 CI (`.github/workflows/ci.yml`) runs the same suite across a small device
 matrix on every push and PR to `master`.
 
+No Mac available? `.github/workflows/record-snapshots.yml` runs
+`SNAPSHOT_RECORD=1` for a single test identifier on a `macos-15` runner and
+uploads the resulting reference image as a build artifact — dispatch it from
+the Actions tab (or `gh workflow run record-snapshots.yml -f
+scheme=QuoteBox -f project=QuoteBox.xcodeproj -f
+only_testing=QuoteBoxTests/YourTest`), download the artifact, and commit the
+PNG under the matching `__Snapshots__/` path.
+
 ## Pull requests
 
 - Keep one module or fix per PR where practical — the module-per-PR history

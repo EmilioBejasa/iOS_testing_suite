@@ -1,7 +1,15 @@
-name: Reusable Live API Contract Check
+name: Record Snapshot
+
+# Records a new SnapshotTesting reference image for a single test identifier
+# and uploads it as an artifact, for anyone who needs to add/update a
+# snapshot but doesn't have a local Mac with Xcode/Simulator - see
+# SnapshotTesting's SNAPSHOT_RECORD=1 env var (Sources/SnapshotTesting).
+# Deliberately manual (workflow_dispatch only): recording overwrites the
+# comparison target rather than verifying against it, so it should never run
+# unattended.
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       scheme:
         description: The Xcode scheme to test
@@ -12,11 +20,11 @@ on:
         required: true
         type: string
       only_testing:
-        description: Test identifier to run against the live network (e.g. "MyTests/LiveContractTests")
+        description: Test identifier to record (e.g. "QuoteBoxTests/QuoteViewSnapshotTests/testFoo")
         required: true
         type: string
       device:
-        description: Simulator device name to run against
+        description: Simulator device name to render with
         required: false
         type: string
         default: "iPhone 16"
@@ -27,7 +35,7 @@ on:
         default: true
 
 jobs:
-  contract:
+  record:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -41,16 +49,27 @@ jobs:
         if: inputs.xcodegen
         run: xcodegen generate
 
-      - name: Run live contract tests
+      - name: Record snapshot
         env:
           PROJECT: ${{ inputs.project }}
           SCHEME: ${{ inputs.scheme }}
           DEVICE_NAME: ${{ inputs.device }}
           ONLY_TESTING: ${{ inputs.only_testing }}
+          SNAPSHOT_RECORD: "1"
         run: |
+          # assertSnapshot deliberately fails the test even while recording
+          # (see Sources/SnapshotTesting/assertSnapshot.swift), so a non-zero
+          # exit here is expected - what matters is the artifact upload below.
           xcodebuild test \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
             -only-testing:"$ONLY_TESTING" \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO || true
+
+      - name: Upload recorded snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: recorded-snapshot
+          path: '**/__Snapshots__/**'
+          if-no-files-found: error
