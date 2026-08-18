@@ -577,7 +577,14 @@ assertSnapshot(of: MyView(), size: CGSize(width: 320, height: 500), named: "load
 
 Set `SNAPSHOT_RECORD=1` to write a new reference image instead of comparing — the
 test still fails when recording, so it can't be left on by accident. Runs as a
-plain unit test (no simulator UI interaction, no XCUITest involved).
+plain unit test (no simulator UI interaction, no XCUITest involved). Pass it as
+a bare `xcodebuild` build-setting override —
+`xcodebuild test ... SNAPSHOT_RECORD=1`, the same style as
+`CODE_SIGNING_ALLOWED=NO` — rather than a shell `export`: a Simulator-hosted
+test process only sees environment variables the scheme explicitly maps in
+(`project.yml`'s `test` scheme sets `SNAPSHOT_RECORD: $(SNAPSHOT_RECORD)`), not
+the invoking shell's environment. `.github/workflows/record-snapshots.yml`
+does this for you if you don't have a local Mac.
 
 `assertSnapshot` also takes optional `locale:`/`dynamicTypeSize:` parameters,
 defaulting to `nil` so every existing call site (QuoteBox's included) renders

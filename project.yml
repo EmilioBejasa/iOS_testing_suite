@@ -219,6 +219,8 @@ schemes:
       targets:
         - QuoteBoxTests
         - QuoteBoxUITests
+      environmentVariables:
+        SNAPSHOT_RECORD: $(SNAPSHOT_RECORD)
     run:
       config: Debug
       storeKitConfiguration: QuoteBoxTests/Configuration.storekit

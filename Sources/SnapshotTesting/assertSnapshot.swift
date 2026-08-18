@@ -18,6 +18,15 @@ import XCTest
 /// Set the `SNAPSHOT_RECORD=1` environment variable to write a new reference
 /// image instead of comparing — the test still fails when recording, so
 /// recording mode can't be left on by accident.
+///
+/// A Simulator-hosted test process only sees environment variables its
+/// scheme explicitly maps in (not the invoking shell's environment) — pass
+/// `SNAPSHOT_RECORD=1` as a bare `xcodebuild` build-setting override (e.g.
+/// `xcodebuild test ... SNAPSHOT_RECORD=1`, the same style as
+/// `CODE_SIGNING_ALLOWED=NO`), which reaches this via the `test` scheme's
+/// `SNAPSHOT_RECORD: $(SNAPSHOT_RECORD)` environment-variable mapping in
+/// `project.yml`. A plain shell `export SNAPSHOT_RECORD=1` before the
+/// `xcodebuild` invocation does not reach this check.
 @available(iOS 16.0, *)
 @MainActor
 public func assertSnapshot(
