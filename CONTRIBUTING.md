@@ -30,15 +30,10 @@ To add a module:
      imports an iOS-only framework (UIKit, HealthKit, etc.), wrap the
      *entire* test file body in `#if os(iOS) ... #endif` - matching the same
      guard already on the module's `Sources/` files - so it still builds, as
-     an empty target, under plain `swift test` on macOS; it'll only run real
-     assertions via `xcodebuild test -scheme iOSTestKit-Package -destination
-     'platform=iOS Simulator,name=...'` (Xcode auto-synthesizes that scheme
-     name, `<PackageName>-Package`, for a bare `Package.swift` with no
-     checked-in `.xcodeproj`). Use `#if os(iOS)`, not
-     `#if canImport(Framework)`: several frameworks a module might import
-     (CoreMotion, Intents) resolve fine on macOS as a module - just missing
-     the specific type this kit needs - so `canImport` alone would evaluate
-     true and still fail to compile there.
+     an empty target, under plain `swift test` on macOS. See
+     [Troubleshooting](#troubleshooting-swiftpm-kit-only-tests) for why
+     `#if os(iOS)`, not `#if canImport(Framework)`, and for any `@available`
+     floor the test file may also need.
    - **App-dependent** (needs `@testable import QuoteBox` or another app
      type): add `QuoteBoxTests/<ModuleName>Tests.swift`, the way
      `MemoryLeakDetectionTests` does.
@@ -79,32 +74,10 @@ make lint           # swiftlint lint --strict
 API and runs on a schedule via `.github/workflows/live-api-contract.yml`
 instead). CI (`.github/workflows/ci.yml`) runs all of the above — `test`
 (the `make test-app` suite across a device matrix), `swift-test`,
-`kit-tests-ios`, and `lint` — on every push and PR to `master`.
-
-**Configuration.storekit is duplicated**, not shared, between
-`Tests/PurchaseSupportTests/` and `Tests/AsyncSequenceCollectingTests/`: SwiftPM
-resources must live inside the target that references them, so a single file
-can't be pointed at from two test targets. If you need to change the StoreKit
-test configuration, update both copies.
-
-**Real `SKTestSession` purchases don't work under `make test-kit`/`make
-test-kit-ios`**: `testFetchAndPurchaseTipProduct`,
-`testIsEntitledReflectsRealPurchaseUnderTestSession`, and
-`testCollectsRealTransactionUpdateAfterExternalPurchase` are skipped in both
-CI jobs (and worth skipping locally too) - StoreKit product lookup failed
-consistently, not intermittently, when driven from a bare `swift
-test`/`xcodebuild test -scheme iOSTestKit-Package` process with no app/test-host
-bundle context, unlike `reusable-test.yml`'s `test` job which hosts these
-inside a real Xcode-built `.xctest` bundle. Mock-backed coverage
-(`MockPurchaseManager`) still runs everywhere; the real-session path stays
-covered by `QuoteBoxUITests`'
-`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`.
-
-Same story for `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard`
-under `make test-kit-ios`: it hung indefinitely (not a normal failure) rather
-than completing, almost certainly the OS's paste-permission alert (iOS 16+)
-that a headless test process with no real host bundle can never dismiss.
-Skipped there too; `MockClipboardProvider` coverage still runs.
+`kit-tests-ios`, and `lint` — on every push and PR to `master`. If
+`make test-kit`/`make test-kit-ios` fail or behave oddly, check
+[Troubleshooting](#troubleshooting-swiftpm-kit-only-tests) first — most of
+what's there was hit and fixed while first setting these two up.
 
 No Mac available? `.github/workflows/record-snapshots.yml` runs
 `SNAPSHOT_RECORD=1` for a single test identifier on a `macos-15` runner and
@@ -113,6 +86,85 @@ the Actions tab (or `gh workflow run record-snapshots.yml -f
 scheme=QuoteBox -f project=QuoteBox.xcodeproj -f
 only_testing=QuoteBoxTests/YourTest`), download the artifact, and commit the
 PNG under the matching `__Snapshots__/` path.
+
+## Troubleshooting: SwiftPM kit-only tests
+
+Everything below was hit — and fixed — while first setting up `swift test`
+and `xcodebuild test -scheme iOSTestKit-Package` for the kit-only test
+targets under `Tests/`. If you're adding a new kit-only module or its test
+starts failing in a way that looks environmental rather than a real bug,
+check here before digging further.
+
+**The scheme is `iOSTestKit-Package`, not `iOSTestKit`.** Xcode
+auto-synthesizes a scheme named `<PackageName>-Package` for a bare
+`Package.swift` with no checked-in `.xcodeproj` — `xcodebuild -list` against
+the repo root confirms the exact name if this ever changes.
+
+**Use `#if os(iOS)`, not `#if canImport(Framework)`, to guard an iOS-only
+module's test file (and Sources files, if needed).** Most iOS-only
+frameworks (UIKit, HealthKit, CoreTelephony, MediaPlayer, ActivityKit,
+BackgroundTasks, WatchConnectivity, FamilyControls, MetricKit, HomeKit) don't
+exist on macOS at all, so `canImport` correctly evaluates false there. But a
+few (CoreMotion, Intents) *do* resolve as importable on macOS — just missing
+the specific type the module needs (`CMMotionActivityManager`,
+`INSiriAuthorizationStatus`) — so `canImport` evaluates true, compiles the
+guarded code anyway, and fails on the missing symbol instead of skipping it
+cleanly. `#if os(iOS)` doesn't depend on knowing each framework's exact
+macOS module-vs-symbol availability; it's unconditionally false on macOS
+regardless.
+
+**A test file may need its own `@available(iOS X.Y, *)`, separate from its
+Sources module's.** This package's own floor is iOS 13 / macOS 13
+(`Package.swift`). Any System*/Mock* type — or free function — annotated
+with a higher floor needs that *same* floor repeated on the test file's
+class or method that references it, or the build fails for whichever
+platform doesn't meet it. Two specific traps:
+- **The iOS 17 / macOS 14 pairing**: Apple ships some APIs (SwiftData, the
+  granular EventKit access methods, XCTest's accessibility audit) as an
+  iOS 17 **and** macOS 14 pair. Since this package's macOS floor is only 13,
+  code marked `@available(iOS 17.0, *)` alone compiles fine for iOS but
+  fails on macOS unless `macOS 14.0` is added explicitly.
+- **Use the *highest* floor actually referenced**, not just the first one
+  you notice — e.g. a file that both calls `SKTestSession.buyProduct`
+  (iOS 17) and something needing only iOS 14 needs `@available(iOS 17.0, *)`
+  on the whole scope, not 14.
+
+**Use `Bundle.module`, not `Bundle(for: SomeClass.self)`, to load a test
+target's own copied resources.** `Bundle(for:)` works under Xcode's
+one-bundle-per-test-target model, but `swift test` links every target into
+a single runner executable, so it doesn't reliably resolve to the specific
+target's resource bundle. `Bundle.module` is SwiftPM's generated accessor
+for a target's own `resources:` and is correct in both environments.
+
+**`SKTestSession(configurationFileNamed:)` doesn't find
+`Configuration.storekit` under `swift test`** — same root cause as the
+`Bundle.module` issue above: it searches the process's main bundle, which
+isn't this target's resource bundle here. Resolve the file via
+`Bundle.module.url(forResource:withExtension:)` and construct the session
+with `SKTestSession(contentsOf:)` instead.
+
+**Configuration.storekit is duplicated**, not shared, between
+`Tests/PurchaseSupportTests/` and `Tests/AsyncSequenceCollectingTests/`:
+SwiftPM resources must live inside the target that references them, so a
+single file can't be pointed at from two test targets. If you need to
+change the StoreKit test configuration, update both copies.
+
+**Four tests are skipped in `swift-test`/`kit-tests-ios` (and their `make`
+equivalents)** because they need a real Xcode-built host app bundle to work
+at all — confirmed by each failing consistently, not intermittently, and one
+hanging outright rather than failing:
+
+| Test | Why | Real-path coverage lives in |
+|---|---|---|
+| `PurchaseSupportTests.testFetchAndPurchaseTipProduct` | Real StoreKit product lookup returns nil with no host app identity | `QuoteBoxUITests.testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration` |
+| `PurchaseSupportTests.testIsEntitledReflectsRealPurchaseUnderTestSession` | Same | Same |
+| `AsyncSequenceCollectingTests.testCollectsRealTransactionUpdateAfterExternalPurchase` | Same | Same |
+| `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard` | Hung indefinitely — almost certainly iOS 16+'s paste-permission alert, which a headless process can never dismiss | `MockClipboardProvider` coverage only; no real-pasteboard UI test exists yet |
+| `IdleTimerControllingTests.testSystemControlRoundTripsAgainstRealApplication` | `UIApplication.shared.isIdleTimerDisabled` writes don't take effect without a real running host app | `MockIdleTimerControl` coverage only |
+
+Mock-backed coverage for all five still runs everywhere. If you add a new
+"real system, mutates real app/OS state" test, expect it to need the same
+treatment until proven otherwise.
 
 ## Pull requests
 
