@@ -1,4 +1,4 @@
-#if canImport(AppTrackingTransparency)
+#if os(iOS)
 import AppTrackingTransparency
 
 /// A ninth permission-gated system service, same protocol+real+fake shape as

@@ -1,4 +1,4 @@
-#if canImport(AppTrackingTransparency)
+#if os(iOS)
 import AppTrackingTransparency
 
 /// Deterministic stand-in for `SystemTrackingAuthorizer` - safe to exercise in

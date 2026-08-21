@@ -1,4 +1,4 @@
-#if canImport(BackgroundTasks)
+#if os(iOS)
 import BackgroundTasks
 
 /// Wraps `BGTaskScheduler.shared` directly - no bridging needed, but no safety

@@ -1,4 +1,4 @@
-#if canImport(AppTrackingTransparency)
+#if os(iOS)
 import AppTrackingTransparency
 
 /// Wraps `ATTrackingManager`. `requestTrackingAuthorization(completionHandler:)`

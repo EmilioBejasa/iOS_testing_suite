@@ -1,4 +1,4 @@
-#if canImport(HomeKit)
+#if os(iOS)
 import XCTest
 import HomeKit
 import HomeKitAuthorization

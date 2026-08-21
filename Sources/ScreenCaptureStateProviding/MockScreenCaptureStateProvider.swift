@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 /// Deterministic stand-in for `SystemScreenCaptureStateProvider` - safe to
 /// exercise in any test, since it never touches the real screen.
 public final class MockScreenCaptureStateProvider: ScreenCaptureStateProviding {

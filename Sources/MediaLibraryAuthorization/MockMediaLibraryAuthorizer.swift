@@ -1,4 +1,4 @@
-#if canImport(MediaPlayer)
+#if os(iOS)
 import MediaPlayer
 
 /// Deterministic stand-in for `SystemMediaLibraryAuthorizer` - safe to

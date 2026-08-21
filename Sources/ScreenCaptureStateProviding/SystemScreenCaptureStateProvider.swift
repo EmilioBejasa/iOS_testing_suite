@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import UIKit
 
 /// Wraps `UIScreen.main.isCaptured`, bridged through `await MainActor.run { ... }`

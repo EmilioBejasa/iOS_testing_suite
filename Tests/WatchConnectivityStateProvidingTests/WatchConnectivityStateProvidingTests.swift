@@ -1,4 +1,4 @@
-#if canImport(WatchConnectivity)
+#if os(iOS)
 import XCTest
 import WatchConnectivityStateProviding
 

@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import UIKit
 
 /// Deterministic stand-in for `SystemBatteryStateProvider` - safe to

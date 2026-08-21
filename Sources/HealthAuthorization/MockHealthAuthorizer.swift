@@ -1,4 +1,4 @@
-#if canImport(HealthKit)
+#if os(iOS)
 import HealthKit
 
 /// Deterministic stand-in for `SystemHealthAuthorizer` - safe to exercise in

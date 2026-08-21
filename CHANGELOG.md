@@ -13,13 +13,17 @@ Real `swift test` support: 49 kit-only test files moved out of
 project needed at all. The remaining 23 — whose `Sources/` unconditionally
 import UIKit, HealthKit, CoreMotion, CoreTelephony, MediaPlayer, ActivityKit,
 BackgroundTasks, WatchConnectivity, AppTrackingTransparency, FamilyControls,
-MetricKit, HomeKit, or Intents — are now wrapped in matching
-`#if canImport(...)` guards (both the `Sources/` implementation files and
-their test files), so they still build cleanly (as empty targets) under
-`swift test` on macOS and run their real assertions via `xcodebuild test
--scheme iOSTestKit-Package -destination 'platform=iOS Simulator,name=...'`
-instead — still against the bare `Package.swift`, no XcodeGen or the
-`QuoteBox` app required. A handful of macOS-runnable modules whose real
+MetricKit, HomeKit, or Intents — are now wrapped in matching `#if os(iOS)`
+guards (both the `Sources/` implementation files and their test files), so
+they still build cleanly (as empty targets) under `swift test` on macOS and
+run their real assertions via `xcodebuild test -scheme iOSTestKit-Package
+-destination 'platform=iOS Simulator,name=...'` instead — still against the
+bare `Package.swift`, no XcodeGen or the `QuoteBox` app required. `#if
+canImport(Framework)` looked like the obvious guard but proved wrong for
+CoreMotion and Intents specifically: the module itself resolves on macOS,
+just missing the type this kit needs, so `canImport` evaluated true and
+still failed to compile — caught by CI, not anticipated in advance. A
+handful of macOS-runnable modules whose real
 platform floor is newer than this package's `.macOS(.v13)` (the granular
 EventKit access APIs, `SwiftData`, `XCTest`'s accessibility audit) needed an
 explicit `macOS 14.0` added alongside their existing `@available(iOS 17.0,

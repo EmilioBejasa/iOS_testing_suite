@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import XCTest
 import UIKit
 import BatteryStateProviding

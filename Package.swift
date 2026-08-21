@@ -170,11 +170,15 @@ let package = Package(
         .testTarget(name: "UserDefaultsStoreTests", dependencies: ["UserDefaultsStore"]),
 
         // MARK: - Kit-only tests (iOS Simulator only)
-        // Each file's content is wrapped in `#if canImport(...)`, matching the guard
-        // already on the corresponding Sources/ module, so these build as empty
-        // targets under plain `swift test` on macOS. Real assertions only run via
-        // `xcodebuild test -scheme iOSTestKit -destination 'platform=iOS
-        // Simulator,name=...'` — see CONTRIBUTING.md.
+        // Each file's content is wrapped in `#if os(iOS)`, matching the guard already
+        // on the corresponding Sources/ module, so these build as empty targets under
+        // plain `swift test` on macOS. `#if canImport(Framework)` looks tempting here
+        // but is wrong for several of these frameworks (CoreMotion, Intents): the
+        // module itself resolves fine on macOS, just missing the specific type this
+        // kit needs, so `canImport` evaluates true and still fails to compile.
+        // `#if os(iOS)` sidesteps that per-framework guessing entirely. Real
+        // assertions only run via `xcodebuild test -scheme iOSTestKit-Package
+        // -destination 'platform=iOS Simulator,name=...'` — see CONTRIBUTING.md.
         .testTarget(name: "AccessibilityStateProvidingTests", dependencies: ["AccessibilityStateProviding"]),
         .testTarget(name: "AppleSignInTests", dependencies: ["AppleSignIn"]),
         .testTarget(name: "BackgroundTaskSchedulingTests", dependencies: ["BackgroundTaskScheduling"]),

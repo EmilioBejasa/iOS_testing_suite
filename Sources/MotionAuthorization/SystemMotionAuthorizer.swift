@@ -1,4 +1,4 @@
-#if canImport(CoreMotion)
+#if os(iOS)
 import CoreMotion
 
 /// Wraps `CMMotionActivityManager.authorizationStatus()` - a static,

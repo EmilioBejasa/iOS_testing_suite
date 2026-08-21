@@ -1,4 +1,4 @@
-#if canImport(BackgroundTasks)
+#if os(iOS)
 import BackgroundTasks
 
 /// Records what a call site asked the scheduler to do, rather than faking real

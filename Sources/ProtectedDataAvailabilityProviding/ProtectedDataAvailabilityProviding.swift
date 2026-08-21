@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import UIKit
 
 /// Lets app code ask "is file-protected/Keychain data actually accessible

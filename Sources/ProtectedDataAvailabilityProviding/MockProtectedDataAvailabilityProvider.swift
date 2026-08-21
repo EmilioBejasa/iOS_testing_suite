@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 /// Deterministic stand-in for `SystemProtectedDataAvailabilityProvider` -
 /// safe to exercise in any test, since it never touches the real
 /// application's data-protection state.

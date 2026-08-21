@@ -1,4 +1,4 @@
-#if canImport(CoreMotion)
+#if os(iOS)
 import CoreMotion
 
 /// An eleventh permission-gated system service - but unlike every other

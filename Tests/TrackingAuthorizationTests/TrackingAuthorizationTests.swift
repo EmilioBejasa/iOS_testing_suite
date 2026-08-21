@@ -1,4 +1,4 @@
-#if canImport(AppTrackingTransparency)
+#if os(iOS)
 import XCTest
 import AppTrackingTransparency
 import TrackingAuthorization

@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import UIKit
 
 /// Lets app code ask "is the screen being recorded, mirrored, or AirPlayed

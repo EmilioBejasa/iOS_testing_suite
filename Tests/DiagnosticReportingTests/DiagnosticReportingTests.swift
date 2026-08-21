@@ -1,4 +1,4 @@
-#if canImport(MetricKit)
+#if os(iOS)
 import XCTest
 import DiagnosticReporting
 

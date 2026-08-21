@@ -1,4 +1,4 @@
-#if canImport(ActivityKit)
+#if os(iOS)
 /// Deterministic stand-in for `SystemLiveActivityAuthorizer` - safe to
 /// exercise in any test, since it never touches the real ActivityKit
 /// runtime.

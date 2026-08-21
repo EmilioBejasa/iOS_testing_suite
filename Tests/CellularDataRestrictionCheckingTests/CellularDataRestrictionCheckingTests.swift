@@ -1,4 +1,4 @@
-#if canImport(CoreTelephony)
+#if os(iOS)
 import XCTest
 import CoreTelephony
 import CellularDataRestrictionChecking

@@ -1,4 +1,4 @@
-#if canImport(CoreMotion)
+#if os(iOS)
 import XCTest
 import CoreMotion
 import MotionAuthorization

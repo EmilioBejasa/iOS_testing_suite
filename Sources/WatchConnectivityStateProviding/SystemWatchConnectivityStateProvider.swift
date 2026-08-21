@@ -1,4 +1,4 @@
-#if canImport(WatchConnectivity)
+#if os(iOS)
 import WatchConnectivity
 
 /// Wraps `WCSession`. `WCSession` is not supported on every device this

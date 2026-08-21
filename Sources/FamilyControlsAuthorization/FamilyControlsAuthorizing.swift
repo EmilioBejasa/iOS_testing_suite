@@ -1,4 +1,4 @@
-#if canImport(FamilyControls)
+#if os(iOS)
 import FamilyControls
 
 /// Wraps Screen Time's `AuthorizationCenter`. Uses `AuthorizationStatus`

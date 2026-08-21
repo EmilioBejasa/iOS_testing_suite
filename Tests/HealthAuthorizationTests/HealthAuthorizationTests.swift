@@ -1,4 +1,4 @@
-#if canImport(HealthKit)
+#if os(iOS)
 import XCTest
 import HealthKit
 import HealthAuthorization

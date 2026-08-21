@@ -1,4 +1,4 @@
-#if canImport(CoreTelephony)
+#if os(iOS)
 import CoreTelephony
 
 /// Deterministic stand-in for `SystemCellularDataChecker` - safe to exercise

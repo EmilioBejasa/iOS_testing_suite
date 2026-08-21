@@ -1,4 +1,4 @@
-#if canImport(HomeKit)
+#if os(iOS)
 import HomeKit
 
 /// Deterministic stand-in for `SystemHomeKitAuthorizer` - safe to exercise

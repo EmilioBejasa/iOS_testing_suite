@@ -1,4 +1,4 @@
-#if canImport(HealthKit)
+#if os(iOS)
 import HealthKit
 
 /// A tenth permission-gated system service, same protocol+real+fake shape as

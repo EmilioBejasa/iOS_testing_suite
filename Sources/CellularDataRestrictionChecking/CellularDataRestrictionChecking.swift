@@ -1,4 +1,4 @@
-#if canImport(CoreTelephony)
+#if os(iOS)
 import CoreTelephony
 
 /// Lets app code ask "has the user restricted this app from cellular data?"

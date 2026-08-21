@@ -1,4 +1,4 @@
-#if canImport(MediaPlayer)
+#if os(iOS)
 import MediaPlayer
 
 /// A fourteenth permission-gated system service, same protocol+real+fake

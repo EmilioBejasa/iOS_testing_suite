@@ -1,4 +1,4 @@
-#if canImport(MediaPlayer)
+#if os(iOS)
 import XCTest
 import MediaPlayer
 import MediaLibraryAuthorization

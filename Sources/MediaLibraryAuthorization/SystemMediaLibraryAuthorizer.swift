@@ -1,4 +1,4 @@
-#if canImport(MediaPlayer)
+#if os(iOS)
 import MediaPlayer
 
 /// Wraps `MPMediaLibrary`. `requestAuthorization(_:)` is already a plain

@@ -1,4 +1,4 @@
-#if canImport(FamilyControls)
+#if os(iOS)
 import XCTest
 import FamilyControls
 import FamilyControlsAuthorization

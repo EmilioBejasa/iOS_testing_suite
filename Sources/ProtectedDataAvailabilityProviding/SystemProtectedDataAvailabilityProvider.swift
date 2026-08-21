@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import UIKit
 
 /// Wraps `UIApplication.shared.isProtectedDataAvailable` directly - no

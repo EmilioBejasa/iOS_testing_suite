@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if os(iOS)
 import AuthenticationServices
 import Foundation
 import UIKit

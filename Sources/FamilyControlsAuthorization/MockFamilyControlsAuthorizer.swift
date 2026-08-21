@@ -1,4 +1,4 @@
-#if canImport(FamilyControls)
+#if os(iOS)
 import FamilyControls
 
 /// Deterministic stand-in for `SystemFamilyControlsAuthorizer` - safe to

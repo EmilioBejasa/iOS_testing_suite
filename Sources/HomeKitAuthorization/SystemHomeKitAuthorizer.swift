@@ -1,4 +1,4 @@
-#if canImport(HomeKit)
+#if os(iOS)
 import HomeKit
 
 /// Wraps `HMHomeManager`. Deliberately does **not** hold `HMHomeManager` as

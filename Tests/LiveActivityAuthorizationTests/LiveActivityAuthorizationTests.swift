@@ -1,4 +1,4 @@
-#if canImport(ActivityKit)
+#if os(iOS)
 import XCTest
 import ActivityKit
 import LiveActivityAuthorization

@@ -1,4 +1,4 @@
-#if canImport(FamilyControls)
+#if os(iOS)
 import FamilyControls
 
 /// Wraps `AuthorizationCenter.shared`. `requestAuthorization(for:)` is

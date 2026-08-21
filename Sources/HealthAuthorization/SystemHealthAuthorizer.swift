@@ -1,4 +1,4 @@
-#if canImport(HealthKit)
+#if os(iOS)
 import HealthKit
 
 /// Wraps `HKHealthStore`. Deliberately bridges the older completion-handler
