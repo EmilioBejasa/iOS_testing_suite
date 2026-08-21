@@ -3,6 +3,11 @@ import CoreLocation
 import LocationAuthorization
 
 final class LocationAuthorizationTests: XCTestCase {
+    // CLAuthorizationStatus.authorizedWhenInUse doesn't exist on macOS - the rest of
+    // this file is fine there (CoreLocation itself, and every other case used here,
+    // are cross-platform), so only this one method needs guarding rather than the
+    // whole file.
+    #if os(iOS)
     func testMockReturnsConfiguredStatus() async {
         let authorizer = MockLocationAuthorizer(status: .authorizedWhenInUse)
 
@@ -11,6 +16,7 @@ final class LocationAuthorizationTests: XCTestCase {
         let requestedStatus = await authorizer.requestWhenInUseAuthorization()
         XCTAssertEqual(requestedStatus, .authorizedWhenInUse)
     }
+    #endif
 
     func testMockDefaultsToNotDetermined() {
         let authorizer = MockLocationAuthorizer()

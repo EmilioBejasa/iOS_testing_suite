@@ -41,21 +41,20 @@ jobs:
   # `QuoteBox` scheme no longer exercises these modules at all - without this
   # job they'd lose simulator coverage entirely.
   #
-  # Unlike the QuoteBox.xcodeproj-based `test` job above, the scheme Xcode
-  # auto-synthesizes for a bare Package.swift (`iOSTestKit-Package`) doesn't
-  # expose named-device run destinations to match against - only generic
-  # platform placeholders - so this targets "any" iOS Simulator rather than
-  # a device matrix.
   kit-tests-ios:
     runs-on: macos-15
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        destination_name: ["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]
     steps:
       - uses: actions/checkout@v4
       - name: Run kit tests against Package.swift
         run: |
           xcodebuild test \
             -scheme iOSTestKit-Package \
-            -destination "platform=iOS Simulator,name=Any iOS Simulator Device" \
+            -destination "platform=iOS Simulator,name=${{ matrix.destination_name }}" \
             CODE_SIGNING_ALLOWED=NO
 
   # Report-only for now: flips to `--strict` once a first run establishes how
