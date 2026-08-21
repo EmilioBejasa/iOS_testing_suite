@@ -1,6 +1,7 @@
 import XCTest
 import AsyncSleeping
 
+@available(iOS 16.0, *)
 final class AsyncSleepingTests: XCTestCase {
     func testMockRecordsRequestedDurations() async throws {
         let sleeper = MockSleeper()

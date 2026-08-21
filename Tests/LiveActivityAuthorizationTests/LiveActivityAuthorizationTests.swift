@@ -3,6 +3,7 @@ import XCTest
 import ActivityKit
 import LiveActivityAuthorization
 
+@available(iOS 16.1, *)
 final class LiveActivityAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredValue() {
         let authorizer = MockLiveActivityAuthorizer(areActivitiesEnabled: true)

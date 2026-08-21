@@ -1,6 +1,7 @@
 import XCTest
 import AnalyticsLogging
 
+@available(iOS 14.0, *)
 final class AnalyticsLoggingTests: XCTestCase {
     func testMockRecordsLoggedEvents() {
         let logger = MockAnalyticsLogger()

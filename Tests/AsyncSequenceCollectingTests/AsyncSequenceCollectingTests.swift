@@ -3,18 +3,19 @@ import StoreKit
 import StoreKitTest
 import AsyncSequenceCollecting
 
-// SKTestSession needs an explicit iOS 14.0 floor for the kit-tests-ios build (this
-// package's own iOS floor is 13). Under `swift test`, SKTestSession(configurationFileNamed:)
-// looks for "Configuration.storekit" in the process's main bundle, which under SwiftPM's test
-// runner isn't this target's own resource bundle - resolving the file via Bundle.module and
-// passing its URL instead sidesteps that lookup entirely.
-@available(iOS 14.0, *)
+// iOS 16.0 for AsyncSequenceCollecting.collect (this package's own iOS floor is 13) -
+// SKTestSession itself only needs 14.0, so the higher of the two governs. Under
+// `swift test`, SKTestSession(configurationFileNamed:) looks for "Configuration.storekit"
+// in the process's main bundle, which under SwiftPM's test runner isn't this target's own
+// resource bundle - resolving the file via Bundle.module and passing its URL instead
+// sidesteps that lookup entirely.
+@available(iOS 16.0, *)
 final class AsyncSequenceCollectingTests: XCTestCase {
     private var session: SKTestSession!
 
     override func setUpWithError() throws {
         let configURL = try XCTUnwrap(Bundle.module.url(forResource: "Configuration", withExtension: "storekit"))
-        session = try SKTestSession(configurationFileURL: configURL)
+        session = try SKTestSession(contentsOf: configURL)
         session.disableDialogs = true
         session.clearTransactions()
     }

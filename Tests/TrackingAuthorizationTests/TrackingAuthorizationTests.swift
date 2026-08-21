@@ -3,6 +3,7 @@ import XCTest
 import AppTrackingTransparency
 import TrackingAuthorization
 
+@available(iOS 14.0, *)
 final class TrackingAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredStatus() async {
         let authorizer = MockTrackingAuthorizer(status: .authorized, authorizationResult: .authorized)

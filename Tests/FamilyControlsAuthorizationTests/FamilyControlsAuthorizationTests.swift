@@ -3,6 +3,7 @@ import XCTest
 import FamilyControls
 import FamilyControlsAuthorization
 
+@available(iOS 16.0, *)
 final class FamilyControlsAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredStatus() async {
         let authorizer = MockFamilyControlsAuthorizer(status: .approved)

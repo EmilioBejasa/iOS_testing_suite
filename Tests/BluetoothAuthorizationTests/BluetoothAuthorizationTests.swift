@@ -2,6 +2,7 @@ import XCTest
 import CoreBluetooth
 import BluetoothAuthorization
 
+@available(iOS 13.1, *)
 final class BluetoothAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredStatus() {
         let authorizer = MockBluetoothAuthorizer(status: .allowedAlways)

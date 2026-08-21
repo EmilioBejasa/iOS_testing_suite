@@ -2,6 +2,7 @@
 import XCTest
 import ReviewRequesting
 
+@available(iOS 16.0, *)
 final class ReviewRequestingTests: XCTestCase {
     func testMockRecordsRequestCount() {
         let requester = MockReviewRequester()

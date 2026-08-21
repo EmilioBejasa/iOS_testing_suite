@@ -2,6 +2,7 @@
 import XCTest
 import PasskeyAuthentication
 
+@available(iOS 15.0, *)
 final class PasskeyAuthenticationTests: XCTestCase {
     func testMockReturnsConfiguredRegistration() async throws {
         let registration = PasskeyRegistration(credentialID: Data([1, 2, 3]), rawAttestationObject: Data([4, 5]), rawClientDataJSON: Data([6]))

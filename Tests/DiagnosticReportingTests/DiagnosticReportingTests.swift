@@ -2,6 +2,7 @@
 import XCTest
 import DiagnosticReporting
 
+@available(iOS 14.0, *)
 final class DiagnosticReportingTests: XCTestCase {
     func testMockRecordsStartAndStop() {
         let reporter = MockDiagnosticReporter()

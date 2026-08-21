@@ -2,6 +2,7 @@ import XCTest
 import Photos
 import PhotoLibraryAuthorization
 
+@available(iOS 14.0, *)
 final class PhotoLibraryAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredStatus() async {
         let authorizer = MockPhotoLibraryAuthorizer(status: .authorized)

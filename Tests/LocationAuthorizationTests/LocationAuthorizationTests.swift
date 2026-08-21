@@ -2,6 +2,7 @@ import XCTest
 import CoreLocation
 import LocationAuthorization
 
+@available(iOS 14.0, *)
 final class LocationAuthorizationTests: XCTestCase {
     // CLAuthorizationStatus.authorizedWhenInUse doesn't exist on macOS - the rest of
     // this file is fine there (CoreLocation itself, and every other case used here,

@@ -11,6 +11,7 @@ import CloudKitAccountChecking
 /// building this. Unlike a system dialog (avoidable) or an unresolved
 /// continuation (harmless if never awaited), there's credible crash risk here,
 /// so `SystemCloudKitAccountChecker` is built and shipped but not exercised.
+@available(iOS 15.0, *)
 final class CloudKitAccountCheckingTests: XCTestCase {
     func testMockReturnsConfiguredStatus() async {
         let checker = MockCloudKitAccountChecker(status: .available)

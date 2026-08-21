@@ -3,6 +3,7 @@ import XCTest
 import Intents
 import FocusStatusAuthorization
 
+@available(iOS 15.0, *)
 final class FocusStatusAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredStatus() async {
         let authorizer = MockFocusStatusAuthorizer(status: .authorized, authorizationResult: .authorized)
