@@ -11,7 +11,7 @@ final class JSONFixtureLoadingTests: XCTestCase {
         let fixture = try JSONFixtureLoading.load(
             "sample-fixture",
             as: SampleFixture.self,
-            bundle: Bundle(for: JSONFixtureLoadingTests.self)
+            bundle: .module
         )
 
         XCTAssertEqual(fixture, SampleFixture(name: "test-fixture", count: 3))
@@ -22,7 +22,7 @@ final class JSONFixtureLoadingTests: XCTestCase {
             try JSONFixtureLoading.load(
                 "does-not-exist",
                 as: SampleFixture.self,
-                bundle: Bundle(for: JSONFixtureLoadingTests.self)
+                bundle: .module
             )
         ) { error in
             guard case FixtureLoadingError.fixtureNotFound(let name) = error else {

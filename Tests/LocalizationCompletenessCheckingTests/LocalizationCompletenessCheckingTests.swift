@@ -3,7 +3,7 @@ import LocalizationCompletenessChecking
 
 final class LocalizationCompletenessCheckingTests: XCTestCase {
     private func catalogURL() -> URL {
-        Bundle(for: LocalizationCompletenessCheckingTests.self).url(forResource: "sample-catalog", withExtension: "json")!
+        Bundle.module.url(forResource: "sample-catalog", withExtension: "json")!
     }
 
     func testReportsNoGapsForFullyTranslatedKey() throws {
