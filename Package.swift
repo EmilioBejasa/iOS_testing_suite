@@ -141,6 +141,7 @@ let package = Package(
         .testTarget(name: "CameraAuthorizationTests", dependencies: ["CameraAuthorization"]),
         .testTarget(name: "CloudKitAccountCheckingTests", dependencies: ["CloudKitAccountChecking"]),
         .testTarget(name: "ContactsAuthorizationTests", dependencies: ["ContactsAuthorization"]),
+        .testTarget(name: "DebugOverlayTests", dependencies: ["DebugOverlay"]),
         .testTarget(name: "DiskSpaceCheckingTests", dependencies: ["DiskSpaceChecking"]),
         .testTarget(name: "FeatureFlaggingTests", dependencies: ["FeatureFlagging"]),
         .testTarget(

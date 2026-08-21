@@ -120,3 +120,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: norio-nomura/action-swiftlint@3.2.1
+      - name: TEMP full violation dump
+        run: swiftlint lint --reporter csv || true
