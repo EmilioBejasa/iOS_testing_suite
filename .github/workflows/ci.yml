@@ -21,3 +21,46 @@ jobs:
       # DummyJSONLiveContractTests hits a real network API; runs on a schedule
       # via live-api-contract.yml instead.
       skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
+
+  # Fast feedback on the macOS-runnable subset of kit-only tests. Doesn't need
+  # XcodeGen or the QuoteBox app at all — just the bare Package.swift.
+  swift-test:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
+  # The kit-only test targets whose Sources/ modules import an iOS-only
+  # framework (UIKit, HealthKit, etc.) build empty under `swift test` on
+  # macOS - see the `#if canImport` guards in Package.swift. This job runs
+  # their real assertions against an iOS Simulator destination, still against
+  # the bare Package.swift, no XcodeGen/QuoteBox app needed. Kept as a
+  # separate job (not folded into `test` above) because after project.yml's
+  # `QuoteBoxTests` bundle was trimmed to just its 8 app-dependent files, the
+  # `QuoteBox` scheme no longer exercises these modules at all - without this
+  # job they'd lose simulator coverage entirely.
+  kit-tests-ios:
+    runs-on: macos-15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        destination_name: ["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run kit tests against Package.swift
+        run: |
+          xcodebuild test \
+            -scheme iOSTestKit \
+            -destination "platform=iOS Simulator,name=${{ matrix.destination_name }}" \
+            CODE_SIGNING_ALLOWED=NO
+
+  # Report-only for now: flips to `--strict` once a first run establishes how
+  # much of the existing codebase already violates the default ruleset.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: norio-nomura/action-swiftlint@3.2.1
