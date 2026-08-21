@@ -21,6 +21,9 @@ jobs:
       # DummyJSONLiveContractTests hits a real network API; runs on a schedule
       # via live-api-contract.yml instead.
       skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
+      # Captured from this PR's own first green run (91.6% on iPhone 16) - update
+      # only in a reviewed PR when coverage intentionally shifts.
+      coverage_baseline_file: .github/coverage-baseline.txt
 
   # Fast feedback on the macOS-runnable subset of kit-only tests. Doesn't need
   # XcodeGen or the QuoteBox app at all — just the bare Package.swift.
