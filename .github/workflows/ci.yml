@@ -69,7 +69,10 @@ jobs:
   # (not a normal failure - the whole job timed out at 20 minutes) rather
   # than completing or throwing, almost certainly the OS's paste-permission
   # alert (iOS 16+) that a headless test process with no real host bundle
-  # can never dismiss.
+  # can never dismiss. Also skips IdleTimerControllingTests' real-application
+  # round trip: UIApplication.shared.isIdleTimerDisabled writes don't seem to
+  # take effect without a real running host app backing UIApplication.shared,
+  # unlike when this ran inside QuoteBoxTests hosted by QuoteBox.xcodeproj.
   kit-tests-ios:
     runs-on: macos-15
     timeout-minutes: 20
@@ -93,6 +96,7 @@ jobs:
               -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testIsEntitledReflectsRealPurchaseUnderTestSession \
               -skip-testing:AsyncSequenceCollectingTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterExternalPurchase \
               -skip-testing:ClipboardProvidingTests/ClipboardProvidingTests/testSystemProviderRoundTripsAgainstRealPasteboard \
+              -skip-testing:IdleTimerControllingTests/IdleTimerControllingTests/testSystemControlRoundTripsAgainstRealApplication \
               CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
             exit_code=${PIPESTATUS[0]}
             set -e
