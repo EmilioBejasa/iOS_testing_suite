@@ -64,7 +64,12 @@ jobs:
   # CoreSimulator not being fully warmed up yet, not a real destination
   # mismatch (the same device names work fine for the QuoteBox.xcodeproj
   # scheme in the `test` job above). Skips the same three real-SKTestSession
-  # tests as swift-test above, for the same reason - see its comment.
+  # tests as swift-test above, for the same reason - see its comment. Also
+  # skips ClipboardProvidingTests' real-pasteboard test: it hung indefinitely
+  # (not a normal failure - the whole job timed out at 20 minutes) rather
+  # than completing or throwing, almost certainly the OS's paste-permission
+  # alert (iOS 16+) that a headless test process with no real host bundle
+  # can never dismiss.
   kit-tests-ios:
     runs-on: macos-15
     timeout-minutes: 20
@@ -87,6 +92,7 @@ jobs:
               -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testFetchAndPurchaseTipProduct \
               -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testIsEntitledReflectsRealPurchaseUnderTestSession \
               -skip-testing:AsyncSequenceCollectingTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterExternalPurchase \
+              -skip-testing:ClipboardProvidingTests/ClipboardProvidingTests/testSystemProviderRoundTripsAgainstRealPasteboard \
               CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
             exit_code=${PIPESTATUS[0]}
             set -e

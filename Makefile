@@ -16,7 +16,8 @@ test-kit-ios:
 	xcodebuild test -scheme iOSTestKit-Package -destination "platform=iOS Simulator,name=iPhone 16" \
 	  -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testFetchAndPurchaseTipProduct \
 	  -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testIsEntitledReflectsRealPurchaseUnderTestSession \
-	  -skip-testing:AsyncSequenceCollectingTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterExternalPurchase
+	  -skip-testing:AsyncSequenceCollectingTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterExternalPurchase \
+	  -skip-testing:ClipboardProvidingTests/ClipboardProvidingTests/testSystemProviderRoundTripsAgainstRealPasteboard
 
 test-app: setup
 	xcodebuild test \

@@ -100,6 +100,12 @@ inside a real Xcode-built `.xctest` bundle. Mock-backed coverage
 covered by `QuoteBoxUITests`'
 `testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`.
 
+Same story for `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard`
+under `make test-kit-ios`: it hung indefinitely (not a normal failure) rather
+than completing, almost certainly the OS's paste-permission alert (iOS 16+)
+that a headless test process with no real host bundle can never dismiss.
+Skipped there too; `MockClipboardProvider` coverage still runs.
+
 No Mac available? `.github/workflows/record-snapshots.yml` runs
 `SNAPSHOT_RECORD=1` for a single test identifier on a `macos-15` runner and
 uploads the resulting reference image as a build artifact — dispatch it from
