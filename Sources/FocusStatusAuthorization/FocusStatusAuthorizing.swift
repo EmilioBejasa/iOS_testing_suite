@@ -1,3 +1,4 @@
+#if os(iOS)
 import Intents
 
 /// Same protocol+real+fake shape as `SiriAuthorization`. Uses
@@ -11,3 +12,4 @@ public protocol FocusStatusAuthorizing {
     func currentAuthorizationStatus() -> INFocusStatusAuthorizationStatus
     func requestAuthorization() async -> INFocusStatusAuthorizationStatus
 }
+#endif

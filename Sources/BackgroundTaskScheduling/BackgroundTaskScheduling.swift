@@ -1,3 +1,4 @@
+#if os(iOS)
 import BackgroundTasks
 
 public protocol BackgroundTaskScheduling {
@@ -6,3 +7,4 @@ public protocol BackgroundTaskScheduling {
     func submit(_ request: BGTaskRequest) throws
     func cancel(taskRequestWithIdentifier identifier: String)
 }
+#endif

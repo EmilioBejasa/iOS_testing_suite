@@ -1,3 +1,4 @@
+#if os(iOS)
 import AppTrackingTransparency
 
 /// Deterministic stand-in for `SystemTrackingAuthorizer` - safe to exercise in
@@ -24,3 +25,4 @@ public final class MockTrackingAuthorizer: TrackingAuthorizing {
         authorizationResult
     }
 }
+#endif

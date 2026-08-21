@@ -1,3 +1,4 @@
+#if os(iOS)
 import MediaPlayer
 
 /// Deterministic stand-in for `SystemMediaLibraryAuthorizer` - safe to
@@ -23,3 +24,4 @@ public final class MockMediaLibraryAuthorizer: MediaLibraryAuthorizing {
         authorizationResult
     }
 }
+#endif

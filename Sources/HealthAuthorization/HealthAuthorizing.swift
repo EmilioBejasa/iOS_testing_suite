@@ -1,3 +1,4 @@
+#if os(iOS)
 import HealthKit
 
 /// A tenth permission-gated system service, same protocol+real+fake shape as
@@ -11,3 +12,4 @@ public protocol HealthAuthorizing {
     func currentAuthorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus
     func requestAuthorization(toShare shareTypes: Set<HKSampleType>, read readTypes: Set<HKObjectType>) async -> Bool
 }
+#endif

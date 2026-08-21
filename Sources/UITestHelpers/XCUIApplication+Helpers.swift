@@ -22,7 +22,7 @@ public extension XCUIApplication {
     /// doesn't have to be rediscovered per app. `allowing` lets a test allow-list a
     /// specific known issue (return `true` to treat it as handled) while still
     /// failing on everything else.
-    @available(iOS 17.0, *)
+    @available(iOS 17.0, macOS 14.0, *)
     func auditAccessibility(
         _ types: XCUIAccessibilityAuditType = .all,
         allowing isKnownIssue: @escaping (XCUIAccessibilityAuditIssue) -> Bool = { _ in false }

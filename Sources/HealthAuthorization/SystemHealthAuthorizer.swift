@@ -1,3 +1,4 @@
+#if os(iOS)
 import HealthKit
 
 /// Wraps `HKHealthStore`. Deliberately bridges the older completion-handler
@@ -23,3 +24,4 @@ public final class SystemHealthAuthorizer: HealthAuthorizing {
         }
     }
 }
+#endif

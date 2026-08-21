@@ -1,3 +1,4 @@
+#if os(iOS)
 import StoreKit
 import UIKit
 
@@ -26,3 +27,4 @@ public final class SystemReviewRequester: ReviewRequesting {
         }
     }
 }
+#endif

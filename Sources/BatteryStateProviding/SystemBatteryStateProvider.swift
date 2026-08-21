@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Wraps `UIDevice.current`'s `isBatteryMonitoringEnabled`/`batteryLevel`/
@@ -23,3 +24,4 @@ public final class SystemBatteryStateProvider: BatteryStateProviding {
         await MainActor.run { UIDevice.current.batteryState }
     }
 }
+#endif

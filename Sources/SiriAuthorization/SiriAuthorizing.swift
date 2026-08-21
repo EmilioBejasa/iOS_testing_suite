@@ -1,3 +1,4 @@
+#if os(iOS)
 import Intents
 
 /// A thirteenth permission-gated system service, same protocol+real+fake
@@ -8,3 +9,4 @@ public protocol SiriAuthorizing {
     func currentAuthorizationStatus() -> INSiriAuthorizationStatus
     func requestAuthorization() async -> INSiriAuthorizationStatus
 }
+#endif

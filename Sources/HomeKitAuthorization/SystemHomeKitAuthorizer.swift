@@ -1,3 +1,4 @@
+#if os(iOS)
 import HomeKit
 
 /// Wraps `HMHomeManager`. Deliberately does **not** hold `HMHomeManager` as
@@ -16,3 +17,4 @@ public final class SystemHomeKitAuthorizer: HomeKitAuthorizing {
         HMHomeManager().authorizationStatus
     }
 }
+#endif

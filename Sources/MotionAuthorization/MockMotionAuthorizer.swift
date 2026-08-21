@@ -1,3 +1,4 @@
+#if os(iOS)
 import CoreMotion
 
 /// Deterministic stand-in for `SystemMotionAuthorizer` - safe to exercise in
@@ -13,3 +14,4 @@ public final class MockMotionAuthorizer: MotionAuthorizing {
         status
     }
 }
+#endif

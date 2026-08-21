@@ -1,3 +1,4 @@
+#if os(iOS)
 import Intents
 
 /// Deterministic stand-in for `SystemFocusStatusAuthorizer` - safe to
@@ -24,3 +25,4 @@ public final class MockFocusStatusAuthorizer: FocusStatusAuthorizing {
         authorizationResult
     }
 }
+#endif

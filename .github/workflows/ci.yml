@@ -21,3 +21,102 @@ jobs:
       # DummyJSONLiveContractTests hits a real network API; runs on a schedule
       # via live-api-contract.yml instead.
       skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
+      # Captured from this PR's own first green run (91.6% on iPhone 16) - update
+      # only in a reviewed PR when coverage intentionally shifts.
+      coverage_baseline_file: .github/coverage-baseline.txt
+
+  # Fast feedback on the macOS-runnable subset of kit-only tests. Doesn't need
+  # XcodeGen or the QuoteBox app at all — just the bare Package.swift.
+  #
+  # Skips the three tests that drive a real SKTestSession purchase/product
+  # fetch: unlike reusable-test.yml's `test` job (which hosts QuoteBoxTests
+  # inside a real Xcode-built .xctest bundle with a real bundle identifier),
+  # a bare `swift test`/`xcodebuild test -scheme <Package>-Package` process
+  # has no app/test-host bundle context at all, and StoreKit product lookup
+  # failed the same way on every one of 3 retry attempts here, not
+  # intermittently - a real limitation, not the occasional flake
+  # reusable-test.yml's own retry logic is tuned for. Mock-backed StoreKit
+  # coverage (MockPurchaseManager) still runs; the real-session path stays
+  # covered by QuoteBoxUITests' testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration.
+  swift-test:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: >
+          swift test
+          --skip testFetchAndPurchaseTipProduct
+          --skip testIsEntitledReflectsRealPurchaseUnderTestSession
+          --skip testCollectsRealTransactionUpdateAfterExternalPurchase
+
+  # The kit-only test targets whose Sources/ modules import an iOS-only
+  # framework (UIKit, HealthKit, etc.) build empty under `swift test` on
+  # macOS - see the `#if os(iOS)` guards in Package.swift. This job runs
+  # their real assertions against an iOS Simulator destination, still against
+  # the bare Package.swift, no XcodeGen/QuoteBox app needed. Kept as a
+  # separate job (not folded into `test` above) because after project.yml's
+  # `QuoteBoxTests` bundle was trimmed to just its 8 app-dependent files, the
+  # `QuoteBox` scheme no longer exercises these modules at all - without this
+  # job they'd lose simulator coverage entirely.
+  #
+  # Also retries on a destination-discovery flake specific to a bare
+  # Package.swift's auto-synthesized scheme: on a freshly-started runner,
+  # xcodebuild has occasionally reported only generic platform placeholders
+  # (no concrete simulators) for "iOSTestKit-Package"'s available
+  # destinations, then lists them fully on a subsequent attempt - looks like
+  # CoreSimulator not being fully warmed up yet, not a real destination
+  # mismatch (the same device names work fine for the QuoteBox.xcodeproj
+  # scheme in the `test` job above). Skips the same three real-SKTestSession
+  # tests as swift-test above, for the same reason - see its comment. Also
+  # skips ClipboardProvidingTests' real-pasteboard test: it hung indefinitely
+  # (not a normal failure - the whole job timed out at 20 minutes) rather
+  # than completing or throwing, almost certainly the OS's paste-permission
+  # alert (iOS 16+) that a headless test process with no real host bundle
+  # can never dismiss. Also skips IdleTimerControllingTests' real-application
+  # round trip: UIApplication.shared.isIdleTimerDisabled writes don't seem to
+  # take effect without a real running host app backing UIApplication.shared,
+  # unlike when this ran inside QuoteBoxTests hosted by QuoteBox.xcodeproj.
+  kit-tests-ios:
+    runs-on: macos-15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        destination_name: ["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run kit tests against Package.swift
+        run: |
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier'
+          attempt=1
+          max_attempts=3
+          while true; do
+            set +e
+            xcodebuild test \
+              -scheme iOSTestKit-Package \
+              -destination "platform=iOS Simulator,name=${{ matrix.destination_name }}" \
+              -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testFetchAndPurchaseTipProduct \
+              -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testIsEntitledReflectsRealPurchaseUnderTestSession \
+              -skip-testing:AsyncSequenceCollectingTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterExternalPurchase \
+              -skip-testing:ClipboardProvidingTests/ClipboardProvidingTests/testSystemProviderRoundTripsAgainstRealPasteboard \
+              -skip-testing:IdleTimerControllingTests/IdleTimerControllingTests/testSystemControlRoundTripsAgainstRealApplication \
+              CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
+            exit_code=${PIPESTATUS[0]}
+            set -e
+            if [ "$exit_code" -eq 0 ]; then break; fi
+            if [ "$attempt" -ge "$max_attempts" ] || ! grep -qE "$KNOWN_FLAKE_PATTERN" build.log; then
+              exit "$exit_code"
+            fi
+            echo "::warning::Known flake detected (attempt $attempt/$max_attempts) - retrying in 15s..."
+            attempt=$((attempt + 1))
+            sleep 15
+          done
+
+  # Report-only for now: flips to `--strict` once a first run establishes how
+  # much of the existing codebase already violates the default ruleset.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: norio-nomura/action-swiftlint@3.2.1

@@ -1,3 +1,4 @@
+#if os(iOS)
 import AuthenticationServices
 import UIKit
 
@@ -67,3 +68,4 @@ extension SystemAppleSignInProvider: ASAuthorizationControllerPresentationContex
         return keyWindow ?? ASPresentationAnchor()
     }
 }
+#endif

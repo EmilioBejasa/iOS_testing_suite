@@ -12,7 +12,7 @@ import SwiftData
 /// through. `@available(iOS 17.0, *)` since SwiftData itself is - newer than
 /// the package's iOS 13 floor (`Package.swift`), same class of annotation
 /// `BluetoothAuthorization` needed for `CBManagerAuthorization`.
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 public enum InMemoryModelContainer {
     public static func make(for types: [any PersistentModel.Type]) -> ModelContainer {
         let schema = Schema(types)

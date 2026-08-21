@@ -1,0 +1,13 @@
+included:
+  - Sources
+  - Tests
+  - QuoteBox
+  - QuoteBoxTests
+  - QuoteBoxUITests
+excluded:
+  - QuoteBox.xcodeproj
+
+# Starting with SwiftLint's default rule set on a previously-unlinted,
+# 60+ module codebase. The `lint` CI job runs in report-only mode for its
+# first cycles; promote specific rules to `error` severity (or add
+# `disabled_rules`) only once a triage pass confirms the baseline is clean.

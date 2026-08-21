@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Wraps `UIAccessibility.isVoiceOverRunning`/`.isReduceMotionEnabled`,
@@ -14,3 +15,4 @@ public final class SystemAccessibilityStateProvider: AccessibilityStateProviding
         await MainActor.run { UIAccessibility.isReduceMotionEnabled }
     }
 }
+#endif

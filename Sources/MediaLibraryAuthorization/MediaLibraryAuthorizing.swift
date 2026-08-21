@@ -1,3 +1,4 @@
+#if os(iOS)
 import MediaPlayer
 
 /// A fourteenth permission-gated system service, same protocol+real+fake
@@ -8,3 +9,4 @@ public protocol MediaLibraryAuthorizing {
     func currentAuthorizationStatus() -> MPMediaLibraryAuthorizationStatus
     func requestAuthorization() async -> MPMediaLibraryAuthorizationStatus
 }
+#endif

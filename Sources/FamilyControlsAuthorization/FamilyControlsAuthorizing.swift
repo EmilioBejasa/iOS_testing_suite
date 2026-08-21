@@ -1,3 +1,4 @@
+#if os(iOS)
 import FamilyControls
 
 /// Wraps Screen Time's `AuthorizationCenter`. Uses `AuthorizationStatus`
@@ -18,3 +19,4 @@ public protocol FamilyControlsAuthorizing {
     func currentAuthorizationStatus() -> AuthorizationStatus
     func requestAuthorization() async -> Bool
 }
+#endif

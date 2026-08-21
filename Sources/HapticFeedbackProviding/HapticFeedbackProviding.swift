@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Lets app code trigger haptic feedback through an injectable dependency
@@ -9,3 +10,4 @@ import UIKit
 public protocol HapticFeedbackProviding {
     func impact(style: UIImpactFeedbackGenerator.FeedbackStyle) async
 }
+#endif

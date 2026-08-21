@@ -1,3 +1,4 @@
+#if os(iOS)
 import ActivityKit
 
 /// Wraps `ActivityAuthorizationInfo().areActivitiesEnabled` - a plain,
@@ -11,3 +12,4 @@ public final class SystemLiveActivityAuthorizer: LiveActivityAuthorizing {
         ActivityAuthorizationInfo().areActivitiesEnabled
     }
 }
+#endif

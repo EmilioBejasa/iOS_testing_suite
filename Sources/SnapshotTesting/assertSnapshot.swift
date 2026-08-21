@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 import XCTest
 
@@ -91,3 +92,4 @@ private func snapshotFileURL(for file: StaticString, testName: String, named nam
         .appendingPathComponent(testFileName)
         .appendingPathComponent("\(testName).\(name).png")
 }
+#endif

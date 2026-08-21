@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Wraps `UIApplication.shared.isIdleTimerDisabled` (get and set), bridged
@@ -15,3 +16,4 @@ public final class SystemIdleTimerControl: IdleTimerControlling {
         await MainActor.run { UIApplication.shared.isIdleTimerDisabled }
     }
 }
+#endif

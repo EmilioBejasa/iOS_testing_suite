@@ -14,6 +14,13 @@ wasn't accidentally coupled to Weather's specifics — different API shape
 `TabView`, not `ObservableObject` MVVM + `NavigationStack`), different testing
 surface (local persistence, not just network).
 
+```sh
+git clone https://github.com/EmilioBejasa/iOS_testing_suite
+cd iOS_testing_suite
+make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if missing
+open QuoteBox.xcodeproj
+```
+
 ## What's reusable
 
 <details>
@@ -100,7 +107,7 @@ surface (local persistence, not just network).
 requirement on the app side is that the client accepts an injectable `URLSession`.
 
 ```swift
-.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.3.0")
+.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.4.0")
 // target dependency: .product(name: "NetworkStub", package: "iOS_testing_suite")
 ```
 
@@ -1940,7 +1947,7 @@ repo:
 ```yaml
 jobs:
   test:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.3.0
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.4.0
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
@@ -1959,7 +1966,7 @@ on:
 
 jobs:
   contract:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.3.0
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.4.0
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
@@ -1977,6 +1984,24 @@ package (`packages: iOSTestKit: path: .`), and `.github/workflows/ci.yml` /
 `live-api-contract.yml` call the reusable workflows with QuoteBox-specific inputs.
 Any other app would do the same thing from its own repo, pointing `.package(url:)`
 at a tagged release of this one instead of a local path.
+
+### Running the kit's own tests
+
+Three run paths, depending on what you're testing:
+
+```sh
+make test-kit      # swift test — the macOS-runnable subset of kit-only modules,
+                    # no XcodeGen/Xcode project needed at all
+make test-kit-ios   # xcodebuild against the bare Package.swift on an iOS Simulator —
+                    # covers the remaining kit-only modules whose Sources/ import an
+                    # iOS-only framework (UIKit, HealthKit, etc.), still no QuoteBox
+                    # app or XcodeGen needed
+make test-app       # xcodebuild against the generated QuoteBox.xcodeproj — the 8
+                    # app-dependent tests plus QuoteBoxUITests
+```
+
+CI runs all three (`swift-test`, `kit-tests-ios`, and the existing `test` job) plus
+a SwiftLint pass on every push/PR to `master` — see `.github/workflows/ci.yml`.
 
 ## More
 

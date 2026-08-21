@@ -1,3 +1,4 @@
+#if os(iOS)
 import ActivityKit
 
 /// No explicit request API - the user manages Live Activities via Settings,
@@ -15,3 +16,4 @@ import ActivityKit
 public protocol LiveActivityAuthorizing {
     var areActivitiesEnabled: Bool { get }
 }
+#endif

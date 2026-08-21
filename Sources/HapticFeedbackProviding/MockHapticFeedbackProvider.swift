@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Deterministic stand-in for `SystemHapticFeedbackProvider` - records every
@@ -12,3 +13,4 @@ public final class MockHapticFeedbackProvider: HapticFeedbackProviding {
         impactStyles.append(style)
     }
 }
+#endif

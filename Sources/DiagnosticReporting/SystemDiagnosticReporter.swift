@@ -1,3 +1,4 @@
+#if os(iOS)
 import MetricKit
 
 /// Wraps `MXMetricManager.shared`. `MXMetricManagerSubscriber` requires
@@ -31,3 +32,4 @@ public final class SystemDiagnosticReporter: NSObject, DiagnosticReporting, MXMe
 
     public func didReceive(_ payloads: [MXDiagnosticPayload]) {}
 }
+#endif

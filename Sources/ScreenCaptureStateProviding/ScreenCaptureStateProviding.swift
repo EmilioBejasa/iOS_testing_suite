@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Lets app code ask "is the screen being recorded, mirrored, or AirPlayed
@@ -28,3 +29,4 @@ public protocol ScreenCaptureStateProviding {
     func startMonitoringScreenCapture(onChange: @escaping (Bool) -> Void)
     func stopMonitoringScreenCapture()
 }
+#endif

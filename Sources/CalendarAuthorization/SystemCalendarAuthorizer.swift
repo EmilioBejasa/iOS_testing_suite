@@ -9,7 +9,7 @@ import EventKit
 /// already 17.0 (`project.yml`'s `IPHONEOS_DEPLOYMENT_TARGET`), so there's no
 /// floor this module needs to stay under the way `MicrophoneAuthorization`
 /// does for `AVAudioApplication`.
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 public final class SystemCalendarAuthorizer: CalendarAuthorizing {
     private let store = EKEventStore()
 

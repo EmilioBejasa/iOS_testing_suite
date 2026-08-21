@@ -1,3 +1,4 @@
+#if os(iOS)
 import HomeKit
 
 /// Deterministic stand-in for `SystemHomeKitAuthorizer` - safe to exercise
@@ -15,3 +16,4 @@ public final class MockHomeKitAuthorizer: HomeKitAuthorizing {
         status
     }
 }
+#endif

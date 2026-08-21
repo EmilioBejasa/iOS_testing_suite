@@ -1,3 +1,4 @@
+#if os(iOS)
 import CoreTelephony
 
 /// Lets app code ask "has the user restricted this app from cellular data?"
@@ -7,3 +8,4 @@ import CoreTelephony
 public protocol CellularDataRestrictionChecking {
     func currentRestrictedState() -> CTCellularDataRestrictedState
 }
+#endif

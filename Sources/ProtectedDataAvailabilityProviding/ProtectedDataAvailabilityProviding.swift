@@ -1,3 +1,4 @@
+#if os(iOS)
 import UIKit
 
 /// Lets app code ask "is file-protected/Keychain data actually accessible
@@ -26,3 +27,4 @@ public protocol ProtectedDataAvailabilityProviding {
     func startMonitoringProtectedDataAvailability(onChange: @escaping (Bool) -> Void)
     func stopMonitoringProtectedDataAvailability()
 }
+#endif

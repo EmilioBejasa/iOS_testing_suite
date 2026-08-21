@@ -63,7 +63,7 @@ public extension DebugSection {
 /// iOS 17+) — so it opts in per-symbol here, the same way
 /// `SystemLocationAuthorizer` marks itself `@available(iOS 14.0, *)` rather than
 /// raising the whole package's minimum.
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 public struct DebugOverlayView: View {
     private let sections: [DebugSection]
 
