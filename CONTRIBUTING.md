@@ -87,6 +87,19 @@ resources must live inside the target that references them, so a single file
 can't be pointed at from two test targets. If you need to change the StoreKit
 test configuration, update both copies.
 
+**Real `SKTestSession` purchases don't work under `make test-kit`/`make
+test-kit-ios`**: `testFetchAndPurchaseTipProduct`,
+`testIsEntitledReflectsRealPurchaseUnderTestSession`, and
+`testCollectsRealTransactionUpdateAfterExternalPurchase` are skipped in both
+CI jobs (and worth skipping locally too) - StoreKit product lookup failed
+consistently, not intermittently, when driven from a bare `swift
+test`/`xcodebuild test -scheme iOSTestKit-Package` process with no app/test-host
+bundle context, unlike `reusable-test.yml`'s `test` job which hosts these
+inside a real Xcode-built `.xctest` bundle. Mock-backed coverage
+(`MockPurchaseManager`) still runs everywhere; the real-session path stays
+covered by `QuoteBoxUITests`'
+`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`.
+
 No Mac available? `.github/workflows/record-snapshots.yml` runs
 `SNAPSHOT_RECORD=1` for a single test identifier on a `macos-15` runner and
 uploads the resulting reference image as a build artifact — dispatch it from
