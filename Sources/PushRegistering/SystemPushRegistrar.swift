@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Wraps `UIApplication.registerForRemoteNotifications()`. The result arrives via
@@ -30,3 +31,4 @@ public final class SystemPushRegistrar: NSObject, PushRegistering {
         continuation = nil
     }
 }
+#endif

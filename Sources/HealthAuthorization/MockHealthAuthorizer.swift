@@ -1,3 +1,4 @@
+#if canImport(HealthKit)
 import HealthKit
 
 /// Deterministic stand-in for `SystemHealthAuthorizer` - safe to exercise in
@@ -22,3 +23,4 @@ public final class MockHealthAuthorizer: HealthAuthorizing {
         accessResult
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(CoreTelephony)
 import CoreTelephony
 
 /// Wraps `CTCellularData().restrictedState` - a plain, synchronous
@@ -13,3 +14,4 @@ public final class SystemCellularDataChecker: CellularDataRestrictionChecking {
         cellularData.restrictedState
     }
 }
+#endif

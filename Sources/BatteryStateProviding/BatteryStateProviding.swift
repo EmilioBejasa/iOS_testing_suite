@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Lets app code ask "how much charge is left, and is the device plugged
@@ -22,3 +23,4 @@ public protocol BatteryStateProviding {
     func batteryLevel() async -> Float
     func batteryState() async -> UIDevice.BatteryState
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(CoreMotion)
 import CoreMotion
 
 /// Wraps `CMMotionActivityManager.authorizationStatus()` - a static,
@@ -10,3 +11,4 @@ public final class SystemMotionAuthorizer: MotionAuthorizing {
         CMMotionActivityManager.authorizationStatus()
     }
 }
+#endif

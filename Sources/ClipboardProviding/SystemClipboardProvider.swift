@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Wraps `UIPasteboard.general.string` (get/set). Deliberately kept
@@ -17,3 +18,4 @@ public final class SystemClipboardProvider: ClipboardProviding {
         UIPasteboard.general.string
     }
 }
+#endif

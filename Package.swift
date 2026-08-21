@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "iOSTestKit",
-    platforms: [.iOS(.v13)],
+    platforms: [.iOS(.v13), .macOS(.v13)],
     products: [
         .library(name: "NetworkStub", targets: ["NetworkStub"]),
         .library(name: "UITestHelpers", targets: ["UITestHelpers"]),
@@ -124,6 +124,80 @@ let package = Package(
         .target(name: "PasskeyAuthentication"),
         .target(name: "ScreenCaptureStateProviding"),
         .target(name: "ProtectedDataAvailabilityProviding"),
-        .target(name: "DiskSpaceChecking")
+        .target(name: "DiskSpaceChecking"),
+
+        // MARK: - Kit-only tests (macOS + iOS Simulator, run via `swift test`)
+        .testTarget(name: "AnalyticsLoggingTests", dependencies: ["AnalyticsLogging"]),
+        .testTarget(
+            name: "AsyncSequenceCollectingTests",
+            dependencies: ["AsyncSequenceCollecting"],
+            resources: [.copy("Configuration.storekit")]
+        ),
+        .testTarget(name: "AsyncSleepingTests", dependencies: ["AsyncSleeping"]),
+        .testTarget(name: "BiometricAuthenticationTests", dependencies: ["BiometricAuthentication"]),
+        .testTarget(name: "BluetoothAuthorizationTests", dependencies: ["BluetoothAuthorization"]),
+        .testTarget(name: "BundleInfoProvidingTests", dependencies: ["BundleInfoProviding"]),
+        .testTarget(name: "CalendarAuthorizationTests", dependencies: ["CalendarAuthorization"]),
+        .testTarget(name: "CameraAuthorizationTests", dependencies: ["CameraAuthorization"]),
+        .testTarget(name: "CloudKitAccountCheckingTests", dependencies: ["CloudKitAccountChecking"]),
+        .testTarget(name: "ContactsAuthorizationTests", dependencies: ["ContactsAuthorization"]),
+        .testTarget(name: "DiagnosticReportingTests", dependencies: ["DiagnosticReporting"]),
+        .testTarget(name: "DiskSpaceCheckingTests", dependencies: ["DiskSpaceChecking"]),
+        .testTarget(name: "FeatureFlaggingTests", dependencies: ["FeatureFlagging"]),
+        .testTarget(name: "FocusStatusAuthorizationTests", dependencies: ["FocusStatusAuthorization"]),
+        .testTarget(name: "HomeKitAuthorizationTests", dependencies: ["HomeKitAuthorization"]),
+        .testTarget(
+            name: "JSONFixtureLoadingTests",
+            dependencies: ["JSONFixtureLoading"],
+            resources: [.copy("sample-fixture.json")]
+        ),
+        .testTarget(name: "KeychainStoreTests", dependencies: ["KeychainStore"]),
+        .testTarget(
+            name: "LocalizationCompletenessCheckingTests",
+            dependencies: ["LocalizationCompletenessChecking"],
+            resources: [.copy("sample-catalog.json")]
+        ),
+        .testTarget(name: "LocationAuthorizationTests", dependencies: ["LocationAuthorization"]),
+        .testTarget(name: "MicrophoneAuthorizationTests", dependencies: ["MicrophoneAuthorization"]),
+        .testTarget(name: "NetworkReachabilityMonitoringTests", dependencies: ["NetworkReachabilityMonitoring"]),
+        .testTarget(name: "PhotoLibraryAuthorizationTests", dependencies: ["PhotoLibraryAuthorization"]),
+        .testTarget(name: "PowerStateProvidingTests", dependencies: ["PowerStateProviding"]),
+        .testTarget(
+            name: "PurchaseSupportTests",
+            dependencies: ["PurchaseSupport"],
+            resources: [.copy("Configuration.storekit")]
+        ),
+        .testTarget(name: "RemindersAuthorizationTests", dependencies: ["RemindersAuthorization"]),
+        .testTarget(name: "SiriAuthorizationTests", dependencies: ["SiriAuthorization"]),
+        .testTarget(name: "SpeechRecognitionAuthorizationTests", dependencies: ["SpeechRecognitionAuthorization"]),
+        .testTarget(name: "SwiftDataTestSupportTests", dependencies: ["SwiftDataTestSupport"]),
+        .testTarget(name: "UserDefaultsStoreTests", dependencies: ["UserDefaultsStore"]),
+
+        // MARK: - Kit-only tests (iOS Simulator only)
+        // Each file's content is wrapped in `#if canImport(...)`, matching the guard
+        // already on the corresponding Sources/ module, so these build as empty
+        // targets under plain `swift test` on macOS. Real assertions only run via
+        // `xcodebuild test -scheme iOSTestKit -destination 'platform=iOS
+        // Simulator,name=...'` — see CONTRIBUTING.md.
+        .testTarget(name: "AccessibilityStateProvidingTests", dependencies: ["AccessibilityStateProviding"]),
+        .testTarget(name: "AppleSignInTests", dependencies: ["AppleSignIn"]),
+        .testTarget(name: "BackgroundTaskSchedulingTests", dependencies: ["BackgroundTaskScheduling"]),
+        .testTarget(name: "BatteryStateProvidingTests", dependencies: ["BatteryStateProviding"]),
+        .testTarget(name: "CellularDataRestrictionCheckingTests", dependencies: ["CellularDataRestrictionChecking"]),
+        .testTarget(name: "ClipboardProvidingTests", dependencies: ["ClipboardProviding"]),
+        .testTarget(name: "FamilyControlsAuthorizationTests", dependencies: ["FamilyControlsAuthorization"]),
+        .testTarget(name: "HapticFeedbackProvidingTests", dependencies: ["HapticFeedbackProviding"]),
+        .testTarget(name: "HealthAuthorizationTests", dependencies: ["HealthAuthorization"]),
+        .testTarget(name: "IdleTimerControllingTests", dependencies: ["IdleTimerControlling"]),
+        .testTarget(name: "LiveActivityAuthorizationTests", dependencies: ["LiveActivityAuthorization"]),
+        .testTarget(name: "MediaLibraryAuthorizationTests", dependencies: ["MediaLibraryAuthorization"]),
+        .testTarget(name: "MotionAuthorizationTests", dependencies: ["MotionAuthorization"]),
+        .testTarget(name: "PasskeyAuthenticationTests", dependencies: ["PasskeyAuthentication"]),
+        .testTarget(name: "ProtectedDataAvailabilityProvidingTests", dependencies: ["ProtectedDataAvailabilityProviding"]),
+        .testTarget(name: "PushRegisteringTests", dependencies: ["PushRegistering"]),
+        .testTarget(name: "ReviewRequestingTests", dependencies: ["ReviewRequesting"]),
+        .testTarget(name: "ScreenCaptureStateProvidingTests", dependencies: ["ScreenCaptureStateProviding"]),
+        .testTarget(name: "TrackingAuthorizationTests", dependencies: ["TrackingAuthorization"]),
+        .testTarget(name: "WatchConnectivityStateProvidingTests", dependencies: ["WatchConnectivityStateProviding"])
     ]
 )

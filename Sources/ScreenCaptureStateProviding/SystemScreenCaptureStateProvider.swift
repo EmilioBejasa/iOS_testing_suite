@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Wraps `UIScreen.main.isCaptured`, bridged through `await MainActor.run { ... }`
@@ -37,3 +38,4 @@ public final class SystemScreenCaptureStateProvider: ScreenCaptureStateProviding
         stopMonitoringScreenCapture()
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(AppTrackingTransparency)
 import AppTrackingTransparency
 
 /// Wraps `ATTrackingManager`. `requestTrackingAuthorization(completionHandler:)`
@@ -20,3 +21,4 @@ public final class SystemTrackingAuthorizer: TrackingAuthorizing {
         }
     }
 }
+#endif

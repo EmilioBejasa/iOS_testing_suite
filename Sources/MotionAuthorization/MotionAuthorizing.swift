@@ -1,3 +1,4 @@
+#if canImport(CoreMotion)
 import CoreMotion
 
 /// An eleventh permission-gated system service - but unlike every other
@@ -10,3 +11,4 @@ import CoreMotion
 public protocol MotionAuthorizing {
     func currentAuthorizationStatus() -> CMAuthorizationStatus
 }
+#endif

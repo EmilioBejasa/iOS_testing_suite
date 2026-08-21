@@ -1,3 +1,4 @@
+#if canImport(FamilyControls)
 import FamilyControls
 
 /// Wraps `AuthorizationCenter.shared`. `requestAuthorization(for:)` is
@@ -22,3 +23,4 @@ public final class SystemFamilyControlsAuthorizer: FamilyControlsAuthorizing {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Deterministic stand-in for `SystemBatteryStateProvider` - safe to
@@ -29,3 +30,4 @@ public final class MockBatteryStateProvider: BatteryStateProviding {
         state
     }
 }
+#endif

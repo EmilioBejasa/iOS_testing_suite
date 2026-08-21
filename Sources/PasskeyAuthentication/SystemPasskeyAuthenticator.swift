@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import AuthenticationServices
 import Foundation
 import UIKit
@@ -102,3 +103,4 @@ extension SystemPasskeyAuthenticator: ASAuthorizationControllerPresentationConte
         return keyWindow ?? ASPresentationAnchor()
     }
 }
+#endif

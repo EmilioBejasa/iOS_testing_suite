@@ -66,10 +66,6 @@ targets:
     platform: iOS
     sources:
       - path: QuoteBoxTests
-    resources:
-      - path: QuoteBoxTests/Configuration.storekit
-      - path: QuoteBoxTests/Fixtures/sample-fixture.json
-      - path: QuoteBoxTests/Fixtures/sample-catalog.json
     dependencies:
       - target: QuoteBox
         embed: false
@@ -77,8 +73,6 @@ targets:
         product: NetworkStub
       - package: iOSTestKit
         product: TimeControl
-      - package: iOSTestKit
-        product: KeychainStore
       - package: iOSTestKit
         product: CoreDataTestSupport
       - package: iOSTestKit
@@ -88,105 +82,11 @@ targets:
       - package: iOSTestKit
         product: DeepLinkTesting
       - package: iOSTestKit
-        product: LocationAuthorization
-      - package: iOSTestKit
         product: PurchaseSupport
-      - package: iOSTestKit
-        product: UserDefaultsStore
-      - package: iOSTestKit
-        product: PhotoLibraryAuthorization
-      - package: iOSTestKit
-        product: BiometricAuthentication
-      - package: iOSTestKit
-        product: PushRegistering
-      - package: iOSTestKit
-        product: AppleSignIn
-      - package: iOSTestKit
-        product: BackgroundTaskScheduling
-      - package: iOSTestKit
-        product: ContactsAuthorization
-      - package: iOSTestKit
-        product: NetworkReachabilityMonitoring
-      - package: iOSTestKit
-        product: CloudKitAccountChecking
-      - package: iOSTestKit
-        product: ReviewRequesting
-      - package: iOSTestKit
-        product: CameraAuthorization
-      - package: iOSTestKit
-        product: MicrophoneAuthorization
-      - package: iOSTestKit
-        product: SpeechRecognitionAuthorization
-      - package: iOSTestKit
-        product: CalendarAuthorization
-      - package: iOSTestKit
-        product: TrackingAuthorization
-      - package: iOSTestKit
-        product: AsyncSleeping
-      - package: iOSTestKit
-        product: HealthAuthorization
-      - package: iOSTestKit
-        product: MotionAuthorization
-      - package: iOSTestKit
-        product: BluetoothAuthorization
-      - package: iOSTestKit
-        product: SiriAuthorization
-      - package: iOSTestKit
-        product: MediaLibraryAuthorization
-      - package: iOSTestKit
-        product: DiagnosticReporting
-      - package: iOSTestKit
-        product: FeatureFlagging
-      - package: iOSTestKit
-        product: AnalyticsLogging
-      - package: iOSTestKit
-        product: PowerStateProviding
-      - package: iOSTestKit
-        product: BundleInfoProviding
-      - package: iOSTestKit
-        product: CellularDataRestrictionChecking
-      - package: iOSTestKit
-        product: AccessibilityStateProviding
-      - package: iOSTestKit
-        product: HapticFeedbackProviding
-      - package: iOSTestKit
-        product: IdleTimerControlling
-      - package: iOSTestKit
-        product: RemindersAuthorization
-      - package: iOSTestKit
-        product: LiveActivityAuthorization
-      - package: iOSTestKit
-        product: ClipboardProviding
-      - package: iOSTestKit
-        product: FocusStatusAuthorization
-      - package: iOSTestKit
-        product: FamilyControlsAuthorization
-      - package: iOSTestKit
-        product: JSONFixtureLoading
-      - package: iOSTestKit
-        product: HomeKitAuthorization
-      - package: iOSTestKit
-        product: WatchConnectivityStateProviding
-      - package: iOSTestKit
-        product: LocalizationCompletenessChecking
       - package: iOSTestKit
         product: MemoryLeakDetection
       - package: iOSTestKit
-        product: AsyncSequenceCollecting
-      - package: iOSTestKit
         product: WidgetTimelineTesting
-      - package: iOSTestKit
-        product: BatteryStateProviding
-      - package: iOSTestKit
-        product: SwiftDataTestSupport
-      - package: iOSTestKit
-        product: PasskeyAuthentication
-      - package: iOSTestKit
-        product: ScreenCaptureStateProviding
-      - package: iOSTestKit
-        product: ProtectedDataAvailabilityProviding
-      - package: iOSTestKit
-        product: DiskSpaceChecking
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

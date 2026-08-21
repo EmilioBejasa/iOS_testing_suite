@@ -1,3 +1,4 @@
+#if canImport(FamilyControls)
 import FamilyControls
 
 /// Deterministic stand-in for `SystemFamilyControlsAuthorizer` - safe to
@@ -21,3 +22,4 @@ public final class MockFamilyControlsAuthorizer: FamilyControlsAuthorizing {
         accessResult
     }
 }
+#endif

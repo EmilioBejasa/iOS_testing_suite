@@ -1,3 +1,4 @@
+#if canImport(BackgroundTasks)
 import BackgroundTasks
 
 /// Wraps `BGTaskScheduler.shared` directly - no bridging needed, but no safety
@@ -22,3 +23,4 @@ public final class SystemBackgroundTaskScheduler: BackgroundTaskScheduling {
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: identifier)
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Wraps `UIImpactFeedbackGenerator(style:).impactOccurred()`, bridged
@@ -13,3 +14,4 @@ public final class SystemHapticFeedbackProvider: HapticFeedbackProviding {
         }
     }
 }
+#endif

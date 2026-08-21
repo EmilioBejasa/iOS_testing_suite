@@ -1,3 +1,4 @@
+#if canImport(WatchConnectivity)
 import WatchConnectivity
 
 /// Wraps `WCSession`. `WCSession` is not supported on every device this
@@ -24,3 +25,4 @@ public final class SystemWatchConnectivityStateProvider: WatchConnectivityStateP
         return WCSession.default.isWatchAppInstalled
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(MediaPlayer)
 import MediaPlayer
 
 /// Wraps `MPMediaLibrary`. `requestAuthorization(_:)` is already a plain
@@ -18,3 +19,4 @@ public final class SystemMediaLibraryAuthorizer: MediaLibraryAuthorizing {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// Wraps `UIApplication.shared.isProtectedDataAvailable` directly - no
@@ -45,3 +46,4 @@ public final class SystemProtectedDataAvailabilityProvider: ProtectedDataAvailab
         stopMonitoringProtectedDataAvailability()
     }
 }
+#endif
