@@ -18,7 +18,11 @@ import Foundation
 public final class URLProtocolStub: URLProtocol {
     public static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
+    // `class`, not `static`: both override URLProtocol's own class methods, and Swift
+    // doesn't allow `static` to override a superclass's `class` member.
+    // swiftlint:disable:next static_over_final_class
     public override class func canInit(with request: URLRequest) -> Bool { true }
+    // swiftlint:disable:next static_over_final_class
     public override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     public override func startLoading() {

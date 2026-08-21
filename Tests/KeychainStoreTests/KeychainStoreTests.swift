@@ -20,7 +20,10 @@ final class KeychainStoreTests: XCTestCase {
             // Simulator. This isn't a bug in SystemKeychainStore: it validates real
             // Keychain access correctly in a properly signed environment (a real
             // device, or CI with signing configured) - just not this one.
-            throw XCTSkip("Skipped: this CI run builds with CODE_SIGNING_ALLOWED=NO, so the keychain-access-groups entitlement isn't embedded and real Keychain access isn't available.")
+            throw XCTSkip(
+                "Skipped: this CI run builds with CODE_SIGNING_ALLOWED=NO, so the keychain-access-groups " +
+                "entitlement isn't embedded and real Keychain access isn't available."
+            )
         }
     }
 
@@ -34,7 +37,7 @@ final class KeychainStoreTests: XCTestCase {
     /// skip (see the missing-entitlement handling above).
     private func assertRoundTrips(_ store: KeychainStoring) throws {
         let key = "test.key.\(UUID().uuidString)"
-        let data = "secret value".data(using: .utf8)!
+        let data = Data("secret value".utf8)
 
         let initial = try store.load(for: key)
         XCTAssertNil(initial)
@@ -43,7 +46,7 @@ final class KeychainStoreTests: XCTestCase {
         let saved = try store.load(for: key)
         XCTAssertEqual(saved, data)
 
-        let updated = "updated value".data(using: .utf8)!
+        let updated = Data("updated value".utf8)
         try store.save(updated, for: key)
         let reloaded = try store.load(for: key)
         XCTAssertEqual(reloaded, updated)

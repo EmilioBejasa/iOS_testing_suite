@@ -17,7 +17,7 @@ final class QuoteStore {
 
     enum ReminderState: Equatable {
         case off
-        case on
+        case scheduled
         case deniedPermission
     }
 
@@ -93,7 +93,7 @@ final class QuoteStore {
     }
 
     func toggleDailyReminder() async {
-        if reminderState == .on {
+        if reminderState == .scheduled {
             reminderScheduler.cancelDailyReminder()
             reminderState = .off
             return
@@ -106,7 +106,7 @@ final class QuoteStore {
 
         do {
             try await reminderScheduler.scheduleDailyReminder(hour: Self.reminderHour, minute: Self.reminderMinute)
-            reminderState = .on
+            reminderState = .scheduled
         } catch {
             reminderState = .off
         }

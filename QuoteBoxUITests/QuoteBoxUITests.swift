@@ -67,7 +67,9 @@ final class QuoteBoxUITests: XCTestCase {
     /// --deep-link, and QuoteBoxRoute's second init?(url:) match arm for the
     /// https://quotebox.qa/favorites shape a real Universal Link would use.
     func testUniversalLinkToFavoritesOpensFavoritesTab() throws {
-        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--universal-link", "https://quotebox.qa/favorites"])
+        let app = XCUIApplication().launched(
+            withArguments: ["--mock-success", "--universal-link", "https://quotebox.qa/favorites"]
+        )
 
         XCTAssertTrue(app.element("favorites.empty").waitForExistence(timeout: 5))
         try auditIgnoringKnownFalsePositives(app)

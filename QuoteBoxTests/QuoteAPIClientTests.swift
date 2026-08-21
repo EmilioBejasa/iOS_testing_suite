@@ -21,12 +21,13 @@ final class QuoteAPIClientTests: XCTestCase {
     func testFetchRandomQuoteDecodesResponse() async throws {
         let json = """
         { "id": 42, "quote": "Stubbed wisdom.", "author": "Someone" }
-        """.data(using: .utf8)!
+        """
+        let jsonData = Data(json.utf8)
 
         URLProtocolStub.handler = { request in
             XCTAssertEqual(request.url?.host, "dummyjson.com")
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (response, json)
+            return (response, jsonData)
         }
 
         let client = QuoteAPIClient(session: session)
@@ -56,7 +57,7 @@ final class QuoteAPIClientTests: XCTestCase {
     func testFetchRandomQuoteThrowsDecodingFailedOnMalformedJSON() async {
         URLProtocolStub.handler = { request in
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (response, "not json".data(using: .utf8)!)
+            return (response, Data("not json".utf8))
         }
 
         let client = QuoteAPIClient(session: session)

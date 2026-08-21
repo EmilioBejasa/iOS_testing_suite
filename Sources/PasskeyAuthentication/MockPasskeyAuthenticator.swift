@@ -22,14 +22,24 @@ public final class MockPasskeyAuthenticator: PasskeyAuthenticating {
             PasskeyRegistration(credentialID: Data([1]), rawAttestationObject: nil, rawClientDataJSON: Data())
         ),
         assertionResult: AssertionResult = .success(
-            PasskeyAssertion(credentialID: Data([1]), rawAuthenticatorData: Data(), signature: Data(), userID: Data(), rawClientDataJSON: Data())
+            PasskeyAssertion(
+                credentialID: Data([1]),
+                rawAuthenticatorData: Data(),
+                signature: Data(),
+                userID: Data(),
+                rawClientDataJSON: Data()
+            )
         )
     ) {
         self.registrationResult = registrationResult
         self.assertionResult = assertionResult
     }
 
-    public func requestRegistration(challenge: Data, userName: String, userID: Data) async throws -> PasskeyRegistration {
+    public func requestRegistration(
+        challenge: Data,
+        userName: String,
+        userID: Data
+    ) async throws -> PasskeyRegistration {
         switch registrationResult {
         case .success(let registration):
             return registration

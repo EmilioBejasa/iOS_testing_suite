@@ -52,7 +52,13 @@ public struct PasskeyAssertion: Equatable {
     public let userID: Data
     public let rawClientDataJSON: Data
 
-    public init(credentialID: Data, rawAuthenticatorData: Data, signature: Data, userID: Data, rawClientDataJSON: Data) {
+    public init(
+        credentialID: Data,
+        rawAuthenticatorData: Data,
+        signature: Data,
+        userID: Data,
+        rawClientDataJSON: Data
+    ) {
         self.credentialID = credentialID
         self.rawAuthenticatorData = rawAuthenticatorData
         self.signature = signature

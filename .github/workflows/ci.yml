@@ -112,15 +112,14 @@ jobs:
             sleep 15
           done
 
-  # Report-only for now: flips to `--strict` once a first run establishes how
-  # much of the existing codebase already violates the default ruleset.
+  # Hard-blocking: the first report-only run found 35 pre-existing violations
+  # (all cosmetic - line length, trailing commas, etc.), all fixed in the same
+  # PR that flipped this to --strict.
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: norio-nomura/action-swiftlint@3.2.1
-      - name: TEMP full violation dump
-        uses: norio-nomura/action-swiftlint@3.2.1
         with:
-          args: --reporter csv
+          args: --strict

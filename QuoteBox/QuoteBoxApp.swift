@@ -17,8 +17,7 @@ struct QuoteBoxApp: App {
     private let didRequestReviewThisLaunch: Bool
     @State private var route: QuoteBoxRoute?
 
-    init() {
-        let arguments = ProcessInfo.processInfo.arguments
+    private struct Dependencies {
         let apiClient: QuoteAPIClientProtocol
         let favoritesStore: FavoritesStoring
         let reminderScheduler: ReminderScheduling
@@ -26,45 +25,60 @@ struct QuoteBoxApp: App {
         let userDefaultsStore: UserDefaultsStoring
         let reachabilityMonitor: NetworkReachabilityMonitoring
         let reviewRequester: ReviewRequesting
+    }
 
+    private static func makeDependencies(for arguments: [String]) -> Dependencies {
         if arguments.contains("--mock-error") {
-            apiClient = MockQuoteAPIClient(mode: .failure(.requestFailed))
-            favoritesStore = InMemoryFavoritesStore()
-            reminderScheduler = MockReminderScheduler(authorizationResult: .authorized)
-            purchaseManager = MockPurchaseManager()
-            userDefaultsStore = InMemoryUserDefaultsStore()
-            reachabilityMonitor = MockNetworkReachabilityMonitor(currentStatus: .satisfied)
-            reviewRequester = MockReviewRequester()
+            return Dependencies(
+                apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+                favoritesStore: InMemoryFavoritesStore(),
+                reminderScheduler: MockReminderScheduler(authorizationResult: .authorized),
+                purchaseManager: MockPurchaseManager(),
+                userDefaultsStore: InMemoryUserDefaultsStore(),
+                reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
+                reviewRequester: MockReviewRequester()
+            )
         } else if arguments.contains("--mock-success") {
-            apiClient = MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote))
-            favoritesStore = InMemoryFavoritesStore()
-            let authorizationResult: AuthorizationStatus = arguments.contains("--mock-notifications-denied") ? .denied : .authorized
-            reminderScheduler = MockReminderScheduler(authorizationResult: authorizationResult)
-            purchaseManager = arguments.contains("--real-purchases") ? StoreKitPurchaseManager() : MockPurchaseManager()
-            userDefaultsStore = InMemoryUserDefaultsStore()
-            reachabilityMonitor = MockNetworkReachabilityMonitor(currentStatus: .satisfied)
-            reviewRequester = MockReviewRequester()
+            let notificationsDenied = arguments.contains("--mock-notifications-denied")
+            let authorizationResult: AuthorizationStatus = notificationsDenied ? .denied : .authorized
+            let usesRealPurchases = arguments.contains("--real-purchases")
+            return Dependencies(
+                apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
+                favoritesStore: InMemoryFavoritesStore(),
+                reminderScheduler: MockReminderScheduler(authorizationResult: authorizationResult),
+                purchaseManager: usesRealPurchases ? StoreKitPurchaseManager() : MockPurchaseManager(),
+                userDefaultsStore: InMemoryUserDefaultsStore(),
+                reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
+                reviewRequester: MockReviewRequester()
+            )
         } else {
-            apiClient = QuoteAPIClient()
             let container = NSPersistentContainer(name: "QuoteBox")
             container.loadPersistentStores { _, error in
                 precondition(error == nil, "Failed to load Core Data store: \(error!)")
             }
-            favoritesStore = CoreDataFavoritesStore(container: container)
-            reminderScheduler = SystemReminderScheduler()
-            purchaseManager = StoreKitPurchaseManager()
-            userDefaultsStore = SystemUserDefaultsStore()
-            reachabilityMonitor = SystemNetworkReachabilityMonitor()
-            reviewRequester = SystemReviewRequester()
+            return Dependencies(
+                apiClient: QuoteAPIClient(),
+                favoritesStore: CoreDataFavoritesStore(container: container),
+                reminderScheduler: SystemReminderScheduler(),
+                purchaseManager: StoreKitPurchaseManager(),
+                userDefaultsStore: SystemUserDefaultsStore(),
+                reachabilityMonitor: SystemNetworkReachabilityMonitor(),
+                reviewRequester: SystemReviewRequester()
+            )
         }
+    }
+
+    init() {
+        let arguments = ProcessInfo.processInfo.arguments
+        let dependencies = Self.makeDependencies(for: arguments)
 
         store = QuoteStore(
-            apiClient: apiClient,
-            favoritesStore: favoritesStore,
-            reminderScheduler: reminderScheduler,
-            reachabilityMonitor: reachabilityMonitor
+            apiClient: dependencies.apiClient,
+            favoritesStore: dependencies.favoritesStore,
+            reminderScheduler: dependencies.reminderScheduler,
+            reachabilityMonitor: dependencies.reachabilityMonitor
         )
-        tipJarStore = TipJarStore(purchaseManager: purchaseManager)
+        tipJarStore = TipJarStore(purchaseManager: dependencies.purchaseManager)
         // Under --mock-*, userDefaultsStore is a fresh InMemoryUserDefaultsStore
         // per launch, so this is always 1 - keeping the Debug tab's Launch Count
         // deterministic for QuoteBoxUITests instead of drifting with however many
@@ -77,13 +91,13 @@ struct QuoteBoxApp: App {
            let forcedLaunchCount = Int(arguments[index + 1]) {
             launchCount = forcedLaunchCount
         } else {
-            launchCount = userDefaultsStore.integer(for: "launchCount") + 1
+            launchCount = dependencies.userDefaultsStore.integer(for: "launchCount") + 1
         }
-        userDefaultsStore.setInteger(launchCount, for: "launchCount")
+        dependencies.userDefaultsStore.setInteger(launchCount, for: "launchCount")
 
         didRequestReviewThisLaunch = launchCount == Self.reviewRequestThreshold
         if didRequestReviewThisLaunch {
-            reviewRequester.requestReview()
+            dependencies.reviewRequester.requestReview()
         }
 
         let launchURL = DeepLinkSource.url(from: arguments) ?? UniversalLinkSource.url(from: arguments)

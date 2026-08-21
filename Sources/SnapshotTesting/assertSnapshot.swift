@@ -59,7 +59,10 @@ public func assertSnapshot(
     let snapshotURL = snapshotFileURL(for: file, testName: testName, named: name)
 
     if ProcessInfo.processInfo.environment["SNAPSHOT_RECORD"] == "1" {
-        try? FileManager.default.createDirectory(at: snapshotURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: snapshotURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try? renderedData.write(to: snapshotURL)
         XCTFail(
             "Recorded a new snapshot at \(snapshotURL.path) - rerun without SNAPSHOT_RECORD=1 to verify against it",
@@ -70,7 +73,11 @@ public func assertSnapshot(
     }
 
     guard let referenceData = try? Data(contentsOf: snapshotURL) else {
-        XCTFail("No reference snapshot at \(snapshotURL.path) - run with SNAPSHOT_RECORD=1 to record one", file: file, line: line)
+        XCTFail(
+            "No reference snapshot at \(snapshotURL.path) - run with SNAPSHOT_RECORD=1 to record one",
+            file: file,
+            line: line
+        )
         return
     }
 

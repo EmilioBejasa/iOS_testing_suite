@@ -19,7 +19,10 @@ public final class MockHealthAuthorizer: HealthAuthorizing {
         status
     }
 
-    public func requestAuthorization(toShare shareTypes: Set<HKSampleType>, read readTypes: Set<HKObjectType>) async -> Bool {
+    public func requestAuthorization(
+        toShare shareTypes: Set<HKSampleType>,
+        read readTypes: Set<HKObjectType>
+    ) async -> Bool {
         accessResult
     }
 }
