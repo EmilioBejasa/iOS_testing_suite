@@ -4,6 +4,41 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.4.0] - 2026-08-21
+
+Real `swift test` support: 49 kit-only test files moved out of
+`QuoteBoxTests/` into their own `Tests/<Module>Tests/` SwiftPM test targets.
+30 of them (the modules with no iOS-only framework import in their
+`Sources/`) run and pass under a plain `swift test` on macOS, no Xcode
+project needed at all. The remaining 19 — whose `Sources/` unconditionally
+import UIKit, HealthKit, CoreMotion, CoreTelephony, MediaPlayer, ActivityKit,
+BackgroundTasks, WatchConnectivity, or AppTrackingTransparency — are now
+wrapped in matching `#if canImport(...)` guards (both the `Sources/`
+implementation files and their test files), so they still build cleanly
+(as empty targets) under `swift test` on macOS and run their real assertions
+via `xcodebuild test -scheme iOSTestKit -destination 'platform=iOS
+Simulator,name=...'` instead — still against the bare `Package.swift`, no
+XcodeGen or the `QuoteBox` app required. `project.yml`'s `QuoteBoxTests`
+bundle now depends on only the 9 products its remaining 8 app-dependent
+files actually use, down from all 59. Two new CI jobs (`swift-test`,
+`kit-tests-ios`) keep both paths covered on every push and PR.
+
+One-command demo setup: `make setup` (or `Scripts/setup.sh`) installs
+XcodeGen via Homebrew if missing and runs `xcodegen generate`, so a fresh
+clone gets to `open QuoteBox.xcodeproj` in one step. `make test-kit`,
+`make test-kit-ios`, `make test-app`, and `make lint` wrap the four ways to
+exercise this repo.
+
+CI now runs SwiftLint (`.swiftlint.yml`, report-only for this release while
+the existing 60-module codebase gets triaged against the default ruleset)
+and supports an opt-in coverage-regression floor via
+`reusable-test.yml`'s new `coverage_baseline_file` input.
+
+Also folds in three commits that landed after the `v1.3.0` tag was cut:
+governance files (`SECURITY.md`, `CODEOWNERS`, PR/issue templates), a fix
+for `live-api-contract.yml`'s missing schedule trigger, and closing out the
+`SnapshotTesting` module's accessibility3 scope note.
+
 ## [1.3.0] - 2026-08-17
 
 Added 9 modules, bringing the kit from 50 to 59: `MemoryLeakDetection` (an
