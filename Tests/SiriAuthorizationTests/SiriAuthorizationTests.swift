@@ -1,3 +1,4 @@
+#if canImport(Intents)
 import XCTest
 import Intents
 import SiriAuthorization
@@ -32,3 +33,4 @@ final class SiriAuthorizationTests: XCTestCase {
         _ = SystemSiriAuthorizer()
     }
 }
+#endif

@@ -10,7 +10,7 @@ test-kit:
 	swift test
 
 test-kit-ios:
-	xcodebuild test -scheme iOSTestKit -destination "platform=iOS Simulator,name=iPhone 16"
+	xcodebuild test -scheme iOSTestKit-Package -destination "platform=iOS Simulator,name=iPhone 16"
 
 test-app: setup
 	xcodebuild test \

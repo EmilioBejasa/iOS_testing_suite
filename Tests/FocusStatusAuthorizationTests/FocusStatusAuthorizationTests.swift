@@ -1,3 +1,4 @@
+#if canImport(Intents)
 import XCTest
 import Intents
 import FocusStatusAuthorization
@@ -29,3 +30,4 @@ final class FocusStatusAuthorizationTests: XCTestCase {
         _ = SystemFocusStatusAuthorizer()
     }
 }
+#endif

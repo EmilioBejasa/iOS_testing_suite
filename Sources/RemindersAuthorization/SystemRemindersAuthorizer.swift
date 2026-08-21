@@ -6,7 +6,7 @@ import EventKit
 /// WebSearch before writing this: same iOS 17+ shape as
 /// `requestFullAccessToEvents()`, no entitlement quirk beyond the usual
 /// usage-description key.
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 public final class SystemRemindersAuthorizer: RemindersAuthorizing {
     private let store = EKEventStore()
 

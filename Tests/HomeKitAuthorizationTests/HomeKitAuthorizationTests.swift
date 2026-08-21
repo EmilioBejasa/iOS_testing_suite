@@ -1,3 +1,4 @@
+#if canImport(HomeKit)
 import XCTest
 import HomeKit
 import HomeKitAuthorization
@@ -27,3 +28,4 @@ final class HomeKitAuthorizationTests: XCTestCase {
         _ = SystemHomeKitAuthorizer()
     }
 }
+#endif

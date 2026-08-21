@@ -2,6 +2,12 @@ import XCTest
 import EventKit
 import CalendarAuthorization
 
+/// This standalone SwiftPM test target inherits Package.swift's package-wide
+/// iOS 13/macOS 13 floor by default (unlike when this test ran inside
+/// QuoteBoxTests against QuoteBox's iOS 17 deployment target), so it needs
+/// the same `@available(iOS 17.0, macOS 14.0, *)` floor as
+/// `SystemCalendarAuthorizer` itself.
+@available(iOS 17.0, macOS 14.0, *)
 final class CalendarAuthorizationTests: XCTestCase {
     func testMockReturnsConfiguredStatus() async {
         let authorizer = MockCalendarAuthorizer(status: .fullAccess)

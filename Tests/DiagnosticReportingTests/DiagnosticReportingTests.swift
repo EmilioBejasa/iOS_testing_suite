@@ -1,3 +1,4 @@
+#if canImport(MetricKit)
 import XCTest
 import DiagnosticReporting
 
@@ -32,3 +33,4 @@ final class DiagnosticReportingTests: XCTestCase {
         reporter.stopReporting()
     }
 }
+#endif

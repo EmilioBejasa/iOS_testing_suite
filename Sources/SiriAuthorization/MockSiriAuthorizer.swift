@@ -1,3 +1,4 @@
+#if canImport(Intents)
 import Intents
 
 /// Deterministic stand-in for `SystemSiriAuthorizer` - safe to exercise in
@@ -23,3 +24,4 @@ public final class MockSiriAuthorizer: SiriAuthorizing {
         authorizationResult
     }
 }
+#endif

@@ -8,17 +8,23 @@ depend on it.
 
 Real `swift test` support: 49 kit-only test files moved out of
 `QuoteBoxTests/` into their own `Tests/<Module>Tests/` SwiftPM test targets.
-30 of them (the modules with no iOS-only framework import in their
+26 of them (the modules with no iOS/Catalyst-only framework import in their
 `Sources/`) run and pass under a plain `swift test` on macOS, no Xcode
-project needed at all. The remaining 19 — whose `Sources/` unconditionally
+project needed at all. The remaining 23 — whose `Sources/` unconditionally
 import UIKit, HealthKit, CoreMotion, CoreTelephony, MediaPlayer, ActivityKit,
-BackgroundTasks, WatchConnectivity, or AppTrackingTransparency — are now
-wrapped in matching `#if canImport(...)` guards (both the `Sources/`
-implementation files and their test files), so they still build cleanly
-(as empty targets) under `swift test` on macOS and run their real assertions
-via `xcodebuild test -scheme iOSTestKit -destination 'platform=iOS
-Simulator,name=...'` instead — still against the bare `Package.swift`, no
-XcodeGen or the `QuoteBox` app required. `project.yml`'s `QuoteBoxTests`
+BackgroundTasks, WatchConnectivity, AppTrackingTransparency, FamilyControls,
+MetricKit, HomeKit, or Intents — are now wrapped in matching
+`#if canImport(...)` guards (both the `Sources/` implementation files and
+their test files), so they still build cleanly (as empty targets) under
+`swift test` on macOS and run their real assertions via `xcodebuild test
+-scheme iOSTestKit-Package -destination 'platform=iOS Simulator,name=...'`
+instead — still against the bare `Package.swift`, no XcodeGen or the
+`QuoteBox` app required. A handful of macOS-runnable modules whose real
+platform floor is newer than this package's `.macOS(.v13)` (the granular
+EventKit access APIs, `SwiftData`, `XCTest`'s accessibility audit) needed an
+explicit `macOS 14.0` added alongside their existing `@available(iOS 17.0,
+*)` annotation — Apple ships those APIs on iOS 17 and macOS 14 together, but
+the source only declared the iOS side. `project.yml`'s `QuoteBoxTests`
 bundle now depends on only the 9 products its remaining 8 app-dependent
 files actually use, down from all 59. Two new CI jobs (`swift-test`,
 `kit-tests-ios`) keep both paths covered on every push and PR.

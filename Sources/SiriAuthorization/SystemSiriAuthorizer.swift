@@ -1,3 +1,4 @@
+#if canImport(Intents)
 import Intents
 
 /// Wraps `INPreferences`. `requestSiriAuthorization(_:)` is already a plain
@@ -18,3 +19,4 @@ public final class SystemSiriAuthorizer: SiriAuthorizing {
         }
     }
 }
+#endif

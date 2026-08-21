@@ -141,11 +141,8 @@ let package = Package(
         .testTarget(name: "CameraAuthorizationTests", dependencies: ["CameraAuthorization"]),
         .testTarget(name: "CloudKitAccountCheckingTests", dependencies: ["CloudKitAccountChecking"]),
         .testTarget(name: "ContactsAuthorizationTests", dependencies: ["ContactsAuthorization"]),
-        .testTarget(name: "DiagnosticReportingTests", dependencies: ["DiagnosticReporting"]),
         .testTarget(name: "DiskSpaceCheckingTests", dependencies: ["DiskSpaceChecking"]),
         .testTarget(name: "FeatureFlaggingTests", dependencies: ["FeatureFlagging"]),
-        .testTarget(name: "FocusStatusAuthorizationTests", dependencies: ["FocusStatusAuthorization"]),
-        .testTarget(name: "HomeKitAuthorizationTests", dependencies: ["HomeKitAuthorization"]),
         .testTarget(
             name: "JSONFixtureLoadingTests",
             dependencies: ["JSONFixtureLoading"],
@@ -168,7 +165,6 @@ let package = Package(
             resources: [.copy("Configuration.storekit")]
         ),
         .testTarget(name: "RemindersAuthorizationTests", dependencies: ["RemindersAuthorization"]),
-        .testTarget(name: "SiriAuthorizationTests", dependencies: ["SiriAuthorization"]),
         .testTarget(name: "SpeechRecognitionAuthorizationTests", dependencies: ["SpeechRecognitionAuthorization"]),
         .testTarget(name: "SwiftDataTestSupportTests", dependencies: ["SwiftDataTestSupport"]),
         .testTarget(name: "UserDefaultsStoreTests", dependencies: ["UserDefaultsStore"]),
@@ -185,9 +181,12 @@ let package = Package(
         .testTarget(name: "BatteryStateProvidingTests", dependencies: ["BatteryStateProviding"]),
         .testTarget(name: "CellularDataRestrictionCheckingTests", dependencies: ["CellularDataRestrictionChecking"]),
         .testTarget(name: "ClipboardProvidingTests", dependencies: ["ClipboardProviding"]),
+        .testTarget(name: "DiagnosticReportingTests", dependencies: ["DiagnosticReporting"]),
         .testTarget(name: "FamilyControlsAuthorizationTests", dependencies: ["FamilyControlsAuthorization"]),
+        .testTarget(name: "FocusStatusAuthorizationTests", dependencies: ["FocusStatusAuthorization"]),
         .testTarget(name: "HapticFeedbackProvidingTests", dependencies: ["HapticFeedbackProviding"]),
         .testTarget(name: "HealthAuthorizationTests", dependencies: ["HealthAuthorization"]),
+        .testTarget(name: "HomeKitAuthorizationTests", dependencies: ["HomeKitAuthorization"]),
         .testTarget(name: "IdleTimerControllingTests", dependencies: ["IdleTimerControlling"]),
         .testTarget(name: "LiveActivityAuthorizationTests", dependencies: ["LiveActivityAuthorization"]),
         .testTarget(name: "MediaLibraryAuthorizationTests", dependencies: ["MediaLibraryAuthorization"]),
@@ -197,6 +196,7 @@ let package = Package(
         .testTarget(name: "PushRegisteringTests", dependencies: ["PushRegistering"]),
         .testTarget(name: "ReviewRequestingTests", dependencies: ["ReviewRequesting"]),
         .testTarget(name: "ScreenCaptureStateProvidingTests", dependencies: ["ScreenCaptureStateProviding"]),
+        .testTarget(name: "SiriAuthorizationTests", dependencies: ["SiriAuthorization"]),
         .testTarget(name: "TrackingAuthorizationTests", dependencies: ["TrackingAuthorization"]),
         .testTarget(name: "WatchConnectivityStateProvidingTests", dependencies: ["WatchConnectivityStateProviding"])
     ]

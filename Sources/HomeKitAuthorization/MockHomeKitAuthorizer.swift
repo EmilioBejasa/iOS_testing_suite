@@ -1,3 +1,4 @@
+#if canImport(HomeKit)
 import HomeKit
 
 /// Deterministic stand-in for `SystemHomeKitAuthorizer` - safe to exercise
@@ -15,3 +16,4 @@ public final class MockHomeKitAuthorizer: HomeKitAuthorizing {
         status
     }
 }
+#endif

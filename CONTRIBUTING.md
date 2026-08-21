@@ -31,8 +31,10 @@ To add a module:
      *entire* test file body in `#if canImport(<Framework>) ... #endif` -
      matching the same guard already on the module's `Sources/` files - so it
      still builds, as an empty target, under plain `swift test` on macOS;
-     it'll only run real assertions via `xcodebuild test -scheme iOSTestKit
-     -destination 'platform=iOS Simulator,name=...'`.
+     it'll only run real assertions via `xcodebuild test -scheme
+     iOSTestKit-Package -destination 'platform=iOS Simulator,name=...'`
+     (Xcode auto-synthesizes that scheme name, `<PackageName>-Package`, for
+     a bare `Package.swift` with no checked-in `.xcodeproj`).
    - **App-dependent** (needs `@testable import QuoteBox` or another app
      type): add `QuoteBoxTests/<ModuleName>Tests.swift`, the way
      `MemoryLeakDetectionTests` does.

@@ -2,6 +2,7 @@ import XCTest
 import SwiftData
 import SwiftDataTestSupport
 
+@available(iOS 17.0, macOS 14.0, *)
 @Model
 final class SwiftDataTestSupportFixtureItem {
     var name: String
@@ -18,7 +19,12 @@ final class SwiftDataTestSupportFixtureItem {
 /// Exercised here against a throwaway `@Model` type defined just for this
 /// test file instead, the same "no natural QuoteBox need" treatment
 /// `KeychainStore`/`LocationAuthorization` give their own kit-level-only
-/// modules.
+/// modules. Matches `InMemoryModelContainer`'s own `@available(iOS 17.0,
+/// macOS 14.0, *)` floor - this standalone SwiftPM test target inherits
+/// Package.swift's package-wide iOS 13/macOS 13 floor by default, unlike
+/// when this test ran inside QuoteBoxTests against QuoteBox's iOS 17
+/// deployment target.
+@available(iOS 17.0, macOS 14.0, *)
 final class SwiftDataTestSupportTests: XCTestCase {
     func testMakeReturnsWorkingInMemoryContainer() throws {
         let container = InMemoryModelContainer.make(for: [SwiftDataTestSupportFixtureItem.self])

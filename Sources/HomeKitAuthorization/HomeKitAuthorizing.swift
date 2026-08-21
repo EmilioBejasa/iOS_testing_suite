@@ -1,3 +1,4 @@
+#if canImport(HomeKit)
 import HomeKit
 
 /// No explicit request API - HomeKit prompts implicitly on first real use,
@@ -13,3 +14,4 @@ import HomeKit
 public protocol HomeKitAuthorizing {
     func currentAuthorizationStatus() -> HMHomeManagerAuthorizationStatus
 }
+#endif
