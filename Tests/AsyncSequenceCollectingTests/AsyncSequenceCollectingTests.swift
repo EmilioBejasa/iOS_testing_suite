@@ -3,13 +3,13 @@ import StoreKit
 import StoreKitTest
 import AsyncSequenceCollecting
 
-// iOS 16.0 for AsyncSequenceCollecting.collect (this package's own iOS floor is 13) -
-// SKTestSession itself only needs 14.0, so the higher of the two governs. Under
-// `swift test`, SKTestSession(configurationFileNamed:) looks for "Configuration.storekit"
-// in the process's main bundle, which under SwiftPM's test runner isn't this target's own
-// resource bundle - resolving the file via Bundle.module and passing its URL instead
-// sidesteps that lookup entirely.
-@available(iOS 16.0, *)
+// iOS 17.0 for SKTestSession.buyProduct(identifier:options:) - the highest floor in this
+// file (AsyncSequenceCollecting.collect needs 16.0, SKTestSession itself needs 14.0).
+// This package's own iOS floor is 13. Under `swift test`, SKTestSession(configurationFileNamed:)
+// looks for "Configuration.storekit" in the process's main bundle, which under SwiftPM's test
+// runner isn't this target's own resource bundle - resolving the file via Bundle.module and
+// passing its URL instead sidesteps that lookup entirely.
+@available(iOS 17.0, *)
 final class AsyncSequenceCollectingTests: XCTestCase {
     private var session: SKTestSession!
 
