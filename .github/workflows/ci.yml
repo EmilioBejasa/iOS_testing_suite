@@ -49,6 +49,8 @@ jobs:
         destination_name: ["iPhone 16", "iPhone SE (3rd generation)", "iPad (10th generation)"]
     steps:
       - uses: actions/checkout@v4
+      - name: Diagnose available schemes for the bare package
+        run: xcodebuild -list -json || true
       - name: Run kit tests against Package.swift
         run: |
           xcodebuild test \
