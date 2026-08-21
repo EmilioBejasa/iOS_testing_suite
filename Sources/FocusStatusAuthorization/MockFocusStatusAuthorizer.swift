@@ -1,4 +1,4 @@
-#if canImport(Intents)
+#if os(iOS)
 import Intents
 
 /// Deterministic stand-in for `SystemFocusStatusAuthorizer` - safe to

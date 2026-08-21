@@ -1,4 +1,4 @@
-#if canImport(Intents)
+#if os(iOS)
 import Intents
 
 /// A thirteenth permission-gated system service, same protocol+real+fake

@@ -1,4 +1,4 @@
-#if canImport(Intents)
+#if os(iOS)
 import Intents
 
 /// Wraps `INPreferences`. `requestSiriAuthorization(_:)` is already a plain

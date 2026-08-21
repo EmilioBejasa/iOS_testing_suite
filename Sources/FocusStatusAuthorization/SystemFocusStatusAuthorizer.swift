@@ -1,4 +1,4 @@
-#if canImport(Intents)
+#if os(iOS)
 import Intents
 
 /// Wraps `INFocusStatusCenter`. `requestAuthorization(_:)` is a plain

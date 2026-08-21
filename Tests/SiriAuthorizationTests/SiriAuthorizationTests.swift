@@ -1,4 +1,4 @@
-#if canImport(Intents)
+#if os(iOS)
 import XCTest
 import Intents
 import SiriAuthorization

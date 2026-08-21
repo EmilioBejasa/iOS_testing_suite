@@ -1,4 +1,4 @@
-#if canImport(Intents)
+#if os(iOS)
 import Intents
 
 /// Same protocol+real+fake shape as `SiriAuthorization`. Uses
