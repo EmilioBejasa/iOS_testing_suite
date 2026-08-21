@@ -39,7 +39,10 @@ public final class SystemAppleSignInProvider: NSObject, AppleSignInProviding {
 }
 
 extension SystemAppleSignInProvider: ASAuthorizationControllerDelegate {
-    public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+    public func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
             continuation?.resume(throwing: CocoaError(.featureUnsupported))
             continuation = nil

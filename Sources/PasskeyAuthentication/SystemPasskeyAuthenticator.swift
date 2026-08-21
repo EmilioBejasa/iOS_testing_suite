@@ -24,9 +24,19 @@ public final class SystemPasskeyAuthenticator: NSObject, PasskeyAuthenticating {
         super.init()
     }
 
-    public func requestRegistration(challenge: Data, userName: String, userID: Data) async throws -> PasskeyRegistration {
-        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: relyingPartyIdentifier)
-        let request = provider.createCredentialRegistrationRequest(challenge: challenge, name: userName, userID: userID)
+    public func requestRegistration(
+        challenge: Data,
+        userName: String,
+        userID: Data
+    ) async throws -> PasskeyRegistration {
+        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
+            relyingPartyIdentifier: relyingPartyIdentifier
+        )
+        let request = provider.createCredentialRegistrationRequest(
+            challenge: challenge,
+            name: userName,
+            userID: userID
+        )
 
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
@@ -39,7 +49,9 @@ public final class SystemPasskeyAuthenticator: NSObject, PasskeyAuthenticating {
     }
 
     public func requestAssertion(challenge: Data) async throws -> PasskeyAssertion {
-        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: relyingPartyIdentifier)
+        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
+            relyingPartyIdentifier: relyingPartyIdentifier
+        )
         let request = provider.createCredentialAssertionRequest(challenge: challenge)
 
         let controller = ASAuthorizationController(authorizationRequests: [request])
@@ -55,7 +67,10 @@ public final class SystemPasskeyAuthenticator: NSObject, PasskeyAuthenticating {
 
 @available(iOS 15.0, *)
 extension SystemPasskeyAuthenticator: ASAuthorizationControllerDelegate {
-    public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+    public func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
         if let registration = authorization.credential as? ASAuthorizationPlatformPublicKeyCredentialRegistration {
             registrationContinuation?.resume(returning: PasskeyRegistration(
                 credentialID: registration.credentialID,

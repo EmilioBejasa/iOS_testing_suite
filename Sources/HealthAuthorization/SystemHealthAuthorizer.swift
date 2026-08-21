@@ -16,7 +16,10 @@ public final class SystemHealthAuthorizer: HealthAuthorizing {
         store.authorizationStatus(for: type)
     }
 
-    public func requestAuthorization(toShare shareTypes: Set<HKSampleType>, read readTypes: Set<HKObjectType>) async -> Bool {
+    public func requestAuthorization(
+        toShare shareTypes: Set<HKSampleType>,
+        read readTypes: Set<HKObjectType>
+    ) async -> Bool {
         await withCheckedContinuation { continuation in
             store.requestAuthorization(toShare: shareTypes, read: readTypes) { success, _ in
                 continuation.resume(returning: success)

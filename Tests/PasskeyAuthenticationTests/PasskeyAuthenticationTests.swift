@@ -5,7 +5,11 @@ import PasskeyAuthentication
 @available(iOS 15.0, *)
 final class PasskeyAuthenticationTests: XCTestCase {
     func testMockReturnsConfiguredRegistration() async throws {
-        let registration = PasskeyRegistration(credentialID: Data([1, 2, 3]), rawAttestationObject: Data([4, 5]), rawClientDataJSON: Data([6]))
+        let registration = PasskeyRegistration(
+            credentialID: Data([1, 2, 3]),
+            rawAttestationObject: Data([4, 5]),
+            rawClientDataJSON: Data([6])
+        )
         let authenticator = MockPasskeyAuthenticator(registrationResult: .success(registration))
 
         let result = try await authenticator.requestRegistration(challenge: Data(), userName: "test", userID: Data())
@@ -14,7 +18,13 @@ final class PasskeyAuthenticationTests: XCTestCase {
     }
 
     func testMockReturnsConfiguredAssertion() async throws {
-        let assertion = PasskeyAssertion(credentialID: Data([1]), rawAuthenticatorData: Data([2]), signature: Data([3]), userID: Data([4]), rawClientDataJSON: Data([5]))
+        let assertion = PasskeyAssertion(
+            credentialID: Data([1]),
+            rawAuthenticatorData: Data([2]),
+            signature: Data([3]),
+            userID: Data([4]),
+            rawClientDataJSON: Data([5])
+        )
         let authenticator = MockPasskeyAuthenticator(assertionResult: .success(assertion))
 
         let result = try await authenticator.requestAssertion(challenge: Data())

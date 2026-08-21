@@ -43,8 +43,8 @@ public enum AsyncSequenceCollecting {
 
         return try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask {
-                for try await element in sequence {
-                    if await accumulator.append(element, target: count) { return }
+                for try await element in sequence where await accumulator.append(element, target: count) {
+                    return
                 }
             }
             group.addTask {

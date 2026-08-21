@@ -76,17 +76,17 @@ struct RootView: View {
             .launchArguments(),
             DebugSection("App", rows: [
                 DebugRow("Launch Count", "\(launchCount)"),
-                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)"),
+                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)")
             ]),
             DebugSection("Quote", rows: [
                 DebugRow("State", String(describing: store.state)),
                 DebugRow("Favorites", "\(store.favorites.count)"),
                 DebugRow("Reminder", String(describing: store.reminderState)),
-                DebugRow("Network", String(describing: store.networkStatus)),
+                DebugRow("Network", String(describing: store.networkStatus))
             ]),
             DebugSection("Tip Jar", rows: [
-                DebugRow("State", String(describing: tipJarStore.state)),
-            ]),
+                DebugRow("State", String(describing: tipJarStore.state))
+            ])
         ]
     }
     #endif

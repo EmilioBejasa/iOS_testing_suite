@@ -7,7 +7,10 @@ import LocalNotifications
 final class QuoteStoreTests: XCTestCase {
     func testFetchNewQuoteSuccessUpdatesState() async {
         let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
-        let store = QuoteStore(apiClient: MockQuoteAPIClient(mode: .success(quote)), favoritesStore: InMemoryFavoritesStore())
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore()
+        )
 
         await store.fetchNewQuote()
 
@@ -15,7 +18,10 @@ final class QuoteStoreTests: XCTestCase {
     }
 
     func testFetchNewQuoteFailureUpdatesState() async {
-        let store = QuoteStore(apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)), favoritesStore: InMemoryFavoritesStore())
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+            favoritesStore: InMemoryFavoritesStore()
+        )
 
         await store.fetchNewQuote()
 
@@ -95,7 +101,7 @@ final class QuoteStoreTests: XCTestCase {
 
         await store.toggleDailyReminder()
 
-        XCTAssertEqual(store.reminderState, .on)
+        XCTAssertEqual(store.reminderState, .scheduled)
         XCTAssertEqual(scheduler.scheduledReminder?.hour, QuoteStore.reminderHour)
         XCTAssertEqual(scheduler.scheduledReminder?.minute, QuoteStore.reminderMinute)
     }
@@ -122,7 +128,7 @@ final class QuoteStoreTests: XCTestCase {
             reminderScheduler: scheduler
         )
         await store.toggleDailyReminder()
-        XCTAssertEqual(store.reminderState, .on)
+        XCTAssertEqual(store.reminderState, .scheduled)
 
         await store.toggleDailyReminder()
 

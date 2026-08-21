@@ -24,7 +24,7 @@ struct QuoteView: View {
                 }
 
                 Toggle("Daily Reminder", isOn: Binding(
-                    get: { store.reminderState == .on },
+                    get: { store.reminderState == .scheduled },
                     set: { _ in Task { await store.toggleDailyReminder() } }
                 ))
                 .accessibilityIdentifier("quote.reminderToggle")

@@ -7,14 +7,20 @@ final class LocalizationCompletenessCheckingTests: XCTestCase {
     }
 
     func testReportsNoGapsForFullyTranslatedKey() throws {
-        let missing = try LocalizationCompletenessChecking.missingTranslations(inCatalogAt: catalogURL(), for: ["en", "es"])
+        let missing = try LocalizationCompletenessChecking.missingTranslations(
+            inCatalogAt: catalogURL(),
+            for: ["en", "es"]
+        )
 
         XCTAssertFalse(missing.contains(MissingLocalization(key: "Hello, %@!", locale: "en")))
         XCTAssertFalse(missing.contains(MissingLocalization(key: "Hello, %@!", locale: "es")))
     }
 
     func testReportsGapForUntranslatedLocale() throws {
-        let missing = try LocalizationCompletenessChecking.missingTranslations(inCatalogAt: catalogURL(), for: ["en", "es"])
+        let missing = try LocalizationCompletenessChecking.missingTranslations(
+            inCatalogAt: catalogURL(),
+            for: ["en", "es"]
+        )
 
         XCTAssertTrue(missing.contains(MissingLocalization(key: "Settings", locale: "es")))
         XCTAssertFalse(missing.contains(MissingLocalization(key: "Settings", locale: "en")))
@@ -25,7 +31,8 @@ final class LocalizationCompletenessCheckingTests: XCTestCase {
         try Data("{ \"notACatalog\": true }".utf8).write(to: tempURL)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        XCTAssertThrowsError(try LocalizationCompletenessChecking.missingTranslations(inCatalogAt: tempURL, for: ["en"])) { error in
+        let attempt = { try LocalizationCompletenessChecking.missingTranslations(inCatalogAt: tempURL, for: ["en"]) }
+        XCTAssertThrowsError(try attempt()) { error in
             guard case LocalizationCatalogError.invalidCatalog = error else {
                 return XCTFail("Expected .invalidCatalog, got \(error)")
             }
