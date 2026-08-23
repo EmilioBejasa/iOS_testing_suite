@@ -44,16 +44,13 @@ final class LocalNotificationsTests: XCTestCase {
         XCTAssertFalse(scheduler.didCancel)
     }
 
-    /// Safe to exercise for real: `cancelDailyReminder()` only calls
-    /// `UNUserNotificationCenter.removePendingNotificationRequests`, which never
-    /// prompts - unlike `requestAuthorization()`, which triggers the real system
-    /// permission dialog per `SystemReminderScheduler`'s own doc comment and must
-    /// never be called for real in a test. Removing a non-existent pending
-    /// request is a documented no-op, so this has no lasting side effect worth
-    /// avoiding.
-    func testSystemSchedulerCancelDoesNotPrompt() {
-        let scheduler = SystemReminderScheduler()
-
-        scheduler.cancelDailyReminder()
-    }
+    // No SystemReminderScheduler test here, even for a nominally safe call like
+    // cancelDailyReminder(): SystemReminderScheduler's default `center` argument
+    // eagerly evaluates `UNUserNotificationCenter.current()`, which crashes with
+    // "bundleProxyForCurrentProcess is nil" outside a real host app bundle -
+    // confirmed by CI on both `swift test` and `xcodebuild test -scheme
+    // iOSTestKit-Package`. Unlike RemindersAuthorizationTests/CalendarAuthorizationTests,
+    // there's no way to construct SystemReminderScheduler at all in this
+    // environment, so it needs the same "real host app bundle required"
+    // treatment CONTRIBUTING.md documents for PurchaseSupport/Clipboard/IdleTimer.
 }

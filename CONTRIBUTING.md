@@ -149,7 +149,7 @@ SwiftPM resources must live inside the target that references them, so a
 single file can't be pointed at from two test targets. If you need to
 change the StoreKit test configuration, update both copies.
 
-**Four tests are skipped in `swift-test`/`kit-tests-ios` (and their `make`
+**Five tests are skipped in `swift-test`/`kit-tests-ios` (and their `make`
 equivalents)** because they need a real Xcode-built host app bundle to work
 at all — confirmed by each failing consistently, not intermittently, and one
 hanging outright rather than failing:
@@ -159,12 +159,26 @@ hanging outright rather than failing:
 | `PurchaseSupportTests.testFetchAndPurchaseTipProduct` | Real StoreKit product lookup returns nil with no host app identity | `QuoteBoxUITests.testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration` |
 | `PurchaseSupportTests.testIsEntitledReflectsRealPurchaseUnderTestSession` | Same | Same |
 | `AsyncSequenceCollectingTests.testCollectsRealTransactionUpdateAfterExternalPurchase` | Same | Same |
-| `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard` | Hung indefinitely — almost certainly iOS 16+'s paste-permission alert, which a headless process can never dismiss | `MockClipboardProvider` coverage only; no real-pasteboard UI test exists yet |
+| `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard` | Hung indefinitely — almost certainly iOS 16+'s paste-permission alert, which a headless process can never dismiss | `MockClipboardProvider` coverage only; real round trip now covered by `QuoteBoxUITests.testDebugTabShowsRealClipboardRoundTrip` instead — a same-process copy/read from inside QuoteBox's own bundle identity, surfaced on the Debug tab, doesn't hit the alert the way this bare-bundle attempt does |
 | `IdleTimerControllingTests.testSystemControlRoundTripsAgainstRealApplication` | `UIApplication.shared.isIdleTimerDisabled` writes don't take effect without a real running host app | `MockIdleTimerControl` coverage only |
 
 Mock-backed coverage for all five still runs everywhere. If you add a new
 "real system, mutates real app/OS state" test, expect it to need the same
 treatment until proven otherwise.
+
+`LocalNotificationsTests` has no `SystemReminderScheduler` test at all, not
+even for a nominally non-prompting call like `cancelDailyReminder()`:
+`SystemReminderScheduler`'s default `center` argument eagerly evaluates
+`UNUserNotificationCenter.current()`, which crashes with
+`"bundleProxyForCurrentProcess is nil"` outside a real host app bundle -
+confirmed by CI on both `swift test` and `xcodebuild test -scheme
+iOSTestKit-Package`. `MockReminderScheduler` coverage only. Every `QuoteBoxUITests` run launches
+with a `--mock-*` flag, so `SystemReminderScheduler` is never exercised by an
+automated test at all today - only by a person running the real (non-mock)
+app build by hand, where `QuoteBoxApp.swift`/`QuoteStore.swift`'s default
+argument constructs it inside a real host app bundle. Closing that
+automated-coverage gap for real would need the same `--real-*`-flag approach
+`--real-purchases`/`--real-clipboard` already use.
 
 ## Pull requests
 
