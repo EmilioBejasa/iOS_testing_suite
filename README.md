@@ -615,21 +615,25 @@ workflow's own history: the first attempt surfaced a real bug — a shell-level
 `project.yml`'s `test` scheme gained an explicit `SNAPSHOT_RECORD:
 $(SNAPSHOT_RECORD)` environment-variable mapping).
 
-**Scope note**: `assertSnapshot` only reliably captures plain declarative
-view trees like `QuoteContentView`. `ImageRenderer`'s first synchronous
-`.uiImage` read doesn't wait for `List`/`ScrollView`/`NavigationStack`/
-`TabView` — all UIKit-backed under the hood — to finish laying out their
-children: attempts at snapshotting `QuoteView`/`FavoritesView`/`RootView`
-came back either fully blank (`QuoteView`, a bare `ScrollView`) or, for
-`FavoritesView`'s `List`, byte-identical between a seeded and an empty
-favorites list. A warm-up render plus a short `RunLoop` pass didn't help —
-confirmed against CI, byte-for-byte identical output with or without it —
-pointing at needing an actual `UIWindow`/`UIHostingController` attachment
-rather than a timing fix, which would change `assertSnapshot`'s rendering
-technology enough to require re-recording every existing reference image,
-not just new ones. Real coverage of those three views' rendered content
-currently comes from `QuoteBoxUITests` instead (element existence/state
-assertions, not pixel comparison).
+`assertSnapshot` now reliably captures `List`/`ScrollView`/`NavigationStack`/
+`TabView`-backed views too, not just plain declarative trees like
+`QuoteContentView`. It previously didn't:
+`ImageRenderer`'s first synchronous `.uiImage` read never waited for those
+UIKit-backed containers to finish laying out — attempts at snapshotting
+`QuoteView`/`FavoritesView`/`RootView` came back either fully blank
+(`QuoteView`, a bare `ScrollView`) or, for `FavoritesView`'s `List`,
+byte-identical between a seeded and an empty favorites list, and a warm-up
+render plus a short `RunLoop` pass didn't help (confirmed against CI,
+byte-for-byte identical output with or without it). The fix: host the view
+in a real, key `UIWindow` via `UIHostingController` and force a layout pass
+before rasterizing with `UIGraphicsImageRenderer`'s `drawHierarchy`, instead
+of `ImageRenderer.uiImage`. Changing the rendering technology meant
+re-recording every existing reference image, not just new ones —
+`QuoteContentView`'s two references changed bytes even though neither
+contains any of the previously-unsupported container types.
+`QuoteBoxTests/QuoteViewSnapshotTests.testQuoteViewLoadingState`,
+`FavoritesViewSnapshotTests.swift`, and `RootViewSnapshotTests.swift` now
+snapshot those three views directly.
 
 ### `DeepLinkTesting` (Swift Package product)
 
@@ -1312,8 +1316,15 @@ alongside Tip Jar — same `TipJarStore`, same UI pattern, new
 `store.fetchNewQuote()`, checking entitlement rather than assuming purchase
 success implies an active subscription — a completed purchase can later
 lapse (cancellation, billing failure) without the store observing that
-renewal event directly. Validated via `SKTestSession` in
-`PurchaseSupportTests.testIsEntitledReflectsRealPurchaseUnderTestSession`.
+renewal event directly. Validated two ways: a real lapse, purchase then
+`SKTestSession.expireSubscription(productIdentifier:)`, in
+`QuoteBoxTests/PurchaseSupportRealSessionTests.swift` — deliberately placed
+there rather than in kit-level `PurchaseSupportTests` (a bare SwiftPM test
+bundle with no host app identity, where real StoreKit product lookups
+return nil) since `QuoteBoxTests` runs inside the real `QuoteBox.app`
+process and can actually resolve the product; and at the `TipJarStore`
+level (mock-only, no StoreKit timing risk) in
+`QuoteBoxTests/TipJarStoreTests.testRefreshSupporterStatusReflectsLapseAfterPriorActiveEntitlement`.
 
 **Scope note**, matching this kit's existing honesty pattern
 (`SnapshotTesting`'s and `LocalizationCompletenessChecking`'s scope notes):
