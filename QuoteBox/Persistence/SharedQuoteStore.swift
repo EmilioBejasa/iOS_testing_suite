@@ -33,3 +33,14 @@ final class SystemSharedQuoteStore: SharedQuoteWriting {
         defaults?.set(data, forKey: Self.sharedQuoteKey)
     }
 }
+
+/// `QuoteStore`'s default - every test-constructed `QuoteStore` (there are
+/// many, across `QuoteBoxTests`) would otherwise write real, unmocked data
+/// into the same App Group suite `QuoteWidgetCoreTests` seeds and reads
+/// from directly, racing with it. Only `QuoteBoxApp.swift`'s real
+/// (non-`--mock-*`) branch passes `SystemSharedQuoteStore()` explicitly -
+/// the same swap-in-the-real-implementation pattern already used for
+/// `reminderScheduler`/`purchaseManager`.
+final class NoOpSharedQuoteWriter: SharedQuoteWriting {
+    func save(_ quote: Quote) {}
+}

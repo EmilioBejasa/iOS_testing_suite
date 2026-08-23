@@ -25,6 +25,7 @@ struct QuoteBoxApp: App {
         let userDefaultsStore: UserDefaultsStoring
         let reachabilityMonitor: NetworkReachabilityMonitoring
         let reviewRequester: ReviewRequesting
+        let sharedQuoteStore: SharedQuoteWriting
     }
 
     private static func makeDependencies(for arguments: [String]) -> Dependencies {
@@ -36,7 +37,8 @@ struct QuoteBoxApp: App {
                 purchaseManager: MockPurchaseManager(),
                 userDefaultsStore: InMemoryUserDefaultsStore(),
                 reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
-                reviewRequester: MockReviewRequester()
+                reviewRequester: MockReviewRequester(),
+                sharedQuoteStore: NoOpSharedQuoteWriter()
             )
         } else if arguments.contains("--mock-success") {
             let notificationsDenied = arguments.contains("--mock-notifications-denied")
@@ -49,7 +51,8 @@ struct QuoteBoxApp: App {
                 purchaseManager: usesRealPurchases ? StoreKitPurchaseManager() : MockPurchaseManager(),
                 userDefaultsStore: InMemoryUserDefaultsStore(),
                 reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
-                reviewRequester: MockReviewRequester()
+                reviewRequester: MockReviewRequester(),
+                sharedQuoteStore: NoOpSharedQuoteWriter()
             )
         } else {
             let container = NSPersistentContainer(name: "QuoteBox")
@@ -63,7 +66,8 @@ struct QuoteBoxApp: App {
                 purchaseManager: StoreKitPurchaseManager(),
                 userDefaultsStore: SystemUserDefaultsStore(),
                 reachabilityMonitor: SystemNetworkReachabilityMonitor(),
-                reviewRequester: SystemReviewRequester()
+                reviewRequester: SystemReviewRequester(),
+                sharedQuoteStore: SystemSharedQuoteStore()
             )
         }
     }
@@ -76,7 +80,8 @@ struct QuoteBoxApp: App {
             apiClient: dependencies.apiClient,
             favoritesStore: dependencies.favoritesStore,
             reminderScheduler: dependencies.reminderScheduler,
-            reachabilityMonitor: dependencies.reachabilityMonitor
+            reachabilityMonitor: dependencies.reachabilityMonitor,
+            sharedQuoteStore: dependencies.sharedQuoteStore
         )
         tipJarStore = TipJarStore(purchaseManager: dependencies.purchaseManager)
         // Under --mock-*, userDefaultsStore is a fresh InMemoryUserDefaultsStore

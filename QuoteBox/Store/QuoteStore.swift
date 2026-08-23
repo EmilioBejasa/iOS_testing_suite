@@ -44,7 +44,7 @@ final class QuoteStore {
         dateProvider: DateProviding = SystemDateProvider(),
         reminderScheduler: ReminderScheduling = SystemReminderScheduler(),
         reachabilityMonitor: NetworkReachabilityMonitoring = SystemNetworkReachabilityMonitor(),
-        sharedQuoteStore: SharedQuoteWriting = SystemSharedQuoteStore()
+        sharedQuoteStore: SharedQuoteWriting = NoOpSharedQuoteWriter()
     ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
