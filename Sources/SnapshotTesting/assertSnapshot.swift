@@ -45,9 +45,15 @@ public func assertSnapshot(
     if let locale {
         content = AnyView(content.environment(\.locale, locale))
     }
-    if let dynamicTypeSize {
-        content = AnyView(content.dynamicTypeSize(dynamicTypeSize))
-    }
+    // Always pin explicitly, even in the nil (default) case - hosting in a
+    // real UIWindow (below) means the render otherwise inherits whatever
+    // Dynamic Type default the simulator/device happens to have, which
+    // isn't guaranteed identical across the CI device matrix. Confirmed by
+    // CI: the exact same view produced different byte counts on iPhone SE
+    // vs. iPhone 16 with this left ambient - the whole point of a fixed
+    // `size`/`scale` is one reference staying valid across every simulator,
+    // and that's only true if every other rendering input is pinned too.
+    content = AnyView(content.dynamicTypeSize(dynamicTypeSize ?? .large))
 
     guard let renderedData = renderToPNGData(content, size: size) else {
         XCTFail("Failed to render \"\(name)\" to an image", file: file, line: line)
