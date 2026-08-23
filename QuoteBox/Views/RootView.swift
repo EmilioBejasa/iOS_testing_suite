@@ -20,8 +20,11 @@ struct RootView: View {
     private let clipboardRoundTripResult: String?
 
     /// Not a real secret - only needs to be a value the UI test can assert on
-    /// verbatim after the round trip.
-    private static let clipboardRoundTripToken = "QuoteBoxClipboardRoundTrip"
+    /// verbatim after the round trip. Kept short: the Debug tab's row value
+    /// `Text` has no line-limit/wrap handling, and a longer token got clipped
+    /// on iPhone SE's narrower width (caught by
+    /// testDebugTabShowsRealClipboardRoundTrip's accessibility audit in CI).
+    private static let clipboardRoundTripToken = "clip-ok"
 
     init(
         store: QuoteStore,

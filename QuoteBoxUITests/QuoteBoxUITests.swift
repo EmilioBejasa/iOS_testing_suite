@@ -210,7 +210,7 @@ final class QuoteBoxUITests: XCTestCase {
 
         XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Round Trip"].exists)
-        XCTAssertTrue(app.staticTexts["QuoteBoxClipboardRoundTrip"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["clip-ok"].waitForExistence(timeout: 5))
         try auditIgnoringKnownFalsePositives(app)
     }
 
