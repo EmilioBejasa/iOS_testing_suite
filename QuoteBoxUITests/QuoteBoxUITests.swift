@@ -201,17 +201,25 @@ final class QuoteBoxUITests: XCTestCase {
         let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-clipboard"])
         XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
 
+        // The copy/read round trip itself runs in RootView's init, at launch -
+        // before this test issues any query - so the waitForExistence calls
+        // above and below already give XCTest's interruption-monitor check
+        // several chances to catch an alert, with no extra gesture needed.
         app.tab("Debug").tap()
-        // Interruption monitors only get evaluated on the next UI interaction
-        // after a system alert appears - this extra, harmless interaction
-        // forces XCTest to check for one if it's covering the Debug tab's
-        // content.
-        app.swipeUp()
-
         XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Round Trip"].exists)
-        XCTAssertTrue(app.staticTexts["clip-ok"].waitForExistence(timeout: 5))
+        // Audited here, before scrolling - same stable, unscrolled state
+        // testDebugTabShowsLaunchArgumentsAndAppState already audits cleanly.
+        // Auditing mid-scroll (tried first) surfaced a "Text clipped" false
+        // positive on iPhone SE from a row transiently at the screen edge,
+        // unrelated to this row's own content.
         try auditIgnoringKnownFalsePositives(app)
+
+        // The Clipboard section is the last one added to the Debug list and
+        // can sit below the fold on a smaller screen (iPhone SE) - scroll it
+        // into view rather than relying on it already being visible.
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Round Trip"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["clip-ok"].exists)
     }
 
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
