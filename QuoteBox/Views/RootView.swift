@@ -1,5 +1,6 @@
 import ClipboardProviding
 import DebugOverlay
+import LocalNotifications
 import SwiftUI
 
 struct RootView: View {
@@ -18,6 +19,7 @@ struct RootView: View {
     private let launchCount: Int
     private let didRequestReviewThisLaunch: Bool
     private let clipboardRoundTripResult: String?
+    private let notificationsCancelResult: String?
 
     /// Not a real secret - only needs to be a value the UI test can assert on
     /// verbatim after the round trip. Kept short: the Debug tab's row value
@@ -56,6 +58,24 @@ struct RootView: View {
             clipboardRoundTripResult = clipboard.currentString() ?? "nil"
         } else {
             clipboardRoundTripResult = nil
+        }
+
+        // --real-notifications constructs SystemReminderScheduler for real and
+        // calls its one non-prompting method, surfaced on the Debug tab. This
+        // is deliberately narrower than the clipboard/purchase real-paths:
+        // SystemReminderScheduler's default `center` argument crashes outside a
+        // real host app bundle (CONTRIBUTING.md's Troubleshooting table), so
+        // this closes that half of the gap. requestAuthorization()/
+        // scheduleDailyReminder() stay untested for real - QuoteStore's only
+        // path to scheduleDailyReminder goes through requestAuthorization()
+        // first, which triggers a real, un-dismissable-by-construction system
+        // permission dialog with no same-process loophole like Clipboard's.
+        if ProcessInfo.processInfo.arguments.contains("--real-notifications") {
+            let scheduler = SystemReminderScheduler()
+            scheduler.cancelDailyReminder()
+            notificationsCancelResult = "ok"
+        } else {
+            notificationsCancelResult = nil
         }
     }
 
@@ -116,6 +136,11 @@ struct RootView: View {
         if let clipboardRoundTripResult {
             sections.append(DebugSection("Clipboard", rows: [
                 DebugRow("Round Trip", clipboardRoundTripResult)
+            ]))
+        }
+        if let notificationsCancelResult {
+            sections.append(DebugSection("Notifications", rows: [
+                DebugRow("Cancel Call", notificationsCancelResult)
             ]))
         }
         return sections

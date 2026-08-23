@@ -166,19 +166,28 @@ Mock-backed coverage for all five still runs everywhere. If you add a new
 "real system, mutates real app/OS state" test, expect it to need the same
 treatment until proven otherwise.
 
-`LocalNotificationsTests` has no `SystemReminderScheduler` test at all, not
-even for a nominally non-prompting call like `cancelDailyReminder()`:
-`SystemReminderScheduler`'s default `center` argument eagerly evaluates
-`UNUserNotificationCenter.current()`, which crashes with
-`"bundleProxyForCurrentProcess is nil"` outside a real host app bundle -
-confirmed by CI on both `swift test` and `xcodebuild test -scheme
-iOSTestKit-Package`. `MockReminderScheduler` coverage only. Every `QuoteBoxUITests` run launches
-with a `--mock-*` flag, so `SystemReminderScheduler` is never exercised by an
-automated test at all today - only by a person running the real (non-mock)
-app build by hand, where `QuoteBoxApp.swift`/`QuoteStore.swift`'s default
-argument constructs it inside a real host app bundle. Closing that
-automated-coverage gap for real would need the same `--real-*`-flag approach
-`--real-purchases`/`--real-clipboard` already use.
+`LocalNotificationsTests` (kit-level) has no `SystemReminderScheduler` test
+at all, not even for a nominally non-prompting call like
+`cancelDailyReminder()`: `SystemReminderScheduler`'s default `center`
+argument eagerly evaluates `UNUserNotificationCenter.current()`, which
+crashes with `"bundleProxyForCurrentProcess is nil"` outside a real host app
+bundle - confirmed by CI on both `swift test` and `xcodebuild test -scheme
+iOSTestKit-Package`. `MockReminderScheduler` coverage only there.
+
+`QuoteBoxUITests.testDebugTabShowsRealNotificationsSchedulerConstructsWithoutCrashing`
+closes half of that gap for real: a `--real-notifications` launch flag
+(`RootView.swift`'s `init`) constructs `SystemReminderScheduler()` inside the
+real `QuoteBox.app` host bundle and calls `cancelDailyReminder()` - safe
+because it only calls `UNUserNotificationCenter.removePendingNotificationRequests`,
+which never prompts, surfacing the result on the Debug tab. The other half -
+`requestAuthorization()`/`scheduleDailyReminder()` - stays deliberately
+untested for real: `QuoteStore.toggleDailyReminder()` is the only production
+path to `scheduleDailyReminder`, and it only reaches it after
+`requestAuthorization()` returns `.authorized`, which triggers a real,
+un-dismissable-by-construction system permission dialog with no same-process
+loophole the way Clipboard's same-source read has. No CI-level simulator
+pre-authorization step exists in this repo to work around that, so this
+stays a `MockReminderScheduler`-only path in `QuoteStoreTests`/`QuoteBoxUITests`.
 
 ## Pull requests
 

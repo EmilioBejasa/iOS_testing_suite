@@ -222,6 +222,28 @@ final class QuoteBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["clip-ok"].exists)
     }
 
+    /// Proves `SystemReminderScheduler` constructs and its one non-prompting
+    /// method (`cancelDailyReminder()`) runs cleanly inside a real host app
+    /// bundle - the crash `CONTRIBUTING.md`'s Troubleshooting table documents
+    /// for the bare-bundle case (`SystemReminderScheduler`'s default `center`
+    /// argument eagerly evaluates `UNUserNotificationCenter.current()`, which
+    /// needs `bundleProxyForCurrentProcess`). Deliberately doesn't touch
+    /// `requestAuthorization()`/`scheduleDailyReminder()` - see the doc
+    /// comment on `--real-notifications` in `RootView.swift` for why that
+    /// half of the real path stays untested.
+    func testDebugTabShowsRealNotificationsSchedulerConstructsWithoutCrashing() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-notifications"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Cancel Call"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["ok"].exists)
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.
