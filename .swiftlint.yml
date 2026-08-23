@@ -2,6 +2,7 @@ included:
   - Sources
   - Tests
   - QuoteBox
+  - QuoteBoxWidget
   - QuoteBoxTests
   - QuoteBoxUITests
 excluded:

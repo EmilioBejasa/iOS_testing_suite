@@ -91,10 +91,17 @@ targets:
     platform: iOS
     sources:
       - path: QuoteBoxTests
+      # QuoteWidgetCoreTests exercises this file directly, compiled into
+      # QuoteBoxTests's own module - app-extension targets build as .appex
+      # bundles, not linkable frameworks, so QuoteBoxTests can't link
+      # against QuoteBoxWidget the way it links against QuoteBox itself
+      # (which uses -bundle_loader, a mechanism specific to a unit test
+      # target's actual host app). Compiling the same source file into both
+      # targets sidesteps that entirely - confirmed necessary after CI's
+      # linker reported "symbol(s) not found" for QuoteBoxWidget.QuoteWidgetCore.
+      - path: QuoteBoxWidget/QuoteWidgetCore.swift
     dependencies:
       - target: QuoteBox
-        embed: false
-      - target: QuoteBoxWidget
         embed: false
       - package: iOSTestKit
         product: NetworkStub
