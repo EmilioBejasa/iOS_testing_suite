@@ -48,7 +48,19 @@ final class PurchaseSupportRealSessionTests: XCTestCase {
 
         try session.expireSubscription(productIdentifier: productID)
 
-        let isEntitledAfterExpiration = await manager.isEntitled(to: productID)
+        // SKTestSession.expireSubscription mutates local test-session state;
+        // a single immediate isEntitled(to:) read came back still true in CI
+        // (Transaction.currentEntitlements' propagation isn't synchronous
+        // with the expiry call) - reusable-test.yml's known-flake retry
+        // pattern already documents other StoreKit transaction-timing races
+        // for the same underlying reason. Poll with a bounded total wait
+        // instead of asserting on one immediate read.
+        var isEntitledAfterExpiration = true
+        for _ in 0..<10 {
+            isEntitledAfterExpiration = await manager.isEntitled(to: productID)
+            if !isEntitledAfterExpiration { break }
+            try await Task.sleep(nanoseconds: 300_000_000)
+        }
         XCTAssertFalse(isEntitledAfterExpiration)
     }
 }
