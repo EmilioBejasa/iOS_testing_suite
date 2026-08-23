@@ -51,6 +51,17 @@ public func assertSnapshot(
     let renderer = ImageRenderer(content: content.frame(width: size.width, height: size.height))
     renderer.scale = 2
 
+    // `List`/`ScrollView`/`NavigationStack`/`TabView` are UIKit-backed under the
+    // hood and don't finish laying out their children on the very first
+    // synchronous `.uiImage` read - discovered when FavoritesView/QuoteView/
+    // RootView snapshots came back blank or, for the List case, indistinguishable
+    // between an empty and a seeded list. A plain declarative leaf view (like
+    // QuoteContentView) is already fully laid out on the first read, so this
+    // warm-up read plus a short run-loop pass is a no-op for it, not a behavior
+    // change - readers relying on that existing golden coverage aren't affected.
+    _ = renderer.uiImage
+    RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+
     guard let renderedData = renderer.uiImage?.pngData() else {
         XCTFail("Failed to render \"\(name)\" to an image", file: file, line: line)
         return
