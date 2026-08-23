@@ -1,3 +1,4 @@
+import ClipboardProviding
 import DebugOverlay
 import SwiftUI
 
@@ -16,6 +17,11 @@ struct RootView: View {
     @Binding private var route: QuoteBoxRoute?
     private let launchCount: Int
     private let didRequestReviewThisLaunch: Bool
+    private let clipboardRoundTripResult: String?
+
+    /// Not a real secret - only needs to be a value the UI test can assert on
+    /// verbatim after the round trip.
+    private static let clipboardRoundTripToken = "QuoteBoxClipboardRoundTrip"
 
     init(
         store: QuoteStore,
@@ -31,6 +37,22 @@ struct RootView: View {
         _route = route
         if case .favorites = route.wrappedValue {
             _selectedTab = State(initialValue: .favorites)
+        }
+
+        // --real-clipboard drives a same-process copy-then-read against the
+        // real pasteboard, surfaced on the Debug tab. See
+        // ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard's
+        // doc comment / CONTRIBUTING.md's Troubleshooting table for why the
+        // equivalent bare-XCTest-bundle round trip hangs on iOS 16+'s
+        // paste-permission alert - the theory here is that a real app reading
+        // clipboard content it just wrote itself, from inside its own bundle
+        // identity, is the same-source case that alert is documented to exempt.
+        if ProcessInfo.processInfo.arguments.contains("--real-clipboard") {
+            let clipboard = SystemClipboardProvider()
+            clipboard.copy(Self.clipboardRoundTripToken)
+            clipboardRoundTripResult = clipboard.currentString() ?? "nil"
+        } else {
+            clipboardRoundTripResult = nil
         }
     }
 
@@ -72,7 +94,7 @@ struct RootView: View {
 
     #if DEBUG
     private var debugSections: [DebugSection] {
-        [
+        var sections: [DebugSection] = [
             .launchArguments(),
             DebugSection("App", rows: [
                 DebugRow("Launch Count", "\(launchCount)"),
@@ -88,6 +110,12 @@ struct RootView: View {
                 DebugRow("State", String(describing: tipJarStore.state))
             ])
         ]
+        if let clipboardRoundTripResult {
+            sections.append(DebugSection("Clipboard", rows: [
+                DebugRow("Round Trip", clipboardRoundTripResult)
+            ]))
+        }
+        return sections
     }
     #endif
 }

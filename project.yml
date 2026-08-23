@@ -42,6 +42,8 @@ targets:
         product: NetworkReachabilityMonitoring
       - package: iOSTestKit
         product: ReviewRequesting
+      - package: iOSTestKit
+        product: ClipboardProviding
     info:
       path: QuoteBox/Info.plist
       properties:

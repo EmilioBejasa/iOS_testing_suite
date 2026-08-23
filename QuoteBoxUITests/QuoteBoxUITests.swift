@@ -172,6 +172,48 @@ final class QuoteBoxUITests: XCTestCase {
         }
     }
 
+    /// Exploratory: tests the theory that a same-process copy-then-read (the
+    /// app reading clipboard content it just wrote itself, inside its own
+    /// bundle identity) is exempt from iOS 16+'s cross-app paste-permission
+    /// alert - unlike ClipboardProvidingTests's bare-XCTest-bundle round trip,
+    /// which hangs indefinitely (CONTRIBUTING.md's Troubleshooting table). If
+    /// this theory is wrong and the alert still appears, the
+    /// addUIInterruptionMonitor below dismisses it so this test fails on a
+    /// normal, bounded assertion instead of consuming this job's full timeout
+    /// the way the earlier attempt did - in that case, the existing skip for
+    /// testSystemProviderRoundTripsAgainstRealPasteboard stays in place and
+    /// this becomes a documented "tried X, still blocked" result, not a
+    /// silent revert.
+    func testDebugTabShowsRealClipboardRoundTrip() throws {
+        let pasteAlertMonitor = addUIInterruptionMonitor(withDescription: "Paste permission alert") { alert in
+            if alert.buttons["Allow Paste"].exists {
+                alert.buttons["Allow Paste"].tap()
+                return true
+            }
+            if alert.buttons["Don't Allow"].exists {
+                alert.buttons["Don't Allow"].tap()
+                return true
+            }
+            return false
+        }
+        defer { removeUIInterruptionMonitor(pasteAlertMonitor) }
+
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-clipboard"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        // Interruption monitors only get evaluated on the next UI interaction
+        // after a system alert appears - this extra, harmless interaction
+        // forces XCTest to check for one if it's covering the Debug tab's
+        // content.
+        app.swipeUp()
+
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Round Trip"].exists)
+        XCTAssertTrue(app.staticTexts["QuoteBoxClipboardRoundTrip"].waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.

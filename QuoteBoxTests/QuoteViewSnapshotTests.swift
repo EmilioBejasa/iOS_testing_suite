@@ -1,4 +1,5 @@
 import XCTest
+import PurchaseSupport
 import SnapshotTesting
 @testable import QuoteBox
 
@@ -22,6 +23,28 @@ final class QuoteViewSnapshotTests: XCTestCase {
             size: CGSize(width: 300, height: 400),
             dynamicTypeSize: .accessibility3,
             named: "loaded-accessibility3"
+        )
+    }
+
+    /// QuoteView's `.task` (fetchNewQuote() + tipJarStore.refreshSupporterStatus())
+    /// runs asynchronously after the view first appears, but ImageRenderer
+    /// captures a synchronous render immediately after construction - before
+    /// that task gets a chance to run. This snapshot is therefore
+    /// deterministically the pre-task `.idle`/`.loading` render (the
+    /// "Loading..." ProgressView state); trying to snapshot the post-fetch
+    /// loaded state instead would be racy, since nothing here awaits the
+    /// view's .task.
+    func testQuoteViewLoadingState() {
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
+            favoritesStore: InMemoryFavoritesStore()
+        )
+        let tipJarStore = TipJarStore(purchaseManager: MockPurchaseManager())
+
+        assertSnapshot(
+            of: QuoteView(store: store, tipJarStore: tipJarStore),
+            size: CGSize(width: 350, height: 500),
+            named: "loading"
         )
     }
 }
