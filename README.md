@@ -615,6 +615,22 @@ workflow's own history: the first attempt surfaced a real bug — a shell-level
 `project.yml`'s `test` scheme gained an explicit `SNAPSHOT_RECORD:
 $(SNAPSHOT_RECORD)` environment-variable mapping).
 
+**Scope note**: `assertSnapshot` only reliably captures plain declarative
+view trees like `QuoteContentView`. `ImageRenderer`'s first synchronous
+`.uiImage` read doesn't wait for `List`/`ScrollView`/`NavigationStack`/
+`TabView` — all UIKit-backed under the hood — to finish laying out their
+children: attempts at snapshotting `QuoteView`/`FavoritesView`/`RootView`
+came back either fully blank (`QuoteView`, a bare `ScrollView`) or, for
+`FavoritesView`'s `List`, byte-identical between a seeded and an empty
+favorites list. A warm-up render plus a short `RunLoop` pass didn't help —
+confirmed against CI, byte-for-byte identical output with or without it —
+pointing at needing an actual `UIWindow`/`UIHostingController` attachment
+rather than a timing fix, which would change `assertSnapshot`'s rendering
+technology enough to require re-recording every existing reference image,
+not just new ones. Real coverage of those three views' rendered content
+currently comes from `QuoteBoxUITests` instead (element existence/state
+assertions, not pixel comparison).
+
 ### `DeepLinkTesting` (Swift Package product)
 
 `DeepLinkSource.url(from:)` looks for `--deep-link <url>` in launch arguments.
