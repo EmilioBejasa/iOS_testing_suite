@@ -44,6 +44,8 @@ targets:
         product: ReviewRequesting
       - package: iOSTestKit
         product: ClipboardProviding
+      - target: QuoteBoxWidget
+        embed: true
     info:
       path: QuoteBox/Info.plist
       properties:
@@ -63,6 +65,27 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: QuoteBox/QuoteBox.entitlements
 
+  QuoteBoxWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: QuoteBoxWidget
+    dependencies:
+      - package: iOSTestKit
+        product: WidgetTimelineTesting
+    info:
+      path: QuoteBoxWidget/Info.plist
+      properties:
+        CFBundleDisplayName: QuoteBox Widget
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.app.widget
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: QuoteBoxWidget/QuoteBoxWidget.entitlements
+        SKIP_INSTALL: YES
+
   QuoteBoxTests:
     type: bundle.unit-test
     platform: iOS
@@ -70,6 +93,8 @@ targets:
       - path: QuoteBoxTests
     dependencies:
       - target: QuoteBox
+        embed: false
+      - target: QuoteBoxWidget
         embed: false
       - package: iOSTestKit
         product: NetworkStub
@@ -115,6 +140,7 @@ schemes:
     build:
       targets:
         QuoteBox: all
+        QuoteBoxWidget: all
         QuoteBoxTests: [test]
         QuoteBoxUITests: [test]
     test:

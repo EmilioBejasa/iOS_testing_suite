@@ -35,6 +35,7 @@ final class QuoteStore {
     private let dateProvider: DateProviding
     private let reminderScheduler: ReminderScheduling
     private let reachabilityMonitor: NetworkReachabilityMonitoring
+    private let sharedQuoteStore: SharedQuoteWriting
     private var lastFetchedAt: Date?
 
     init(
@@ -42,13 +43,15 @@ final class QuoteStore {
         favoritesStore: FavoritesStoring,
         dateProvider: DateProviding = SystemDateProvider(),
         reminderScheduler: ReminderScheduling = SystemReminderScheduler(),
-        reachabilityMonitor: NetworkReachabilityMonitoring = SystemNetworkReachabilityMonitor()
+        reachabilityMonitor: NetworkReachabilityMonitoring = SystemNetworkReachabilityMonitor(),
+        sharedQuoteStore: SharedQuoteWriting = SystemSharedQuoteStore()
     ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
         self.dateProvider = dateProvider
         self.reminderScheduler = reminderScheduler
         self.reachabilityMonitor = reachabilityMonitor
+        self.sharedQuoteStore = sharedQuoteStore
         self.favorites = favoritesStore.loadFavorites()
         self.networkStatus = reachabilityMonitor.currentStatus
         reachabilityMonitor.startMonitoring { [weak self] status in
@@ -77,6 +80,7 @@ final class QuoteStore {
         do {
             let quote = try await apiClient.fetchRandomQuote()
             state = .loaded(quote)
+            sharedQuoteStore.save(quote)
         } catch {
             state = .error((error as? LocalizedError)?.errorDescription ?? "Something went wrong.")
         }

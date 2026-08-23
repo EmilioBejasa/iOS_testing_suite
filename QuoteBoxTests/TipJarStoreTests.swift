@@ -42,4 +42,21 @@ final class TipJarStoreTests: XCTestCase {
 
         XCTAssertEqual(store.supporterState, .idle)
     }
+
+    /// Complements `PurchaseSupportRealSessionTests`' real-StoreKit lapse
+    /// test at the store level: proves `TipJarStore` re-checks entitlement
+    /// rather than latching onto the first `.active` result forever, using
+    /// the same `MockPurchaseManager` instance's mutable `isEntitledResult`
+    /// to simulate a subscription that was active and then lapsed.
+    func testRefreshSupporterStatusReflectsLapseAfterPriorActiveEntitlement() async {
+        let purchaseManager = MockPurchaseManager(isEntitledResult: true)
+        let store = TipJarStore(purchaseManager: purchaseManager)
+        await store.refreshSupporterStatus()
+        XCTAssertEqual(store.supporterState, .active)
+
+        purchaseManager.isEntitledResult = false
+        await store.refreshSupporterStatus()
+
+        XCTAssertEqual(store.supporterState, .idle)
+    }
 }

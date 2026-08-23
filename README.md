@@ -1870,19 +1870,23 @@ let timeline = await WidgetTimelineTesting.collectTimeline(from: provider, in: c
 XCTAssertEqual(timeline.entries.count, 3)
 ```
 
-**Scope note**, matching this kit's existing honesty pattern
-(`SnapshotTesting`'s and `LocalizationCompletenessChecking`'s scope notes):
-QuoteBox has no widget extension target. A real one was evaluated and
-deferred — it would need a new XcodeGen `app-extension` target, a
-widgetkit-extension `Info.plist`, and an App Group entitlement to share
-data with the host app, a materially bigger lift than any other module in
-this kit for a demo app whose job is exercising kit modules, not shipping a
-widget feature. Kit-level only as a result, but not thinly so:
-`QuoteBoxTests/WidgetTimelineTestingTests.swift` drives a dummy provider
-whose data source is real — it reads from the same `CoreDataFavoritesStore`
-fixture `CoreDataFavoritesStoreTests.swift` already uses, so timeline
-entries reflect real (test) favorite-quote data even though nothing renders
-them as widget UI.
+QuoteBox now ships a real widget extension (`QuoteBoxWidget/`), a
+`StaticConfiguration` widget showing the most recently viewed quote, shared
+from the host app via an App Group (`group.com.quotebox.qa`) `UserDefaults`
+suite — `QuoteStore.fetchNewQuote()` writes to it through `SharedQuoteWriting`
+(`QuoteBox/Persistence/SharedQuoteStore.swift`; kept out of the kit since
+`UserDefaultsStoring` deliberately only covers int/bool). The widget's actual
+timeline logic lives in `QuoteWidgetCore`, conforming to this kit's
+`TimelineProviding` with `Context = Void` rather than to WidgetKit's
+`TimelineProvider` directly — the same "can't construct `TimelineProviderContext`"
+problem this module's doc comment describes, worked around by keeping the
+testable logic in a separate type from the thin `QuoteWidgetProvider` adapter
+that WidgetKit's `StaticConfiguration` actually holds.
+`QuoteBoxTests/QuoteWidgetCoreTests.swift` drives that real provider directly
+(seeding/clearing the shared suite), and
+`QuoteBoxTests/WidgetTimelineTestingTests.swift`'s earlier dummy-provider
+test — real `CoreDataFavoritesStore` data, no widget UI — is left in place
+alongside it.
 
 ### `HomeKitAuthorization` (Swift Package product)
 

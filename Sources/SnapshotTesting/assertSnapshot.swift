@@ -2,7 +2,8 @@
 import SwiftUI
 import XCTest
 
-/// Renders `view` via `ImageRenderer` and compares it against a reference PNG
+/// Renders `view` (hosted in a real, offscreen `UIWindow` - see
+/// `renderToPNGData` below for why) and compares it against a reference PNG
 /// checked into the repo, stored alongside the calling test file under
 /// `__Snapshots__/<TestFileName>/<testName>.<name>.png`. Rendered at a fixed
 /// `size` and scale rather than the device's actual screen dimensions, so one
@@ -48,10 +49,7 @@ public func assertSnapshot(
         content = AnyView(content.dynamicTypeSize(dynamicTypeSize))
     }
 
-    let renderer = ImageRenderer(content: content.frame(width: size.width, height: size.height))
-    renderer.scale = 2
-
-    guard let renderedData = renderer.uiImage?.pngData() else {
+    guard let renderedData = renderToPNGData(content, size: size) else {
         XCTFail("Failed to render \"\(name)\" to an image", file: file, line: line)
         return
     }
@@ -88,6 +86,46 @@ public func assertSnapshot(
         file: file,
         line: line
     )
+}
+
+/// `ImageRenderer`'s synchronous capture (the original implementation here)
+/// works for a plain declarative view tree like `QuoteContentView`, but
+/// doesn't wait for `List`/`ScrollView`/`NavigationStack`/`TabView` - all
+/// UIKit-backed under the hood - to finish laying out their children:
+/// captures came back either fully blank (a bare `ScrollView`) or, for a
+/// `List`, indistinguishable between meaningfully different states. Hosting
+/// the view in a real, key `UIWindow` and forcing a layout pass before
+/// rasterizing via `drawHierarchy` (rather than `ImageRenderer.uiImage`)
+/// gives those UIKit-backed containers the live-window context they need to
+/// actually lay out - a `RunLoop` delay alone, tried first, had zero effect,
+/// confirmed byte-identical with or without it.
+@available(iOS 16.0, *)
+@MainActor
+private func renderToPNGData(_ content: AnyView, size: CGSize) -> Data? {
+    let hostingController = UIHostingController(rootView: content.frame(width: size.width, height: size.height))
+    hostingController.view.frame = CGRect(origin: .zero, size: size)
+    hostingController.view.backgroundColor = .white
+
+    let window = UIWindow(frame: CGRect(origin: .zero, size: size))
+    window.rootViewController = hostingController
+    window.isHidden = false
+    window.makeKeyAndVisible()
+    hostingController.view.setNeedsLayout()
+    hostingController.view.layoutIfNeeded()
+
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 2
+    format.opaque = true
+    let renderer = UIGraphicsImageRenderer(size: size, format: format)
+    let image = renderer.image { _ in
+        hostingController.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+    }
+
+    // Tear down so this window/controller doesn't linger across tests.
+    window.rootViewController = nil
+    window.isHidden = true
+
+    return image.pngData()
 }
 
 private func snapshotFileURL(for file: StaticString, testName: String, named name: String) -> URL {
