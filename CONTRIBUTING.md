@@ -189,6 +189,26 @@ loophole the way Clipboard's same-source read has. No CI-level simulator
 pre-authorization step exists in this repo to work around that, so this
 stays a `MockReminderScheduler`-only path in `QuoteStoreTests`/`QuoteBoxUITests`.
 
+Two ways to close that other half were investigated and both rejected, so
+this is a permanent, accepted gap rather than an open TODO:
+`xcrun simctl privacy grant <service> <bundle-id>` can pre-grant several
+permissions before a UI test runs (location, contacts, photos, calendar,
+reminders, microphone, motion, siri), but as of this writing has no
+`notifications` service to grant - confirmed against `simctl privacy help`'s
+service list and a still-open Apple Radar tracking the same gap (FB7566382,
+"Missing services in simctl privacy"), so there's no pre-authorization step
+to add here even in principle. `addUIInterruptionMonitor` - XCUITest's
+documented mechanism for dismissing exactly this class of system alert, and
+already used in this repo for Clipboard's paste-permission alert - would
+technically work, but doing so here would mean writing a UI test that
+depends on reliably dismissing a real system permission prompt: precisely
+the class of fragile, OS-version-dependent hack `ReminderScheduling`'s own
+doc comment says this kit's protocol+real+fake shape exists to avoid, and
+the same reasoning `LocationAuthorization`'s `.notDetermined` avoidance and
+`DeepLinkTesting`'s avoidance of the native "Open in App" confirmation
+already apply elsewhere in this kit. Consistency with that principle across
+the whole kit outweighs closing this one gap.
+
 **`SnapshotTesting`-based tests only run on one device in CI** (`iPhone 16`,
 via `reusable-test.yml`'s `snapshot_reference_device`/
 `snapshot_testing_identifiers` inputs, wired in `ci.yml`), not the full
