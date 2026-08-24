@@ -165,7 +165,13 @@ jobs:
           " | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Enforce coverage floor
-        if: always() && inputs.enable_coverage && inputs.coverage_baseline_file != ''
+        # Only gate the device actually running the full test suite - when
+        # snapshot_reference_device skips some tests on every other device,
+        # those devices' own coverage numbers are expected to be lower by
+        # design, not a regression to fail on.
+        if: >-
+          always() && inputs.enable_coverage && inputs.coverage_baseline_file != '' &&
+          (inputs.snapshot_reference_device == '' || matrix.destination_name == inputs.snapshot_reference_device)
         run: |
           pct=$(python3 -c "import json; print(json.load(open('coverage.json'))['lineCoverage']*100)")
           baseline=$(cat "${{ inputs.coverage_baseline_file }}" 2>/dev/null || echo 0)
