@@ -45,6 +45,16 @@ public func assertSnapshot(
     if let locale {
         content = AnyView(content.environment(\.locale, locale))
     }
+    // QuoteBox is iPhone-only (project.yml's TARGETED_DEVICE_FAMILY: "1"), so
+    // the real app always runs in iOS's iPhone-compatibility mode even on an
+    // iPad simulator - compact horizontal size class throughout. A raw
+    // UIWindow (below) doesn't inherit that compatibility-mode emulation the
+    // way a real launched app process does, so on an iPad runner it renders
+    // NavigationStack/List content in native regular-width layout instead,
+    // producing different bytes than the same test on iPhone (confirmed by
+    // CI). Pinning compact here makes the snapshot match what every device
+    // actually ships, not just what happens to be the CI runner's default.
+    content = AnyView(content.environment(\.horizontalSizeClass, .compact))
     // Always pin explicitly, even in the nil (default) case - hosting in a
     // real UIWindow (below) means the render otherwise inherits whatever
     // Dynamic Type default the simulator/device happens to have, which
