@@ -5,10 +5,15 @@ import XCTest
 /// Renders `view` (hosted in a real, offscreen `UIWindow` - see
 /// `renderToPNGData` below for why) and compares it against a reference PNG
 /// checked into the repo, stored alongside the calling test file under
-/// `__Snapshots__/<TestFileName>/<testName>.<name>.png`. Rendered at a fixed
-/// `size` and scale rather than the device's actual screen dimensions, so one
-/// reference image stays valid across an entire CI device matrix instead of
-/// needing a baseline per simulator.
+/// `__Snapshots__/<TestFileName>/<testName>.<name>[@2x-phone|@2x-pad].png`.
+/// Rendered at a fixed `size` and output scale rather than the device's
+/// actual screen dimensions - but the host simulator's *native* display scale
+/// still affects text hinting below that layer (see `deviceSuffix()` below),
+/// so the reference path picks up a suffix on anything other than a @3x-phone
+/// simulator (the device this kit's own reference images were recorded
+/// against). One unsuffixed reference set covers every @3x-phone simulator;
+/// @2x devices need their own, split further by idiom since even two @2x
+/// devices don't reliably match each other byte-for-byte.
 ///
 /// `locale` and `dynamicTypeSize` default to `nil`, leaving every existing call
 /// site unaffected - pass one to snapshot the same view under a specific locale
@@ -144,6 +149,24 @@ private func renderToPNGData(_ content: AnyView, size: CGSize) -> Data? {
     return image.pngData()
 }
 
+/// Existing references were all recorded on iPhone 16 (@3x native, phone
+/// idiom) - that combination keeps the unsuffixed filename so every
+/// already-committed reference stays valid without renaming. @2x-native
+/// devices need their own reference: confirmed by directly comparing real
+/// recordings that iPhone SE and iPad - both @2x native - don't even match
+/// *each other* byte-for-byte (22114 vs 22087 bytes for the same
+/// QuoteContentView content), on top of neither matching the iPhone 16
+/// reference (see this file's own doc comment on native-scale-dependent text
+/// hinting). `userInterfaceIdiom` distinguishes the two @2x devices from each
+/// other without hardcoding a specific device name/identifier that could
+/// change if the CI device matrix ever does.
+private func deviceSuffix() -> String {
+    let scale = Int(UIScreen.main.scale.rounded())
+    guard scale < 3 else { return "" }
+    let idiom = UIDevice.current.userInterfaceIdiom == .pad ? "pad" : "phone"
+    return "@\(scale)x-\(idiom)"
+}
+
 private func snapshotFileURL(for file: StaticString, testName: String, named name: String) -> URL {
     let testFileURL = URL(fileURLWithPath: "\(file)")
     let testFileName = testFileURL.deletingPathExtension().lastPathComponent
@@ -151,6 +174,6 @@ private func snapshotFileURL(for file: StaticString, testName: String, named nam
         .deletingLastPathComponent()
         .appendingPathComponent("__Snapshots__")
         .appendingPathComponent(testFileName)
-        .appendingPathComponent("\(testName).\(name).png")
+        .appendingPathComponent("\(testName).\(name)\(deviceSuffix()).png")
 }
 #endif
