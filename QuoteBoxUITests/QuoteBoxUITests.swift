@@ -108,6 +108,44 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    /// Same shape and reasoning as testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration,
+    /// for the "Become a Supporter" subscription product instead of the one-time
+    /// tip: `--real-purchases` drives an actual `Product.purchase()` call against
+    /// the local StoreKit configuration, and this stops short of the system
+    /// purchase-confirmation sheet for the same reason (owned by a process outside
+    /// the app's own accessibility tree).
+    ///
+    /// Unlike the Tip Jar's `state`, `supporterState` is re-checked for real
+    /// entitlement on every launch (QuoteView's `.task` calls
+    /// `refreshSupporterStatus()`), so a subscription already active from a
+    /// prior run against the same local StoreKit test session can mean
+    /// `supporter.thankYou` is already showing before this test taps anything -
+    /// that still proves the product resolved against the wired configuration,
+    /// so it's treated as success rather than skipped.
+    func testSupporterSubscriptionResolvesAgainstWiredStoreKitConfiguration() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-purchases"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        XCTAssertTrue(waitUntil(timeout: 5) {
+            app.element("supporter.button").exists || app.element("supporter.thankYou").exists
+        })
+
+        if app.element("supporter.button").exists {
+            app.element("supporter.button").tap()
+
+            // Same .exists-before-.isEnabled ordering as the Tip Jar test above -
+            // once state moves to .failed, QuoteView renders supporter.unavailable
+            // instead of the button, and querying .isEnabled on a gone element
+            // throws rather than returning false.
+            XCTAssertTrue(waitUntil(timeout: 5) {
+                let button = app.element("supporter.button")
+                return app.element("supporter.thankYou").exists || (button.exists && !button.isEnabled)
+            })
+        }
+        XCTAssertFalse(app.element("supporter.unavailable").exists)
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
     /// The Debug tab only exists in Debug builds (`#if DEBUG` in `RootView`), which
     /// is what every scheme in `project.yml` builds with by default — including the
     /// one CI's `xcodebuild test` runs against — so it's expected to be present here.

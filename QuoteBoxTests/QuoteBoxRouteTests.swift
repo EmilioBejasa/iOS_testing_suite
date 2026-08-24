@@ -32,4 +32,16 @@ final class QuoteBoxRouteTests: XCTestCase {
 
         XCTAssertNil(DeepLinkSource.url(from: arguments))
     }
+
+    func testUniversalLinkSourceParsesLaunchArgument() {
+        let arguments = ["QuoteBox", "--mock-success", "--universal-link", "https://quotebox.qa/favorites"]
+
+        XCTAssertEqual(UniversalLinkSource.url(from: arguments), URL(string: "https://quotebox.qa/favorites"))
+    }
+
+    func testUniversalLinkSourceReturnsNilWithoutTheArgument() {
+        let arguments = ["QuoteBox", "--mock-success"]
+
+        XCTAssertNil(UniversalLinkSource.url(from: arguments))
+    }
 }
