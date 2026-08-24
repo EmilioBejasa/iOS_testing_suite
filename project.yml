@@ -100,6 +100,16 @@ targets:
       # targets sidesteps that entirely - confirmed necessary after CI's
       # linker reported "symbol(s) not found" for QuoteBoxWidget.QuoteWidgetCore.
       - path: QuoteBoxWidget/QuoteWidgetCore.swift
+      # Same reasoning, for QuoteWidgetView (a plain SwiftUI view - snapshot-
+      # testable the same way QuoteContentView already is) and QuoteWidgetProvider
+      # (needed because QuoteWidgetView.swift's QuoteBoxWidget: Widget references
+      # it in the same file - not because QuoteWidgetProvider's own Context-typed
+      # methods are testable; TimelineProviderContext has no public initializer,
+      # same limitation QuoteWidgetCore's own doc comment already documents).
+      # Deliberately does NOT include QuoteBoxWidgetBundle.swift - its `@main`
+      # attribute has no place in a unit-test bundle target.
+      - path: QuoteBoxWidget/QuoteWidgetView.swift
+      - path: QuoteBoxWidget/QuoteWidgetProvider.swift
     dependencies:
       - target: QuoteBox
         embed: false
