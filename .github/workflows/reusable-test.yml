@@ -31,6 +31,23 @@ on:
         required: false
         type: string
         default: ""
+      snapshot_reference_device:
+        description: >-
+          The one device name (matching an entry in `devices`) whose native
+          display scale/text rendering `snapshot_testing_identifiers`'
+          reference images were recorded against. Those identifiers are
+          skipped on every other device in the matrix. Empty (default)
+          applies no such exclusion.
+        required: false
+        type: string
+        default: ""
+      snapshot_testing_identifiers:
+        description: >-
+          Space-separated test identifiers (pixel-comparison snapshot tests)
+          to skip on every device except `snapshot_reference_device`.
+        required: false
+        type: string
+        default: ""
       coverage_baseline_file:
         description: Path to a file containing the minimum acceptable line-coverage percentage. Skipped when empty.
         required: false
@@ -67,12 +84,19 @@ jobs:
           SCHEME: ${{ inputs.scheme }}
           DEVICE_NAME: ${{ matrix.destination_name }}
           SKIP_TESTING: ${{ inputs.skip_testing }}
+          SNAPSHOT_REFERENCE_DEVICE: ${{ inputs.snapshot_reference_device }}
+          SNAPSHOT_TESTING_IDENTIFIERS: ${{ inputs.snapshot_testing_identifiers }}
           ENABLE_COVERAGE: ${{ inputs.enable_coverage }}
         run: |
           SKIP_ARGS=()
           for id in $SKIP_TESTING; do
             SKIP_ARGS+=("-skip-testing:$id")
           done
+          if [ -n "$SNAPSHOT_REFERENCE_DEVICE" ] && [ "$DEVICE_NAME" != "$SNAPSHOT_REFERENCE_DEVICE" ]; then
+            for id in $SNAPSHOT_TESTING_IDENTIFIERS; do
+              SKIP_ARGS+=("-skip-testing:$id")
+            done
+          fi
 
           COVERAGE_FLAG="NO"
           if [ "$ENABLE_COVERAGE" = "true" ]; then

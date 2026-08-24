@@ -189,6 +189,22 @@ loophole the way Clipboard's same-source read has. No CI-level simulator
 pre-authorization step exists in this repo to work around that, so this
 stays a `MockReminderScheduler`-only path in `QuoteStoreTests`/`QuoteBoxUITests`.
 
+**`SnapshotTesting`-based tests only run on one device in CI** (`iPhone 16`,
+via `reusable-test.yml`'s `snapshot_reference_device`/
+`snapshot_testing_identifiers` inputs, wired in `ci.yml`), not the full
+`test` job device matrix. `assertSnapshot`'s `UIWindow`-hosted renderer
+(needed so `List`/`ScrollView`/`NavigationStack`/`TabView` content actually
+lays out - see `SnapshotTesting`'s README entry) ties the render to the host
+simulator's native display scale: iPhone SE and iPad (both @2x native)
+produced different PNG bytes than the iPhone-16-recorded (@3x native)
+reference for the exact same content, confirmed even for `QuoteContentView`
+(no size-class- or Dynamic-Type-sensitive layout at all) after pinning
+`dynamicTypeSize`/`horizontalSizeClass` explicitly made no difference -
+ruling out an environment gap in favor of native-scale-dependent text
+hinting below the layer `assertSnapshot` can reach. If you add a new
+`SnapshotTesting`-based test, expect it to need the same treatment
+(added to `snapshot_testing_identifiers`) until proven otherwise.
+
 ## Pull requests
 
 - Keep one module or fix per PR where practical — the module-per-PR history

@@ -21,6 +21,21 @@ jobs:
       # DummyJSONLiveContractTests hits a real network API; runs on a schedule
       # via live-api-contract.yml instead.
       skip_testing: "QuoteBoxTests/DummyJSONLiveContractTests"
+      # assertSnapshot's UIWindow-hosted renderer (needed for List/ScrollView/
+      # NavigationStack/TabView content - see SnapshotTesting's README entry)
+      # produces different PNG bytes on iPhone SE/iPad than on iPhone 16 for
+      # the exact same view/content, confirmed by CI: neither dynamicTypeSize
+      # nor horizontalSizeClass pinning changed it, and the mismatch ratio is
+      # consistent even for QuoteContentView (no size-class-sensitive layout
+      # at all) - pointing at native display-scale-dependent text
+      # hinting/anti-aliasing below the SwiftUI/UIKit layer this kit's
+      # environment pinning can reach, not a fixable environment gap. These
+      # tests run only on the device their references were recorded against.
+      snapshot_reference_device: "iPhone 16"
+      snapshot_testing_identifiers: >-
+        QuoteBoxTests/QuoteViewSnapshotTests
+        QuoteBoxTests/FavoritesViewSnapshotTests
+        QuoteBoxTests/RootViewSnapshotTests
       # Originally captured at 91.6% (iPhone 16); lowered to 90.5% when the
       # QuoteBoxWidget extension landed - its thin TimelineProvider adapter
       # and SwiftUI view are genuinely impractical to line-cover the way

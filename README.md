@@ -635,6 +635,23 @@ contains any of the previously-unsupported container types.
 `FavoritesViewSnapshotTests.swift`, and `RootViewSnapshotTests.swift` now
 snapshot those three views directly.
 
+**Scope note**: the new renderer traded one limitation for a smaller one.
+Hosting in a real `UIWindow` ties the render to the host simulator's native
+display scale, and text hinting/anti-aliasing genuinely differs at that
+layer between devices with different native scales (iPhone 16 is @3x
+native; iPhone SE and iPad are @2x) — confirmed by CI even for
+`QuoteContentView`, which has no size-class- or Dynamic-Type-sensitive
+layout at all, ruling out an environment-pinning gap. `assertSnapshot`
+already pins `colorScheme`, `dynamicTypeSize` (defaulting to `.large`), and
+`horizontalSizeClass` (`.compact`, matching QuoteBox's iPhone-only
+`TARGETED_DEVICE_FAMILY`) explicitly so content and layout stay
+deterministic — but native-scale-dependent rendering happens below that
+layer. `ci.yml`'s `test` job runs every `SnapshotTesting`-based test only on
+the device its references were recorded against (`iPhone 16`, via
+`reusable-test.yml`'s `snapshot_reference_device`/
+`snapshot_testing_identifiers` inputs) rather than on the full device
+matrix.
+
 ### `DeepLinkTesting` (Swift Package product)
 
 `DeepLinkSource.url(from:)` looks for `--deep-link <url>` in launch arguments.
