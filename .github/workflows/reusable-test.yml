@@ -109,10 +109,15 @@ jobs:
           # regression still fails fast instead of being silently retried.
           #
           # This pattern is tuned to QuoteBox's own known flakes, not a generic
-          # baseline - notably the `tipJar\.button` snapshot-mismatch signature
-          # below is specific to QuoteBox's tip jar UI. A repo calling this
-          # reusable workflow should extend or replace KNOWN_FLAKE_PATTERN with
-          # its own known flakes rather than assume this list applies to it.
+          # baseline - notably the `tipJar\.button`/`supporter\.button` "Failed
+          # to get matching snapshot" signature below is specific to QuoteBox's
+          # real-StoreKit-purchase UI tests: both tap a button whose accessibility
+          # element can transiently fail to resolve on iPad's accessibility tree
+          # (same root cause, same failure shape, confirmed independently for
+          # each button - not a generic "any element not found" catch-all, which
+          # would also swallow a real regression). A repo calling this reusable
+          # workflow should extend or replace KNOWN_FLAKE_PATTERN with its own
+          # known flakes rather than assume this list applies to it.
           #
           # testCollectsRealTransactionUpdateAfterPurchase's two failure modes
           # (Transaction.updates never posting within the timeout, or the
@@ -121,7 +126,7 @@ jobs:
           # that one test's known signatures rather than "any failure in
           # AsyncSequenceCollectingTests", so a real regression in
           # AsyncSequenceCollecting.collect() itself still fails fast.
-          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*tipJar\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)'
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*(tipJar|supporter)\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)'
 
           attempt=1
           max_attempts=3
