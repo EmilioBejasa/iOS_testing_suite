@@ -36,6 +36,7 @@ jobs:
         QuoteBoxTests/QuoteViewSnapshotTests
         QuoteBoxTests/FavoritesViewSnapshotTests
         QuoteBoxTests/RootViewSnapshotTests
+        QuoteBoxTests/QuoteWidgetViewSnapshotTests
       # Originally captured at 91.6% (iPhone 16); lowered to 90.5% when the
       # QuoteBoxWidget extension landed - its thin TimelineProvider adapter
       # and SwiftUI view are genuinely impractical to line-cover the way
