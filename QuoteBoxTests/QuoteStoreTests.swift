@@ -145,7 +145,12 @@ final class QuoteStoreTests: XCTestCase {
 
         store.toggleFavoriteForCurrentQuote()
 
-        XCTAssertEqual(logger.loggedEvents, [LoggedEvent(event: "quote_favorited", parameters: ["quoteID": "1"])])
+        // fetchNewQuote() above already logged its own "new_quote_fetched"
+        // event (see testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess), so
+        // this filters for the event under test rather than asserting the
+        // full log, keeping this test's intent independent of that one.
+        let favoritedEvents = logger.loggedEvents.filter { $0.event == "quote_favorited" }
+        XCTAssertEqual(favoritedEvents, [LoggedEvent(event: "quote_favorited", parameters: ["quoteID": "1"])])
     }
 
     func testToggleFavoriteDoesNotLogAnalyticsEventOnUnfavorite() async {
@@ -161,7 +166,9 @@ final class QuoteStoreTests: XCTestCase {
 
         store.toggleFavoriteForCurrentQuote()
 
-        XCTAssertEqual(logger.loggedEvents.count, 1)
+        // Same filtering as above - only "quote_favorited" is under test here.
+        let favoritedEvents = logger.loggedEvents.filter { $0.event == "quote_favorited" }
+        XCTAssertEqual(favoritedEvents.count, 1)
     }
 
     func testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess() async {

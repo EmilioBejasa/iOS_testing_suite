@@ -1,4 +1,5 @@
 import XCTest
+import AsyncSleeping
 import PurchaseSupport
 import SnapshotTesting
 @testable import QuoteBox
@@ -98,15 +99,16 @@ final class QuoteViewSnapshotTests: XCTestCase {
     }
 
     /// Same pre-fetch technique as testQuoteViewLoadedState, for the `.error`
-    /// branch of QuoteView's content switch instead of `.loaded`. Uses
-    /// `.decodingFailed` rather than `.requestFailed`: the latter is now
-    /// transient and retries with backoff (see `QuoteStoreTests`), which
-    /// would make this snapshot wait on real delays since no `AsyncSleeping`
-    /// mock is wired in here.
+    /// branch of QuoteView's content switch instead of `.loaded`. Still uses
+    /// `.requestFailed` (matching the existing "error" reference image's
+    /// text) rather than switching error types - `.requestFailed` is now
+    /// transient and retries with backoff (see `QuoteStoreTests`), so a
+    /// `MockSleeper` keeps that retry instant instead of racing real delays.
     func testQuoteViewErrorState() async {
         let store = QuoteStore(
-            apiClient: MockQuoteAPIClient(mode: .failure(.decodingFailed)),
-            favoritesStore: InMemoryFavoritesStore()
+            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+            favoritesStore: InMemoryFavoritesStore(),
+            sleeper: MockSleeper()
         )
         await store.fetchNewQuote()
         let tipJarStore = TipJarStore(purchaseManager: MockPurchaseManager())
