@@ -18,6 +18,8 @@ struct RootView: View {
     @Binding private var route: QuoteBoxRoute?
     private let launchCount: Int
     private let didRequestReviewThisLaunch: Bool
+    private let appVersionString: String
+    private let didStartDiagnosticReportingThisLaunch: Bool
     private let clipboardRoundTripResult: String?
     private let notificationsCancelResult: String?
 
@@ -33,12 +35,16 @@ struct RootView: View {
         tipJarStore: TipJarStore,
         launchCount: Int,
         didRequestReviewThisLaunch: Bool,
+        appVersionString: String,
+        didStartDiagnosticReportingThisLaunch: Bool,
         route: Binding<QuoteBoxRoute?>
     ) {
         _store = State(initialValue: store)
         _tipJarStore = State(initialValue: tipJarStore)
         self.launchCount = launchCount
         self.didRequestReviewThisLaunch = didRequestReviewThisLaunch
+        self.appVersionString = appVersionString
+        self.didStartDiagnosticReportingThisLaunch = didStartDiagnosticReportingThisLaunch
         _route = route
         if case .favorites = route.wrappedValue {
             _selectedTab = State(initialValue: .favorites)
@@ -121,7 +127,9 @@ struct RootView: View {
             .launchArguments(),
             DebugSection("App", rows: [
                 DebugRow("Launch Count", "\(launchCount)"),
-                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)")
+                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)"),
+                DebugRow("Version", appVersionString),
+                DebugRow("Diagnostic Reporting Started", "\(didStartDiagnosticReportingThisLaunch)")
             ]),
             DebugSection("Quote", rows: [
                 DebugRow("State", String(describing: store.state)),

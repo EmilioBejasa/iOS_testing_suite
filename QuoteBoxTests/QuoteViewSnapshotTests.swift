@@ -26,6 +26,32 @@ final class QuoteViewSnapshotTests: XCTestCase {
         )
     }
 
+    /// The `"newQuoteLayout"` `FeatureFlagging` variant of the two snapshots
+    /// above, resolved by `QuoteStore.usesNewQuoteLayout` and passed down as
+    /// `QuoteContentView.usesNewLayout` in real use - snapshotted directly
+    /// here the same way the default-layout tests do, without needing a
+    /// `QuoteStore`/`MockFeatureFlags` in between.
+    func testQuoteContentViewLoadedNewLayout() {
+        let quote = Quote(id: 1, quote: "The only way to do great work is to love what you do.", author: "Steve Jobs")
+
+        assertSnapshot(
+            of: QuoteContentView(quote: quote, usesNewLayout: true),
+            size: CGSize(width: 300, height: 150),
+            named: "loaded-newLayout"
+        )
+    }
+
+    func testQuoteContentViewLoadedNewLayoutAccessibility3() {
+        let quote = Quote(id: 1, quote: "The only way to do great work is to love what you do.", author: "Steve Jobs")
+
+        assertSnapshot(
+            of: QuoteContentView(quote: quote, usesNewLayout: true),
+            size: CGSize(width: 300, height: 400),
+            dynamicTypeSize: .accessibility3,
+            named: "loaded-newLayout-accessibility3"
+        )
+    }
+
     /// QuoteView's `.task` (fetchNewQuote() + tipJarStore.refreshSupporterStatus())
     /// runs asynchronously after the view first appears, but this snapshot is
     /// taken synchronously right after construction - before that task gets a
@@ -72,10 +98,14 @@ final class QuoteViewSnapshotTests: XCTestCase {
     }
 
     /// Same pre-fetch technique as testQuoteViewLoadedState, for the `.error`
-    /// branch of QuoteView's content switch instead of `.loaded`.
+    /// branch of QuoteView's content switch instead of `.loaded`. Uses
+    /// `.decodingFailed` rather than `.requestFailed`: the latter is now
+    /// transient and retries with backoff (see `QuoteStoreTests`), which
+    /// would make this snapshot wait on real delays since no `AsyncSleeping`
+    /// mock is wired in here.
     func testQuoteViewErrorState() async {
         let store = QuoteStore(
-            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+            apiClient: MockQuoteAPIClient(mode: .failure(.decodingFailed)),
             favoritesStore: InMemoryFavoritesStore()
         )
         await store.fetchNewQuote()

@@ -92,7 +92,7 @@ struct QuoteView: View {
             ProgressView("Loading...")
                 .accessibilityIdentifier("quote.loading")
         case .loaded(let quote):
-            QuoteContentView(quote: quote)
+            QuoteContentView(quote: quote, usesNewLayout: store.usesNewQuoteLayout)
         case .error(let message):
             Text(message)
                 .multilineTextAlignment(.center)

@@ -1,4 +1,7 @@
 import XCTest
+import AnalyticsLogging
+import AsyncSleeping
+import FeatureFlagging
 import TimeControl
 import LocalNotifications
 @testable import QuoteBox
@@ -17,16 +20,10 @@ final class QuoteStoreTests: XCTestCase {
         XCTAssertEqual(store.state, .loaded(quote))
     }
 
-    func testFetchNewQuoteFailureUpdatesState() async {
-        let store = QuoteStore(
-            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
-            favoritesStore: InMemoryFavoritesStore()
-        )
-
-        await store.fetchNewQuote()
-
-        XCTAssertEqual(store.state, .error(APIError.requestFailed.errorDescription!))
-    }
+    // testFetchNewQuoteFailureUpdatesState (originally .failure(.requestFailed)) is
+    // superseded by testFetchNewQuoteDoesNotRetryNonTransientDecodingFailure and
+    // testFetchNewQuoteExhaustsRetriesAndSurfacesErrorAfterMaxAttempts below, now
+    // that .requestFailed retries with backoff instead of erroring immediately.
 
     func testToggleFavoriteAddsAndRemovesCurrentQuote() async {
         let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
@@ -134,5 +131,113 @@ final class QuoteStoreTests: XCTestCase {
 
         XCTAssertEqual(store.reminderState, .off)
         XCTAssertTrue(scheduler.didCancel)
+    }
+
+    func testToggleFavoriteLogsAnalyticsEventOnFavorite() async {
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let logger = MockAnalyticsLogger()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            analyticsLogger: logger
+        )
+        await store.fetchNewQuote()
+
+        store.toggleFavoriteForCurrentQuote()
+
+        XCTAssertEqual(logger.loggedEvents, [LoggedEvent(event: "quote_favorited", parameters: ["quoteID": "1"])])
+    }
+
+    func testToggleFavoriteDoesNotLogAnalyticsEventOnUnfavorite() async {
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let logger = MockAnalyticsLogger()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            analyticsLogger: logger
+        )
+        await store.fetchNewQuote()
+        store.toggleFavoriteForCurrentQuote()
+
+        store.toggleFavoriteForCurrentQuote()
+
+        XCTAssertEqual(logger.loggedEvents.count, 1)
+    }
+
+    func testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess() async {
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let logger = MockAnalyticsLogger()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            analyticsLogger: logger
+        )
+
+        await store.fetchNewQuote()
+
+        XCTAssertEqual(logger.loggedEvents, [LoggedEvent(event: "new_quote_fetched", parameters: ["quoteID": "1"])])
+    }
+
+    func testUsesNewQuoteLayoutReflectsEnabledFlag() {
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(Quote(id: 1, quote: "Q", author: "A"))),
+            favoritesStore: InMemoryFavoritesStore(),
+            featureFlags: MockFeatureFlags(overrides: ["newQuoteLayout": true])
+        )
+
+        XCTAssertTrue(store.usesNewQuoteLayout)
+    }
+
+    func testUsesNewQuoteLayoutDefaultsFalseWhenFlagUnset() {
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(Quote(id: 1, quote: "Q", author: "A"))),
+            favoritesStore: InMemoryFavoritesStore(),
+            featureFlags: MockFeatureFlags()
+        )
+
+        XCTAssertFalse(store.usesNewQuoteLayout)
+    }
+
+    func testFetchNewQuoteRetriesOnTransientFailureThenSucceeds() async {
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let sleeper = MockSleeper()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .failThenSucceed(failures: 2, then: quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            sleeper: sleeper
+        )
+
+        await store.fetchNewQuote()
+
+        XCTAssertEqual(store.state, .loaded(quote))
+        XCTAssertEqual(sleeper.requestedDurations, QuoteStore.retryDelays)
+    }
+
+    func testFetchNewQuoteExhaustsRetriesAndSurfacesErrorAfterMaxAttempts() async {
+        let sleeper = MockSleeper()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+            favoritesStore: InMemoryFavoritesStore(),
+            sleeper: sleeper
+        )
+
+        await store.fetchNewQuote()
+
+        XCTAssertEqual(store.state, .error(APIError.requestFailed.errorDescription!))
+        XCTAssertEqual(sleeper.requestedDurations.count, QuoteStore.retryDelays.count)
+    }
+
+    func testFetchNewQuoteDoesNotRetryNonTransientDecodingFailure() async {
+        let sleeper = MockSleeper()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .failure(.decodingFailed)),
+            favoritesStore: InMemoryFavoritesStore(),
+            sleeper: sleeper
+        )
+
+        await store.fetchNewQuote()
+
+        XCTAssertEqual(store.state, .error(APIError.decodingFailed.errorDescription!))
+        XCTAssertTrue(sleeper.requestedDurations.isEmpty)
     }
 }

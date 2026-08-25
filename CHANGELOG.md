@@ -4,6 +4,49 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.5.0] - 2026-08-25
+
+Wired 4 previously kit-level-only modules into real `QuoteBox` features —
+continuing the pattern every prior version bump followed, closing the gap
+between "tested in isolation" and "proven through a real app integration":
+
+- `AnalyticsLogging`: `QuoteStore.toggleFavoriteForCurrentQuote()` logs
+  `quote_favorited` on the add-to-favorites branch (the README's own
+  long-standing example event), `fetchNewQuote()` logs `new_quote_fetched` on
+  success, and `TipJarStore.purchaseTip()` logs `tip_purchased` on its
+  `.purchased` branch — the last one real but untestable by a deterministic
+  unit test (`MockPurchaseManager.product(for:)` defaults to `nil`), so it's
+  only exercised via the existing real-StoreKit-session UI test.
+- `FeatureFlagging`: `QuoteStore.usesNewQuoteLayout` resolves the `"newQuoteLayout"`
+  flag (the README's own long-standing example flag) and `QuoteView` passes
+  it into `QuoteContentView`'s new `usesNewLayout` parameter, gating a real
+  alternate card-style layout. New `QuoteBoxTests/QuoteViewSnapshotTests.swift`
+  snapshots cover both layout states (default and `.accessibility3` sizing).
+- `AsyncSleeping`: `QuoteStore.fetchNewQuote()` now retries a transient
+  `APIError.requestFailed` up to twice with backoff (`[.seconds(1), .seconds(2)]`)
+  before surfacing an error — closing the gap the module's own README section
+  used to state outright ("nothing natural to wire it into yet").
+  `MockQuoteAPIClient` gained a `.failThenSucceed(failures:then:)` mode to
+  drive this deterministically in tests.
+- `BundleInfoProviding` + `DiagnosticReporting`: two new Debug tab rows in the
+  existing "App" section ("Version", "Diagnostic Reporting Started"), both
+  safe, non-prompting real reads following the same "pass a resolved value,
+  not the dependency" shape `ReviewRequesting`'s row already uses.
+
+`project.yml` gained the 5 corresponding `dependencies:` entries on the
+`QuoteBox` target (`AnalyticsLogging`, `FeatureFlagging`, `AsyncSleeping`,
+`BundleInfoProviding`, `DiagnosticReporting`) and 3 on `QuoteBoxTests`
+(`AnalyticsLogging`, `FeatureFlagging`, `AsyncSleeping`) — `Package.swift`
+already declared all 5 products, so no SwiftPM manifest change was needed.
+Run `make setup` to regenerate `QuoteBox.xcodeproj` after pulling this.
+
+Also fixed a latent test-speed issue this surfaced: two existing tests
+constructed `QuoteStore`/`QuoteAPIClient` failures via `.requestFailed`
+without injecting a sleeper, which would now retry against the real
+`SystemSleeper` default (3 real seconds) instead of failing immediately —
+switched to `.decodingFailed` (a genuinely non-transient error) where the
+test's actual point was just the error-surfacing path, not retry behavior.
+
 ## [1.4.0] - 2026-08-21
 
 Real `swift test` support: 49 kit-only test files moved out of

@@ -1,5 +1,10 @@
+import AnalyticsLogging
+import AsyncSleeping
+import BundleInfoProviding
 import CoreData
 import DeepLinkTesting
+import DiagnosticReporting
+import FeatureFlagging
 import LocalNotifications
 import NetworkReachabilityMonitoring
 import PurchaseSupport
@@ -15,6 +20,8 @@ struct QuoteBoxApp: App {
     private let tipJarStore: TipJarStore
     private let launchCount: Int
     private let didRequestReviewThisLaunch: Bool
+    private let appVersionString: String
+    private let didStartDiagnosticReportingThisLaunch: Bool
     @State private var route: QuoteBoxRoute?
 
     private struct Dependencies {
@@ -26,6 +33,11 @@ struct QuoteBoxApp: App {
         let reachabilityMonitor: NetworkReachabilityMonitoring
         let reviewRequester: ReviewRequesting
         let sharedQuoteStore: SharedQuoteWriting
+        let bundleInfo: BundleInfoProviding
+        let diagnosticReporter: DiagnosticReporting
+        let analyticsLogger: AnalyticsLogging
+        let featureFlags: FeatureFlagging
+        let sleeper: AsyncSleeping
     }
 
     private static func makeDependencies(for arguments: [String]) -> Dependencies {
@@ -38,7 +50,12 @@ struct QuoteBoxApp: App {
                 userDefaultsStore: InMemoryUserDefaultsStore(),
                 reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
                 reviewRequester: MockReviewRequester(),
-                sharedQuoteStore: NoOpSharedQuoteWriter()
+                sharedQuoteStore: NoOpSharedQuoteWriter(),
+                bundleInfo: MockBundleInfoProvider(),
+                diagnosticReporter: MockDiagnosticReporter(),
+                analyticsLogger: MockAnalyticsLogger(),
+                featureFlags: MockFeatureFlags(),
+                sleeper: MockSleeper()
             )
         } else if arguments.contains("--mock-success") {
             let notificationsDenied = arguments.contains("--mock-notifications-denied")
@@ -52,7 +69,12 @@ struct QuoteBoxApp: App {
                 userDefaultsStore: InMemoryUserDefaultsStore(),
                 reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
                 reviewRequester: MockReviewRequester(),
-                sharedQuoteStore: NoOpSharedQuoteWriter()
+                sharedQuoteStore: NoOpSharedQuoteWriter(),
+                bundleInfo: MockBundleInfoProvider(),
+                diagnosticReporter: MockDiagnosticReporter(),
+                analyticsLogger: MockAnalyticsLogger(),
+                featureFlags: MockFeatureFlags(),
+                sleeper: MockSleeper()
             )
         } else {
             let container = NSPersistentContainer(name: "QuoteBox")
@@ -67,7 +89,12 @@ struct QuoteBoxApp: App {
                 userDefaultsStore: SystemUserDefaultsStore(),
                 reachabilityMonitor: SystemNetworkReachabilityMonitor(),
                 reviewRequester: SystemReviewRequester(),
-                sharedQuoteStore: SystemSharedQuoteStore()
+                sharedQuoteStore: SystemSharedQuoteStore(),
+                bundleInfo: SystemBundleInfoProvider(),
+                diagnosticReporter: SystemDiagnosticReporter(),
+                analyticsLogger: SystemAnalyticsLogger(),
+                featureFlags: SystemFeatureFlags(),
+                sleeper: SystemSleeper()
             )
         }
     }
@@ -81,9 +108,15 @@ struct QuoteBoxApp: App {
             favoritesStore: dependencies.favoritesStore,
             reminderScheduler: dependencies.reminderScheduler,
             reachabilityMonitor: dependencies.reachabilityMonitor,
-            sharedQuoteStore: dependencies.sharedQuoteStore
+            sharedQuoteStore: dependencies.sharedQuoteStore,
+            analyticsLogger: dependencies.analyticsLogger,
+            featureFlags: dependencies.featureFlags,
+            sleeper: dependencies.sleeper
         )
-        tipJarStore = TipJarStore(purchaseManager: dependencies.purchaseManager)
+        tipJarStore = TipJarStore(
+            purchaseManager: dependencies.purchaseManager,
+            analyticsLogger: dependencies.analyticsLogger
+        )
         // Under --mock-*, userDefaultsStore is a fresh InMemoryUserDefaultsStore
         // per launch, so this is always 1 - keeping the Debug tab's Launch Count
         // deterministic for QuoteBoxUITests instead of drifting with however many
@@ -105,6 +138,10 @@ struct QuoteBoxApp: App {
             dependencies.reviewRequester.requestReview()
         }
 
+        appVersionString = "\(dependencies.bundleInfo.appVersion) (\(dependencies.bundleInfo.buildNumber))"
+        dependencies.diagnosticReporter.startReporting()
+        didStartDiagnosticReportingThisLaunch = true
+
         let launchURL = DeepLinkSource.url(from: arguments) ?? UniversalLinkSource.url(from: arguments)
         _route = State(initialValue: launchURL.flatMap(QuoteBoxRoute.init(url:)))
     }
@@ -116,6 +153,8 @@ struct QuoteBoxApp: App {
                 tipJarStore: tipJarStore,
                 launchCount: launchCount,
                 didRequestReviewThisLaunch: didRequestReviewThisLaunch,
+                appVersionString: appVersionString,
+                didStartDiagnosticReportingThisLaunch: didStartDiagnosticReportingThisLaunch,
                 route: $route
             )
                 .onOpenURL { url in

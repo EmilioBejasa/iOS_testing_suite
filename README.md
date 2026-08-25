@@ -243,9 +243,22 @@ let sleeper: AsyncSleeping = MockSleeper()
 try await sleeper.sleep(for: .seconds(30)) // returns immediately in tests
 ```
 
-Kit-level only — no code in `QuoteBox` currently self-delays (no retry
-backoff, debounce, or polling loop), so there's nothing natural to wire it
-into yet. `QuoteBoxTests/AsyncSleepingTests.swift` tests the mock fully, and
+`QuoteBox` wires this into a real retry-with-backoff:
+`QuoteStore.fetchNewQuote()` retries a transient `APIError.requestFailed` up
+to `QuoteStore.retryDelays.count` times (`[.seconds(1), .seconds(2)]`, 3
+attempts total) via the injected `sleeper` before surfacing an error to the
+UI — non-transient errors (`.invalidURL`/`.decodingFailed`) surface
+immediately with no retry, a deliberate scope choice: this kit has no way to
+distinguish a slow network from a truly broken one beyond the status code the
+real `APIError` case already encodes. Real `SystemSleeper` in production,
+`MockSleeper` under `--mock-*` (and in `QuoteBoxTests`) so retry/backoff
+logic runs and asserts at full speed instead of racing real wall-clock time.
+Validated by `QuoteBoxTests/QuoteStoreTests.swift`'s
+`testFetchNewQuoteRetriesOnTransientFailureThenSucceeds`/
+`testFetchNewQuoteExhaustsRetriesAndSurfacesErrorAfterMaxAttempts`/
+`testFetchNewQuoteDoesNotRetryNonTransientDecodingFailure`, using a new
+`MockQuoteAPIClient.Mode.failThenSucceed` case.
+`Tests/AsyncSleepingTests/AsyncSleepingTests.swift` tests the mock fully, and
 also exercises `SystemSleeper` for real with a short duration: unlike the
 permission-gated modules above, there's no system prompt or crash risk here,
 just an actual (brief) wait.
@@ -328,11 +341,22 @@ let flags: FeatureFlagging = MockFeatureFlags(overrides: ["newQuoteLayout": true
 if flags.isEnabled("newQuoteLayout") { /* ... */ }
 ```
 
-Kit-level only — no code in `QuoteBox` is currently flag-gated. Both halves
-are safe to test for real: `UserDefaults` reads/writes never prompt or crash,
-so `QuoteBoxTests/FeatureFlaggingTests.swift` exercises `SystemFeatureFlags`
-against a real (scratch, suite-scoped) `UserDefaults` instance, not just the
-mock.
+`QuoteBox` wires this into a real, snapshot-tested UI variant:
+`QuoteStore.usesNewQuoteLayout` resolves `featureFlags.isEnabled("newQuoteLayout")`
+(real `SystemFeatureFlags` in production, `MockFeatureFlags` under `--mock-*`),
+and `QuoteView` passes that plain `Bool` into `QuoteContentView`'s new
+`usesNewLayout` parameter rather than threading the dependency itself into a
+purely-presentational view — the same "pass the resolved value, not the
+dependency" shape `QuoteBoxApp` already uses for `didRequestReviewThisLaunch`.
+Both states are validated by `QuoteBoxTests/QuoteViewSnapshotTests.swift`'s
+`testQuoteContentViewLoadedNewLayout`/`testQuoteContentViewLoadedNewLayoutAccessibility3`,
+alongside `QuoteStoreTests.swift`'s `testUsesNewQuoteLayoutReflectsEnabledFlag`/
+`testUsesNewQuoteLayoutDefaultsFalseWhenFlagUnset`. Both halves are also safe
+to test for real independent of that wiring: `UserDefaults` reads/writes
+never prompt or crash, so
+`Tests/FeatureFlaggingTests/FeatureFlaggingTests.swift` exercises
+`SystemFeatureFlags` against a real (scratch, suite-scoped) `UserDefaults`
+instance, not just the mock.
 
 ### `AnalyticsLogging` (Swift Package product)
 
@@ -357,10 +381,28 @@ let logger: AnalyticsLogging = MockAnalyticsLogger()
 logger.log(event: "quote_favorited", parameters: ["quoteID": "42"])
 ```
 
-Kit-level only — no analytics events exist in `QuoteBox` yet. Both halves
-safe to test for real: logging never prompts or crashes, so
-`QuoteBoxTests/AnalyticsLoggingTests.swift` exercises `SystemAnalyticsLogger`
-for real too, not just the mock.
+`QuoteBox` wires this into three real triggers, sharing one `analyticsLogger`
+dependency across `QuoteStore` and `TipJarStore` (the same DI shape as their
+existing `dateProvider`/`purchaseManager`-style parameters): `quote_favorited`
+fires from `QuoteStore.toggleFavoriteForCurrentQuote()`'s add-to-favorites
+branch only, `new_quote_fetched` fires on a successful `fetchNewQuote()`, and
+`tip_purchased` fires from `TipJarStore.purchaseTip()`'s `.purchased` branch.
+Real `SystemAnalyticsLogger` in production, `MockAnalyticsLogger` under
+`--mock-*` so a test can assert on `loggedEvents` instead of needing a real
+logging backend. The first two are validated by
+`QuoteBoxTests/QuoteStoreTests.swift`'s
+`testToggleFavoriteLogsAnalyticsEventOnFavorite`/
+`testToggleFavoriteDoesNotLogAnalyticsEventOnUnfavorite`/
+`testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess`; `tip_purchased` doesn't
+get an equivalent deterministic unit test — `MockPurchaseManager.product(for:)`
+defaults to `nil` and `Product` has no public initializer (see
+`TipJarStoreTests`'s own doc comment), so `TipJarStore.state` can never reach
+`.purchased` from a mock — it's real code, exercised only via
+`QuoteBoxUITests.testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`'s
+real StoreKit test session. Both halves are also safe to test for real
+independent of that wiring: logging never prompts or crashes, so
+`Tests/AnalyticsLoggingTests/AnalyticsLoggingTests.swift` exercises
+`SystemAnalyticsLogger` for real too, not just the mock.
 
 ### `TimeControl` (Swift Package product)
 
@@ -1086,11 +1128,22 @@ let reporter: DiagnosticReporting = MockDiagnosticReporter()
 reporter.startReporting()
 ```
 
-Kit-level only - no natural QuoteBox feature - but unlike every other
-kit-level-only module, MetricKit has no prompt and no crash risk from a
-missing entitlement, so `QuoteBoxTests/DiagnosticReportingTests.swift`
-exercises the real reporter's start/stop fully, the same "safe to call for
-real" category `ReviewRequesting` is in.
+`QuoteBox` wires this into a real trigger, following `ReviewRequesting`'s
+exact honesty pattern for an opaque fire-and-forget call:
+`QuoteBoxApp.init()` calls `diagnosticReporter.startReporting()` once per
+launch (real `SystemDiagnosticReporter` in production, `MockDiagnosticReporter`
+under `--mock-*`) and passes a plain `didStartDiagnosticReportingThisLaunch: Bool`
+into `RootView` rather than the reporter itself - this protocol has no status
+read at all, so that honestly reflects only "did our own call fire," the same
+limitation a real app has no way around either. Surfaced as a new
+"Diagnostic Reporting Started" row in the Debug tab's "App" section.
+Validated by the extended
+`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`. Unlike every
+other kit-level-only module, MetricKit also has no prompt and no crash risk
+from a missing entitlement, so
+`Tests/DiagnosticReportingTests/DiagnosticReportingTests.swift` exercises the
+real reporter's start/stop fully too, the same "safe to call for real"
+category `ReviewRequesting` is in.
 
 ### `PushRegistering` (Swift Package product)
 
@@ -1545,11 +1598,20 @@ import BundleInfoProviding
 let bundleInfo: BundleInfoProviding = MockBundleInfoProvider(appVersion: "2.3", buildNumber: "42")
 ```
 
-Kit-level only. Safe to exercise the real provider for real — a plain,
-synchronous Foundation read — but
-`QuoteBoxTests/BundleInfoProvidingTests.swift` only asserts non-empty, not
-exact values, since it reads whatever the test bundle's own Info.plist
-reports rather than a fixed value.
+`QuoteBox` wires this into the Debug tab's existing "App" section as a real
+"Version" row: `QuoteBoxApp.init()` resolves
+`"\(bundleInfo.appVersion) (\(bundleInfo.buildNumber))"` once and passes the
+plain `String` into `RootView` (the same "pass the resolved value, not the
+dependency" shape `ReviewRequesting` uses for `didRequestReviewThisLaunch`) —
+real `SystemBundleInfoProvider` in production, `MockBundleInfoProvider`
+(`"1.0"`/`"1"`) under `--mock-*` for a deterministic UI-test assertion.
+Validated by the extended
+`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`. Safe to
+exercise the real provider for real independent of that wiring too — a
+plain, synchronous Foundation read — but
+`Tests/BundleInfoProvidingTests/BundleInfoProvidingTests.swift` only asserts
+non-empty, not exact values, since it reads whatever the test bundle's own
+Info.plist reports rather than a fixed value.
 
 ### `CellularDataRestrictionChecking` (Swift Package product)
 
