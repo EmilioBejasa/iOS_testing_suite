@@ -42,61 +42,73 @@ struct QuoteBoxApp: App {
 
     private static func makeDependencies(for arguments: [String]) -> Dependencies {
         if arguments.contains("--mock-error") {
-            return Dependencies(
-                apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
-                favoritesStore: InMemoryFavoritesStore(),
-                reminderScheduler: MockReminderScheduler(authorizationResult: .authorized),
-                purchaseManager: MockPurchaseManager(),
-                userDefaultsStore: InMemoryUserDefaultsStore(),
-                reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
-                reviewRequester: MockReviewRequester(),
-                sharedQuoteStore: NoOpSharedQuoteWriter(),
-                bundleInfo: MockBundleInfoProvider(),
-                diagnosticReporter: MockDiagnosticReporter(),
-                analyticsLogger: MockAnalyticsLogger(),
-                featureFlags: MockFeatureFlags(),
-                sleeper: MockSleeper()
-            )
+            return mockErrorDependencies()
         } else if arguments.contains("--mock-success") {
-            let notificationsDenied = arguments.contains("--mock-notifications-denied")
-            let authorizationResult: AuthorizationStatus = notificationsDenied ? .denied : .authorized
-            let usesRealPurchases = arguments.contains("--real-purchases")
-            return Dependencies(
-                apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
-                favoritesStore: InMemoryFavoritesStore(),
-                reminderScheduler: MockReminderScheduler(authorizationResult: authorizationResult),
-                purchaseManager: usesRealPurchases ? StoreKitPurchaseManager() : MockPurchaseManager(),
-                userDefaultsStore: InMemoryUserDefaultsStore(),
-                reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
-                reviewRequester: MockReviewRequester(),
-                sharedQuoteStore: NoOpSharedQuoteWriter(),
-                bundleInfo: MockBundleInfoProvider(),
-                diagnosticReporter: MockDiagnosticReporter(),
-                analyticsLogger: MockAnalyticsLogger(),
-                featureFlags: MockFeatureFlags(),
-                sleeper: MockSleeper()
-            )
+            return mockSuccessDependencies(for: arguments)
         } else {
-            let container = NSPersistentContainer(name: "QuoteBox")
-            container.loadPersistentStores { _, error in
-                precondition(error == nil, "Failed to load Core Data store: \(error!)")
-            }
-            return Dependencies(
-                apiClient: QuoteAPIClient(),
-                favoritesStore: CoreDataFavoritesStore(container: container),
-                reminderScheduler: SystemReminderScheduler(),
-                purchaseManager: StoreKitPurchaseManager(),
-                userDefaultsStore: SystemUserDefaultsStore(),
-                reachabilityMonitor: SystemNetworkReachabilityMonitor(),
-                reviewRequester: SystemReviewRequester(),
-                sharedQuoteStore: SystemSharedQuoteStore(),
-                bundleInfo: SystemBundleInfoProvider(),
-                diagnosticReporter: SystemDiagnosticReporter(),
-                analyticsLogger: SystemAnalyticsLogger(),
-                featureFlags: SystemFeatureFlags(),
-                sleeper: SystemSleeper()
-            )
+            return productionDependencies()
         }
+    }
+
+    private static func mockErrorDependencies() -> Dependencies {
+        Dependencies(
+            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: MockReminderScheduler(authorizationResult: .authorized),
+            purchaseManager: MockPurchaseManager(),
+            userDefaultsStore: InMemoryUserDefaultsStore(),
+            reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
+            reviewRequester: MockReviewRequester(),
+            sharedQuoteStore: NoOpSharedQuoteWriter(),
+            bundleInfo: MockBundleInfoProvider(),
+            diagnosticReporter: MockDiagnosticReporter(),
+            analyticsLogger: MockAnalyticsLogger(),
+            featureFlags: MockFeatureFlags(),
+            sleeper: MockSleeper()
+        )
+    }
+
+    private static func mockSuccessDependencies(for arguments: [String]) -> Dependencies {
+        let notificationsDenied = arguments.contains("--mock-notifications-denied")
+        let authorizationResult: AuthorizationStatus = notificationsDenied ? .denied : .authorized
+        let usesRealPurchases = arguments.contains("--real-purchases")
+        return Dependencies(
+            apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: MockReminderScheduler(authorizationResult: authorizationResult),
+            purchaseManager: usesRealPurchases ? StoreKitPurchaseManager() : MockPurchaseManager(),
+            userDefaultsStore: InMemoryUserDefaultsStore(),
+            reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
+            reviewRequester: MockReviewRequester(),
+            sharedQuoteStore: NoOpSharedQuoteWriter(),
+            bundleInfo: MockBundleInfoProvider(),
+            diagnosticReporter: MockDiagnosticReporter(),
+            analyticsLogger: MockAnalyticsLogger(),
+            featureFlags: MockFeatureFlags(),
+            sleeper: MockSleeper()
+        )
+    }
+
+    private static func productionDependencies() -> Dependencies {
+        let container = NSPersistentContainer(name: "QuoteBox")
+        container.loadPersistentStores { _, error in
+            precondition(error == nil, "Failed to load Core Data store: \(error!)")
+        }
+        return Dependencies(
+            apiClient: QuoteAPIClient(),
+            favoritesStore: CoreDataFavoritesStore(container: container),
+            reminderScheduler: SystemReminderScheduler(),
+            purchaseManager: StoreKitPurchaseManager(),
+            userDefaultsStore: SystemUserDefaultsStore(),
+            reachabilityMonitor: SystemNetworkReachabilityMonitor(),
+            reviewRequester: SystemReviewRequester(),
+            sharedQuoteStore: SystemSharedQuoteStore(),
+            bundleInfo: SystemBundleInfoProvider(),
+            diagnosticReporter: SystemDiagnosticReporter(),
+            analyticsLogger: SystemAnalyticsLogger(),
+            featureFlags: SystemFeatureFlags(),
+            sleeper: SystemSleeper()
+        )
     }
 
     init() {

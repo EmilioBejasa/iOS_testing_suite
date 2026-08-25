@@ -28,6 +28,8 @@ final class RootViewSnapshotTests: XCTestCase {
                 tipJarStore: tipJarStore,
                 launchCount: 1,
                 didRequestReviewThisLaunch: false,
+                appVersionString: "1.0 (1)",
+                didStartDiagnosticReportingThisLaunch: true,
                 route: .constant(nil)
             ),
             size: CGSize(width: 390, height: 700),
@@ -54,6 +56,8 @@ final class RootViewSnapshotTests: XCTestCase {
                 tipJarStore: tipJarStore,
                 launchCount: 1,
                 didRequestReviewThisLaunch: false,
+                appVersionString: "1.0 (1)",
+                didStartDiagnosticReportingThisLaunch: true,
                 route: .constant(nil)
             ),
             size: CGSize(width: 390, height: 700),
@@ -80,6 +84,8 @@ final class RootViewSnapshotTests: XCTestCase {
                 tipJarStore: tipJarStore,
                 launchCount: 1,
                 didRequestReviewThisLaunch: false,
+                appVersionString: "1.0 (1)",
+                didStartDiagnosticReportingThisLaunch: true,
                 route: .constant(.favorites)
             ),
             size: CGSize(width: 390, height: 700),
