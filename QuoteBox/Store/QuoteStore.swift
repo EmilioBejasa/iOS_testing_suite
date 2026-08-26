@@ -1,12 +1,15 @@
 import AnalyticsLogging
 import AsyncSleeping
+import BundleInfoProviding
 import FeatureFlagging
 import Foundation
+import HapticFeedbackProviding
 import Network
 import Observation
 import TimeControl
 import LocalNotifications
 import NetworkReachabilityMonitoring
+import UIKit
 
 @Observable
 @MainActor
@@ -46,6 +49,8 @@ final class QuoteStore {
     private let analyticsLogger: AnalyticsLogging
     private let featureFlags: FeatureFlagging
     private let sleeper: AsyncSleeping
+    private let bundleInfo: BundleInfoProviding
+    private let haptics: HapticFeedbackProviding
     private var lastFetchedAt: Date?
 
     init(
@@ -57,7 +62,9 @@ final class QuoteStore {
         sharedQuoteStore: SharedQuoteWriting = NoOpSharedQuoteWriter(),
         analyticsLogger: AnalyticsLogging = SystemAnalyticsLogger(),
         featureFlags: FeatureFlagging = SystemFeatureFlags(),
-        sleeper: AsyncSleeping = SystemSleeper()
+        sleeper: AsyncSleeping = SystemSleeper(),
+        bundleInfo: BundleInfoProviding = SystemBundleInfoProvider(),
+        haptics: HapticFeedbackProviding = SystemHapticFeedbackProvider()
     ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
@@ -68,6 +75,8 @@ final class QuoteStore {
         self.analyticsLogger = analyticsLogger
         self.featureFlags = featureFlags
         self.sleeper = sleeper
+        self.bundleInfo = bundleInfo
+        self.haptics = haptics
         self.favorites = favoritesStore.loadFavorites()
         self.networkStatus = reachabilityMonitor.currentStatus
         reachabilityMonitor.startMonitoring { [weak self] status in
@@ -86,11 +95,21 @@ final class QuoteStore {
         featureFlags.isEnabled("newQuoteLayout")
     }
 
+    var hapticFeedbackEnabled: Bool {
+        featureFlags.isEnabled("hapticFeedbackEnabled")
+    }
+
     /// Prevents double-tap spam on "New Quote": false for `fetchCooldown` seconds
     /// after a fetch starts.
     var canFetchNewQuote: Bool {
         guard let lastFetchedAt else { return true }
         return dateProvider.now().timeIntervalSince(lastFetchedAt) >= Self.fetchCooldown
+    }
+
+    private func logAnalyticsEvent(_ event: String, parameters: [String: String] = [:]) {
+        var parameters = parameters
+        parameters["appVersion"] = bundleInfo.appVersion
+        analyticsLogger.log(event: event, parameters: parameters)
     }
 
     /// Retries a transient `APIError.requestFailed` up to `retryDelays.count`
@@ -107,7 +126,7 @@ final class QuoteStore {
                 let quote = try await apiClient.fetchRandomQuote()
                 state = .loaded(quote)
                 sharedQuoteStore.save(quote)
-                analyticsLogger.log(event: "new_quote_fetched", parameters: ["quoteID": "\(quote.id)"])
+                logAnalyticsEvent("new_quote_fetched", parameters: ["quoteID": "\(quote.id)"])
                 return
             } catch {
                 let isTransient = (error as? APIError) == .requestFailed
@@ -122,21 +141,26 @@ final class QuoteStore {
         }
     }
 
-    func toggleFavoriteForCurrentQuote() {
+    func toggleFavoriteForCurrentQuote() async {
         guard case .loaded(let quote) = state else { return }
         if let index = favorites.firstIndex(of: quote) {
             favorites.remove(at: index)
+            logAnalyticsEvent("quote_unfavorited", parameters: ["quoteID": "\(quote.id)"])
         } else {
             favorites.append(quote)
-            analyticsLogger.log(event: "quote_favorited", parameters: ["quoteID": "\(quote.id)"])
+            logAnalyticsEvent("quote_favorited", parameters: ["quoteID": "\(quote.id)"])
         }
         favoritesStore.save(favorites)
+        if hapticFeedbackEnabled {
+            await haptics.impact(style: .light)
+        }
     }
 
     func toggleDailyReminder() async {
         if reminderState == .scheduled {
             reminderScheduler.cancelDailyReminder()
             reminderState = .off
+            logAnalyticsEvent("daily_reminder_disabled")
             return
         }
 
@@ -148,6 +172,7 @@ final class QuoteStore {
         do {
             try await reminderScheduler.scheduleDailyReminder(hour: Self.reminderHour, minute: Self.reminderMinute)
             reminderState = .scheduled
+            logAnalyticsEvent("daily_reminder_enabled")
         } catch {
             reminderState = .off
         }

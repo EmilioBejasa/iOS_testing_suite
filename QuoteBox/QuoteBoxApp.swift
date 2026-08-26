@@ -5,6 +5,7 @@ import CoreData
 import DeepLinkTesting
 import DiagnosticReporting
 import FeatureFlagging
+import HapticFeedbackProviding
 import LocalNotifications
 import NetworkReachabilityMonitoring
 import PurchaseSupport
@@ -24,7 +25,7 @@ struct QuoteBoxApp: App {
     private let didStartDiagnosticReportingThisLaunch: Bool
     @State private var route: QuoteBoxRoute?
 
-    private struct Dependencies {
+    struct Dependencies {
         let apiClient: QuoteAPIClientProtocol
         let favoritesStore: FavoritesStoring
         let reminderScheduler: ReminderScheduling
@@ -38,9 +39,10 @@ struct QuoteBoxApp: App {
         let analyticsLogger: AnalyticsLogging
         let featureFlags: FeatureFlagging
         let sleeper: AsyncSleeping
+        let haptics: HapticFeedbackProviding
     }
 
-    private static func makeDependencies(for arguments: [String]) -> Dependencies {
+    static func makeDependencies(for arguments: [String]) -> Dependencies {
         if arguments.contains("--mock-error") {
             return mockErrorDependencies()
         } else if arguments.contains("--mock-success") {
@@ -64,7 +66,8 @@ struct QuoteBoxApp: App {
             diagnosticReporter: MockDiagnosticReporter(),
             analyticsLogger: MockAnalyticsLogger(),
             featureFlags: MockFeatureFlags(),
-            sleeper: MockSleeper()
+            sleeper: MockSleeper(),
+            haptics: MockHapticFeedbackProvider()
         )
     }
 
@@ -85,7 +88,8 @@ struct QuoteBoxApp: App {
             diagnosticReporter: MockDiagnosticReporter(),
             analyticsLogger: MockAnalyticsLogger(),
             featureFlags: MockFeatureFlags(),
-            sleeper: MockSleeper()
+            sleeper: MockSleeper(),
+            haptics: MockHapticFeedbackProvider()
         )
     }
 
@@ -107,7 +111,8 @@ struct QuoteBoxApp: App {
             diagnosticReporter: SystemDiagnosticReporter(),
             analyticsLogger: SystemAnalyticsLogger(),
             featureFlags: SystemFeatureFlags(),
-            sleeper: SystemSleeper()
+            sleeper: SystemSleeper(),
+            haptics: SystemHapticFeedbackProvider()
         )
     }
 
@@ -123,11 +128,14 @@ struct QuoteBoxApp: App {
             sharedQuoteStore: dependencies.sharedQuoteStore,
             analyticsLogger: dependencies.analyticsLogger,
             featureFlags: dependencies.featureFlags,
-            sleeper: dependencies.sleeper
+            sleeper: dependencies.sleeper,
+            bundleInfo: dependencies.bundleInfo,
+            haptics: dependencies.haptics
         )
         tipJarStore = TipJarStore(
             purchaseManager: dependencies.purchaseManager,
-            analyticsLogger: dependencies.analyticsLogger
+            analyticsLogger: dependencies.analyticsLogger,
+            bundleInfo: dependencies.bundleInfo
         )
         // Under --mock-*, userDefaultsStore is a fresh InMemoryUserDefaultsStore
         // per launch, so this is always 1 - keeping the Debug tab's Launch Count

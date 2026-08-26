@@ -341,17 +341,23 @@ let flags: FeatureFlagging = MockFeatureFlags(overrides: ["newQuoteLayout": true
 if flags.isEnabled("newQuoteLayout") { /* ... */ }
 ```
 
-`QuoteBox` wires this into a real, snapshot-tested UI variant:
-`QuoteStore.usesNewQuoteLayout` resolves `featureFlags.isEnabled("newQuoteLayout")`
-(real `SystemFeatureFlags` in production, `MockFeatureFlags` under `--mock-*`),
-and `QuoteView` passes that plain `Bool` into `QuoteContentView`'s new
-`usesNewLayout` parameter rather than threading the dependency itself into a
-purely-presentational view — the same "pass the resolved value, not the
-dependency" shape `QuoteBoxApp` already uses for `didRequestReviewThisLaunch`.
-Both states are validated by `QuoteBoxTests/QuoteViewSnapshotTests.swift`'s
+`QuoteBox` wires this into two independent flags. `"newQuoteLayout"` gates a
+real, snapshot-tested UI variant: `QuoteStore.usesNewQuoteLayout` resolves
+`featureFlags.isEnabled("newQuoteLayout")` (real `SystemFeatureFlags` in
+production, `MockFeatureFlags` under `--mock-*`), and `QuoteView` passes that
+plain `Bool` into `QuoteContentView`'s `usesNewLayout` parameter rather than
+threading the dependency itself into a purely-presentational view — the same
+"pass the resolved value, not the dependency" shape `QuoteBoxApp` already uses
+for `didRequestReviewThisLaunch`. `"hapticFeedbackEnabled"` gates the
+`HapticFeedbackProviding` wiring below via `QuoteStore.hapticFeedbackEnabled`,
+proving `FeatureFlagging` composes with a second, unrelated kit module rather
+than being a one-off. Both flags are validated by
+`QuoteBoxTests/QuoteViewSnapshotTests.swift`'s
 `testQuoteContentViewLoadedNewLayout`/`testQuoteContentViewLoadedNewLayoutAccessibility3`,
 alongside `QuoteStoreTests.swift`'s `testUsesNewQuoteLayoutReflectsEnabledFlag`/
-`testUsesNewQuoteLayoutDefaultsFalseWhenFlagUnset`. Both halves are also safe
+`testUsesNewQuoteLayoutDefaultsFalseWhenFlagUnset`/
+`testHapticFeedbackEnabledReflectsEnabledFlag`/
+`testHapticFeedbackEnabledDefaultsFalseWhenFlagUnset`. Both halves are also safe
 to test for real independent of that wiring: `UserDefaults` reads/writes
 never prompt or crash, so
 `Tests/FeatureFlaggingTests/FeatureFlaggingTests.swift` exercises
@@ -381,25 +387,41 @@ let logger: AnalyticsLogging = MockAnalyticsLogger()
 logger.log(event: "quote_favorited", parameters: ["quoteID": "42"])
 ```
 
-`QuoteBox` wires this into three real triggers, sharing one `analyticsLogger`
+`QuoteBox` wires this into seven real triggers, sharing one `analyticsLogger`
 dependency across `QuoteStore` and `TipJarStore` (the same DI shape as their
-existing `dateProvider`/`purchaseManager`-style parameters): `quote_favorited`
-fires from `QuoteStore.toggleFavoriteForCurrentQuote()`'s add-to-favorites
-branch only, `new_quote_fetched` fires on a successful `fetchNewQuote()`, and
-`tip_purchased` fires from `TipJarStore.purchaseTip()`'s `.purchased` branch.
+existing `dateProvider`/`purchaseManager`-style parameters): `quote_favorited`/
+`quote_unfavorited` fire from both branches of
+`QuoteStore.toggleFavoriteForCurrentQuote()`, `new_quote_fetched` fires on a
+successful `fetchNewQuote()`, `daily_reminder_enabled`/`daily_reminder_disabled`
+fire from `toggleDailyReminder()`'s schedule/cancel branches, and
+`tip_purchased`/`supporter_subscribed` fire from `TipJarStore.purchaseTip()`/
+`purchaseSupporterSubscription()`'s success branches. Every event also carries
+an `"appVersion"` parameter, resolved via a `bundleInfo: BundleInfoProviding`
+dependency both stores now take (see `BundleInfoProviding` below) — a real,
+common use of version info distinct from that module's Debug-tab display use.
 Real `SystemAnalyticsLogger` in production, `MockAnalyticsLogger` under
 `--mock-*` so a test can assert on `loggedEvents` instead of needing a real
-logging backend. The first two are validated by
-`QuoteBoxTests/QuoteStoreTests.swift`'s
+logging backend. All but `tip_purchased` are validated by
+`QuoteBoxTests/QuoteStoreTests.swift`/`TipJarStoreTests.swift`'s
 `testToggleFavoriteLogsAnalyticsEventOnFavorite`/
-`testToggleFavoriteDoesNotLogAnalyticsEventOnUnfavorite`/
-`testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess`; `tip_purchased` doesn't
-get an equivalent deterministic unit test — `MockPurchaseManager.product(for:)`
+`testToggleFavoriteLogsAnalyticsEventOnUnfavorite`/
+`testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess`/
+`testToggleDailyReminderLogsAnalyticsEventWhenEnabled`/
+`testToggleDailyReminderLogsAnalyticsEventWhenDisabled`; `tip_purchased`
+previously had no deterministic unit test — `MockPurchaseManager.product(for:)`
 defaults to `nil` and `Product` has no public initializer (see
-`TipJarStoreTests`'s own doc comment), so `TipJarStore.state` can never reach
-`.purchased` from a mock — it's real code, exercised only via
+`TipJarStoreTests`'s own doc comment), so `TipJarStore.state` could never reach
+`.purchased` from a bare mock. `TipJarStoreRealSessionTests.testPurchaseTipLogsAnalyticsEventOnSuccess`
+closes that gap: it fetches a real `Product` via `SKTestSession` +
+`StoreKitPurchaseManager` first (the same approach
+`PurchaseSupportRealSessionTests` uses at the kit level), then hands it to
+`MockPurchaseManager` so the `.purchased` branch — and its analytics event —
+run deterministically without a full purchase UI flow.
+`supporter_subscribed` is covered the same way `tip_purchased` used to be:
+only exercised for real via
 `QuoteBoxUITests.testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`'s
-real StoreKit test session. Both halves are also safe to test for real
+real StoreKit test session, since `purchaseSupporterSubscription()` shares the
+same real-`Product` requirement. Both halves are also safe to test for real
 independent of that wiring: logging never prompts or crashes, so
 `Tests/AnalyticsLoggingTests/AnalyticsLoggingTests.swift` exercises
 `SystemAnalyticsLogger` for real too, not just the mock.
@@ -1145,6 +1167,16 @@ from a missing entitlement, so
 real reporter's start/stop fully too, the same "safe to call for real"
 category `ReviewRequesting` is in.
 
+`stopReporting()` itself previously went uncalled anywhere in `QuoteBox` -
+`RootView` now closes that gap the same way it already does for
+`ClipboardProviding`/a real notifications round trip: a `--real-diagnostics`
+launch argument constructs a real `SystemDiagnosticReporter()` directly
+(independent of `QuoteBoxApp`'s own mock-or-real `diagnosticReporter`) and
+calls `startReporting()` then `stopReporting()` on it, surfacing `"ok"` as a
+new "Start/Stop Call" row in a "Diagnostics" Debug-tab section -
+`MXMetricManager.remove(subscriber:)` is safe to call on a subscriber that
+same instance just added, so this is a genuine same-process round trip.
+
 ### `PushRegistering` (Swift Package product)
 
 Distinct from `LocalNotifications`'s `ReminderScheduling`, which covers the
@@ -1598,20 +1630,25 @@ import BundleInfoProviding
 let bundleInfo: BundleInfoProviding = MockBundleInfoProvider(appVersion: "2.3", buildNumber: "42")
 ```
 
-`QuoteBox` wires this into the Debug tab's existing "App" section as a real
-"Version" row: `QuoteBoxApp.init()` resolves
+`QuoteBox` wires this into two real uses. First, the Debug tab's existing
+"App" section gets a real "Version" row: `QuoteBoxApp.init()` resolves
 `"\(bundleInfo.appVersion) (\(bundleInfo.buildNumber))"` once and passes the
 plain `String` into `RootView` (the same "pass the resolved value, not the
 dependency" shape `ReviewRequesting` uses for `didRequestReviewThisLaunch`) —
 real `SystemBundleInfoProvider` in production, `MockBundleInfoProvider`
 (`"1.0"`/`"1"`) under `--mock-*` for a deterministic UI-test assertion.
 Validated by the extended
-`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`. Safe to
-exercise the real provider for real independent of that wiring too — a
-plain, synchronous Foundation read — but
-`Tests/BundleInfoProvidingTests/BundleInfoProvidingTests.swift` only asserts
-non-empty, not exact values, since it reads whatever the test bundle's own
-Info.plist reports rather than a fixed value.
+`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`. Second, both
+`QuoteStore` and `TipJarStore` now take a `bundleInfo: BundleInfoProviding`
+dependency of their own and tag every `AnalyticsLogging` event with an
+`"appVersion"` parameter (see `AnalyticsLogging` above) — a real, common use
+of version info distinct from the Debug-tab display use, and closer to the
+"what's new"/support-footer style use this protocol's own doc comment
+describes than a Debug-only row is. Safe to exercise the real provider for
+real independent of either wiring too — a plain, synchronous Foundation read
+— but `Tests/BundleInfoProvidingTests/BundleInfoProvidingTests.swift` only
+asserts non-empty, not exact values, since it reads whatever the test
+bundle's own Info.plist reports rather than a fixed value.
 
 ### `CellularDataRestrictionChecking` (Swift Package product)
 
@@ -1714,9 +1751,20 @@ let haptics: HapticFeedbackProviding = MockHapticFeedbackProvider()
 await haptics.impact(style: .light)
 ```
 
-Kit-level only. Safe to exercise the real provider for real — no crash on
-the Simulator, just a silent no-op
-(`QuoteBoxTests/HapticFeedbackProvidingTests.swift` does).
+`QuoteBox` wires this into `QuoteStore.toggleFavoriteForCurrentQuote()`: both
+the favorite and unfavorite branches fire `await haptics.impact(style: .light)`
+after saving, gated behind `FeatureFlagging`'s new `"hapticFeedbackEnabled"`
+flag (see `FeatureFlagging` above) — real `SystemHapticFeedbackProvider` in
+production, `MockHapticFeedbackProvider` under `--mock-*`. Since
+`impact(style:)` is `async`, the button action in `QuoteView` wraps the call
+in `Task { await ... }`, the same pattern its "New Quote" button and the
+daily-reminder toggle already used. Validated by
+`QuoteBoxTests/QuoteStoreTests.swift`'s
+`testToggleFavoriteFiresHapticFeedbackWhenFlagEnabled`/
+`testToggleFavoriteDoesNotFireHapticFeedbackWhenFlagDisabled`. Safe to
+exercise the real provider for real independent of that wiring too — no
+crash on the Simulator, just a silent no-op
+(`Tests/HapticFeedbackProvidingTests/HapticFeedbackProvidingTests.swift` does).
 
 ### `IdleTimerControlling` (Swift Package product)
 

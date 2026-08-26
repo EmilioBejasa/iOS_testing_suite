@@ -17,7 +17,7 @@ struct QuoteView: View {
 
                     if case .loaded = store.state {
                         Button(store.isCurrentQuoteFavorited ? "Unfavorite" : "Favorite") {
-                            store.toggleFavoriteForCurrentQuote()
+                            Task { await store.toggleFavoriteForCurrentQuote() }
                         }
                         .accessibilityIdentifier("quote.favoriteButton")
                     }

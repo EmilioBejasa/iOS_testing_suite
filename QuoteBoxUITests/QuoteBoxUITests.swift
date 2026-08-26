@@ -287,6 +287,24 @@ final class QuoteBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["ok"].exists)
     }
 
+    /// Proves `SystemDiagnosticReporter` constructs and both
+    /// `startReporting()`/`stopReporting()` run cleanly inside a real host
+    /// app bundle - see the doc comment on `--real-diagnostics` in
+    /// `RootView.swift` for why this is a genuine same-process round trip
+    /// rather than a no-op.
+    func testDebugTabShowsRealDiagnosticsStartStopRoundTrip() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-diagnostics"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Start/Stop Call"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["ok"].exists)
+    }
+
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
     /// `app.element(_:)`) rather than waiting on a single captured `XCUIElement`,
     /// since a snapshot taken before a UI change doesn't reliably live-update.

@@ -4,6 +4,51 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.6.0] - 2026-08-26
+
+Deepened the 5 kit modules [1.5.0] wired into `QuoteBox`, and wired in a 6th —
+continuing that version's pattern of closing gaps between "wired" and
+"actually integrated":
+
+- `AnalyticsLogging`: 4 new events alongside the existing 3 —
+  `quote_unfavorited` (the remove branch of `toggleFavoriteForCurrentQuote()`,
+  previously silent), `daily_reminder_enabled`/`daily_reminder_disabled`
+  (`toggleDailyReminder()`'s schedule/cancel branches), and
+  `supporter_subscribed` (`purchaseSupporterSubscription()`'s success branch).
+  Every event now also carries an `"appVersion"` parameter via a new
+  `bundleInfo: BundleInfoProviding` dependency on both `QuoteStore` and
+  `TipJarStore`.
+- `tip_purchased` finally has deterministic unit coverage: new
+  `TipJarStoreRealSessionTests.testPurchaseTipLogsAnalyticsEventOnSuccess`
+  fetches a real `Product` via `SKTestSession` + `StoreKitPurchaseManager`
+  (`PurchaseSupportRealSessionTests`'s approach) and feeds it to
+  `MockPurchaseManager`, closing the gap `TipJarStore.purchaseTip()`'s doc
+  comment used to document as unreachable from a mock alone.
+- `FeatureFlagging`: a second flag, `"hapticFeedbackEnabled"`, gating the new
+  `HapticFeedbackProviding` wiring below — proves the module composes with a
+  second, unrelated flag rather than being a one-off.
+- `DiagnosticReporting`: `stopReporting()` previously went uncalled anywhere
+  in `QuoteBox`. `RootView` now exercises it for real via a new
+  `--real-diagnostics` launch argument, following the same same-process
+  real-round-trip pattern `--real-clipboard`/`--real-notifications` already
+  use, surfaced as a new "Diagnostics" Debug-tab section.
+- `HapticFeedbackProviding` (6th module wired in): `QuoteStore.toggleFavoriteForCurrentQuote()`
+  fires `.light` impact feedback on both the favorite and unfavorite
+  branches, gated behind `"hapticFeedbackEnabled"`. Since `impact(style:)` is
+  `async`, `toggleFavoriteForCurrentQuote()` is now `async` too — its one
+  call site in `QuoteView` wraps it in `Task { ... }`, the same pattern its
+  "New Quote" button already used.
+- New `QuoteBoxTests/QuoteBoxAppTests.swift` unit-tests the dependency-resolution
+  seam `QuoteBoxApp.makeDependencies(for:)` (`private` until now) exposes —
+  the `appVersionString` formula and `MockDiagnosticReporter.startReportingCallCount`,
+  previously covered only indirectly via `QuoteBoxUITests`.
+
+`project.yml` gained `HapticFeedbackProviding` as a `QuoteBox` target
+dependency, plus `BundleInfoProviding`/`DiagnosticReporting`/`HapticFeedbackProviding`
+on `QuoteBoxTests` (needed once tests started importing them directly, the
+same reasoning [1.5.0] added `AnalyticsLogging`/`FeatureFlagging`/`AsyncSleeping`
+there). Run `make setup` to regenerate `QuoteBox.xcodeproj` after pulling this.
+
 ## [1.5.0] - 2026-08-25
 
 Wired 4 previously kit-level-only modules into real `QuoteBox` features —
