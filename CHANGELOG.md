@@ -49,6 +49,18 @@ on `QuoteBoxTests` (needed once tests started importing them directly, the
 same reasoning [1.5.0] added `AnalyticsLogging`/`FeatureFlagging`/`AsyncSleeping`
 there). Run `make setup` to regenerate `QuoteBox.xcodeproj` after pulling this.
 
+Also: extended `KNOWN_FLAKE_PATTERN` (from [1.1.0]'s targeted CI retry) to
+cover three snapshot tests (`testQuoteContentViewLoadedNewLayoutAccessibility3`,
+`testRootViewQuoteTabLoaded`, `testQuoteViewErrorState`) that intermittently
+fail on phone-class simulators with a several-hundred-byte mismatch against
+the committed reference PNG — confirmed not a stale reference (a fresh local
+re-recording is byte-identical to what's committed), most likely Xcode's
+randomized test order leaving the font-rendering cache in a slightly
+different state test-to-test. Also raised the test job's `timeout-minutes`
+from 30 to 45: a retried attempt plus the coverage-report step didn't
+reliably fit in 30 minutes, and a run was observed passing all tests on
+retry only to have the job killed by the timeout before it could report.
+
 ## [1.5.0] - 2026-08-25
 
 Wired 4 previously kit-level-only modules into real `QuoteBox` features —
