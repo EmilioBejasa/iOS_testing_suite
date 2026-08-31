@@ -21,6 +21,43 @@ make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if miss
 open QuoteBox.xcodeproj
 ```
 
+## How a module works
+
+Every module below follows the same shape — one protocol, a real implementation,
+and a fake one — so understanding it once via a single concrete example
+(`FeatureFlagging`, wired into `QuoteBox` today) tells you how to read all 59
+sections that follow:
+
+```mermaid
+flowchart LR
+    subgraph kit ["FeatureFlagging (Sources/FeatureFlagging/)"]
+        proto["protocol FeatureFlagging\nisEnabled(_ name: String) -> Bool"]
+        sys["SystemFeatureFlags\nreal UserDefaults"]
+        mock["MockFeatureFlags\nin-memory overrides"]
+        sys -- conforms to --> proto
+        mock -- conforms to --> proto
+    end
+
+    subgraph app ["QuoteBox app"]
+        store["QuoteStore\ninit(featureFlags: FeatureFlagging = SystemFeatureFlags())"]
+    end
+
+    subgraph tests ["QuoteBoxTests"]
+        test["QuoteStoreTests\nQuoteStore(featureFlags: MockFeatureFlags(overrides: [...]))"]
+    end
+
+    sys -.->|"production default"| store
+    mock -.->|"--mock-success / --mock-error\nor injected directly in unit tests"| test
+```
+
+The app only ever depends on the **protocol** (`FeatureFlagging`), never on
+`SystemFeatureFlags` or `MockFeatureFlags` by name — that's what makes the swap
+possible. Production code gets the real implementation as an init default;
+tests (unit tests, or the app itself launched with a `--mock-*` argument) pass
+the mock explicitly. Every module section below documents this same
+protocol/real-impl/fake-impl trio, just wrapping a different system API
+(`UserDefaults`, `CLLocationManager`, `HKHealthStore`, `SKPaymentQueue`, ...).
+
 ## What's reusable
 
 <details>
