@@ -126,7 +126,18 @@ jobs:
           # that one test's known signatures rather than "any failure in
           # AsyncSequenceCollectingTests", so a real regression in
           # AsyncSequenceCollecting.collect() itself still fails fast.
-          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*(tipJar|supporter)\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)'
+          #
+          # testQuoteContentViewLoadedNewLayoutAccessibility3/
+          # testRootViewQuoteTabLoaded/testQuoteViewErrorState fail
+          # intermittently on phone-class simulators with a several-hundred-byte
+          # mismatch against the committed reference PNG (confirmed not a stale
+          # reference - a fresh local re-recording is byte-identical to what's
+          # committed), most likely Xcode's randomized test-order leaving the
+          # font/rendering cache in a slightly different state depending on
+          # whatever ran immediately before. Matched narrowly by test name so a
+          # genuine layout regression in QuoteContentView/RootView still fails
+          # fast.
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*(tipJar|supporter)\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)|(testQuoteContentViewLoadedNewLayoutAccessibility3|testRootViewQuoteTabLoaded|testQuoteViewErrorState)\].*doesn.t match the reference image'
 
           attempt=1
           max_attempts=3
