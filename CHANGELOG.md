@@ -4,6 +4,42 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.6.1] - 2026-09-01
+
+One CI-stabilization fix, plus a documented dead end, following up on
+[1.6.0]'s `KNOWN_FLAKE_PATTERN`/timeout work:
+
+- **Tried and reverted**: pinning `randomExecutionOrdering: false` on
+  `QuoteBoxTests`/`QuoteBoxUITests` (testing the theory that Xcode's default
+  randomized test order was the cause of the snapshot byte-drift flakes -
+  [1.6.0]). It made the failure on `testQuoteContentViewLoadedNewLayoutAccessibility3`
+  *worse*: instead of an intermittent flake, the pinned order reproduced the
+  exact same byte mismatch (confirmed via 3 repeat CI attempts landing
+  identical byte counts on both iPhone 16 and iPhone SE) on every single run.
+  Recording a fresh reference in isolation (`record-snapshots.yml`,
+  `-only-testing:` scoped to just this one test) reproduced the *original*
+  committed reference exactly, not the byte pattern the full pinned-order
+  suite produces - confirming the drift really is caused by test-adjacency
+  (whatever specific test now always runs immediately before it in the
+  pinned order) rather than a generic environment/machine difference, but
+  also showing this repo's `record-snapshots.yml` tooling (single-test
+  scoped) can't currently capture that context to fix it properly. Reverted
+  to Xcode's default randomized order, which at least sometimes passes,
+  pending a fix that re-records the whole suite in one pinned-order pass
+  rather than a single isolated test.
+- `QuoteBoxUITests.swift`: the two StoreKit-purchase tests
+  (`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`,
+  `testSupporterSubscriptionResolvesAgainstWiredStoreKitConfiguration`) now
+  wait up to 15s (was 5s) for their terminal state, giving the real
+  `Product.purchase()` StoreKitTest round trip realistic headroom. Documented
+  a known residual limitation: these waits still call `.isEnabled` on a button
+  that can vanish between that call and a preceding `.exists` check (two
+  separate accessibility-tree round trips), which can throw rather than
+  return `false` - the longer timeout helps the common "just slow" case but
+  doesn't eliminate that narrower race; fixing it fully would need either a
+  dedicated "purchasing" accessibility identifier or Objective-C
+  exception-bridging, both left as follow-up.
+
 ## [1.6.0] - 2026-08-26
 
 Deepened the 5 kit modules [1.5.0] wired into `QuoteBox`, and wired in a 6th —

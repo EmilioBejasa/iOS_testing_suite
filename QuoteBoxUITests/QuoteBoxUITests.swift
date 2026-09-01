@@ -100,7 +100,12 @@ final class QuoteBoxUITests: XCTestCase {
         // button leaves the hierarchy entirely (QuoteView renders tipJar.unavailable
         // instead), and querying .isEnabled on an element that no longer exists
         // throws a hard XCUITest snapshot error rather than returning false.
-        XCTAssertTrue(waitUntil(timeout: 5) {
+        // Known residual flake: .exists and .isEnabled are two separate
+        // accessibility-tree round trips, so a transition landing in between
+        // them can still throw despite this ordering - a 15s timeout gives the
+        // real Product.purchase() round trip (the more common cause of a slow
+        // resolve) enough room, but doesn't eliminate that narrower race.
+        XCTAssertTrue(waitUntil(timeout: 15) {
             let button = app.element("tipJar.button")
             return app.element("tipJar.thankYou").exists || (button.exists && !button.isEnabled)
         })
@@ -133,11 +138,9 @@ final class QuoteBoxUITests: XCTestCase {
         if app.element("supporter.button").exists {
             app.element("supporter.button").tap()
 
-            // Same .exists-before-.isEnabled ordering as the Tip Jar test above -
-            // once state moves to .failed, QuoteView renders supporter.unavailable
-            // instead of the button, and querying .isEnabled on a gone element
-            // throws rather than returning false.
-            XCTAssertTrue(waitUntil(timeout: 5) {
+            // Same .exists-before-.isEnabled ordering, and same residual race,
+            // as the Tip Jar test above - see its comment for the caveat.
+            XCTAssertTrue(waitUntil(timeout: 15) {
                 let button = app.element("supporter.button")
                 return app.element("supporter.thankYou").exists || (button.exists && !button.isEnabled)
             })
