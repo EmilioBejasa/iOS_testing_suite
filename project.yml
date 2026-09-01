@@ -186,10 +186,8 @@ schemes:
         QuoteBoxUITests: [test]
     test:
       targets:
-        - name: QuoteBoxTests
-          randomExecutionOrdering: false
-        - name: QuoteBoxUITests
-          randomExecutionOrdering: false
+        - QuoteBoxTests
+        - QuoteBoxUITests
       environmentVariables:
         SNAPSHOT_RECORD: $(SNAPSHOT_RECORD)
     run:

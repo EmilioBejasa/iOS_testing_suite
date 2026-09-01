@@ -6,18 +6,27 @@ depend on it.
 
 ## [1.6.1] - 2026-09-01
 
-Two more CI-stabilization fixes, following up on [1.6.0]'s `KNOWN_FLAKE_PATTERN`/
-timeout work — both target the leading suspected causes directly rather than
-adding another layer of retry:
+One CI-stabilization fix, plus a documented dead end, following up on
+[1.6.0]'s `KNOWN_FLAKE_PATTERN`/timeout work:
 
-- `project.yml`: `QuoteBoxTests`/`QuoteBoxUITests` now set
-  `randomExecutionOrdering: false` in the `QuoteBox` scheme's test action.
-  Xcode randomizes test execution order by default since Xcode 13; the leading
-  theory for the snapshot byte-drift flakes ([1.6.0]) is that whatever test
-  happens to run immediately before `testQuoteContentViewLoadedNewLayoutAccessibility3`/
-  `testRootViewQuoteTabLoaded`/`testQuoteViewErrorState` leaves the
-  font-rendering cache in a slightly different state - pinning a deterministic
-  order tests that theory directly.
+- **Tried and reverted**: pinning `randomExecutionOrdering: false` on
+  `QuoteBoxTests`/`QuoteBoxUITests` (testing the theory that Xcode's default
+  randomized test order was the cause of the snapshot byte-drift flakes -
+  [1.6.0]). It made the failure on `testQuoteContentViewLoadedNewLayoutAccessibility3`
+  *worse*: instead of an intermittent flake, the pinned order reproduced the
+  exact same byte mismatch (confirmed via 3 repeat CI attempts landing
+  identical byte counts on both iPhone 16 and iPhone SE) on every single run.
+  Recording a fresh reference in isolation (`record-snapshots.yml`,
+  `-only-testing:` scoped to just this one test) reproduced the *original*
+  committed reference exactly, not the byte pattern the full pinned-order
+  suite produces - confirming the drift really is caused by test-adjacency
+  (whatever specific test now always runs immediately before it in the
+  pinned order) rather than a generic environment/machine difference, but
+  also showing this repo's `record-snapshots.yml` tooling (single-test
+  scoped) can't currently capture that context to fix it properly. Reverted
+  to Xcode's default randomized order, which at least sometimes passes,
+  pending a fix that re-records the whole suite in one pinned-order pass
+  rather than a single isolated test.
 - `QuoteBoxUITests.swift`: the two StoreKit-purchase tests
   (`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`,
   `testSupporterSubscriptionResolvesAgainstWiredStoreKitConfiguration`) now
