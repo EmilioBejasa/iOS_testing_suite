@@ -1,3 +1,4 @@
+import AccessibilityStateProviding
 import AnalyticsLogging
 import AsyncSleeping
 import BundleInfoProviding
@@ -40,6 +41,7 @@ struct QuoteBoxApp: App {
         let featureFlags: FeatureFlagging
         let sleeper: AsyncSleeping
         let haptics: HapticFeedbackProviding
+        let accessibilityState: AccessibilityStateProviding
     }
 
     static func makeDependencies(for arguments: [String]) -> Dependencies {
@@ -67,7 +69,8 @@ struct QuoteBoxApp: App {
             analyticsLogger: MockAnalyticsLogger(),
             featureFlags: MockFeatureFlags(),
             sleeper: MockSleeper(),
-            haptics: MockHapticFeedbackProvider()
+            haptics: MockHapticFeedbackProvider(),
+            accessibilityState: MockAccessibilityStateProvider()
         )
     }
 
@@ -75,6 +78,7 @@ struct QuoteBoxApp: App {
         let notificationsDenied = arguments.contains("--mock-notifications-denied")
         let authorizationResult: AuthorizationStatus = notificationsDenied ? .denied : .authorized
         let usesRealPurchases = arguments.contains("--real-purchases")
+        let voiceOverRunning = arguments.contains("--mock-voiceover-running")
         return Dependencies(
             apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
             favoritesStore: InMemoryFavoritesStore(),
@@ -89,7 +93,8 @@ struct QuoteBoxApp: App {
             analyticsLogger: MockAnalyticsLogger(),
             featureFlags: MockFeatureFlags(),
             sleeper: MockSleeper(),
-            haptics: MockHapticFeedbackProvider()
+            haptics: MockHapticFeedbackProvider(),
+            accessibilityState: MockAccessibilityStateProvider(voiceOverRunning: voiceOverRunning)
         )
     }
 
@@ -112,7 +117,8 @@ struct QuoteBoxApp: App {
             analyticsLogger: SystemAnalyticsLogger(),
             featureFlags: SystemFeatureFlags(),
             sleeper: SystemSleeper(),
-            haptics: SystemHapticFeedbackProvider()
+            haptics: SystemHapticFeedbackProvider(),
+            accessibilityState: SystemAccessibilityStateProvider()
         )
     }
 
@@ -130,7 +136,8 @@ struct QuoteBoxApp: App {
             featureFlags: dependencies.featureFlags,
             sleeper: dependencies.sleeper,
             bundleInfo: dependencies.bundleInfo,
-            haptics: dependencies.haptics
+            haptics: dependencies.haptics,
+            accessibilityState: dependencies.accessibilityState
         )
         tipJarStore = TipJarStore(
             purchaseManager: dependencies.purchaseManager,

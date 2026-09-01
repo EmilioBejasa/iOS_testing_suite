@@ -4,6 +4,24 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.7.0] - 2026-09-01
+
+Wired a 7th kit module into `QuoteBox`: `AccessibilityStateProviding`.
+`QuoteStore.toggleFavoriteForCurrentQuote()` now suppresses the
+`HapticFeedbackProviding` haptic call whenever `isVoiceOverRunning()` is
+true, even with `"hapticFeedbackEnabled"` on — VoiceOver has its own
+feedback conventions, so a redundant custom impact reads as noise rather
+than help. New `--mock-voiceover-running` launch argument forces
+`MockAccessibilityStateProvider(voiceOverRunning: true)` under
+`--mock-success`. The behavior itself (haptic fires or doesn't) is
+unit-tested directly in `QuoteStoreFeatureFlagTests.swift` since it has no
+observable effect through the accessibility tree; a new `QuoteBoxUITests`
+case proves the launch-argument wiring resolves end-to-end instead.
+
+`project.yml` gained `AccessibilityStateProviding` as a `QuoteBox`/
+`QuoteBoxTests` target dependency, same reasoning prior version bumps
+followed for each newly-wired module.
+
 ## [1.6.1] - 2026-09-01
 
 One CI-stabilization fix, plus a documented dead end, following up on

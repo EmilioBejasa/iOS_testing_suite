@@ -1765,9 +1765,26 @@ let accessibility: AccessibilityStateProviding = MockAccessibilityStateProvider(
 let voiceOverOn = await accessibility.isVoiceOverRunning()
 ```
 
-Kit-level only. Safe to exercise the real provider for real — `UIAccessibility`
-reads never prompt or crash
-(`QuoteBoxTests/AccessibilityStateProvidingTests.swift` does).
+Safe to exercise the real provider for real — `UIAccessibility` reads never
+prompt or crash (`Tests/AccessibilityStateProvidingTests/AccessibilityStateProvidingTests.swift`
+does).
+
+`QuoteBox` wires this into `QuoteStore.toggleFavoriteForCurrentQuote()`
+alongside `HapticFeedbackProviding` below: custom haptic feedback is
+suppressed whenever `isVoiceOverRunning()` is true, even with
+`"hapticFeedbackEnabled"` on — VoiceOver has its own feedback conventions, so
+a redundant custom impact reads as noise rather than help. The `--mock-voiceover-running`
+launch argument forces `MockAccessibilityStateProvider(voiceOverRunning: true)`
+under `--mock-success`. Whether the haptic call actually fires or not isn't
+observable through the accessibility tree, so that behavior is unit-tested
+directly — `QuoteStoreFeatureFlagTests.swift`'s
+`testToggleFavoriteDoesNotFireHapticFeedbackWhenVoiceOverIsRunning`/
+`testToggleFavoriteFiresHapticFeedbackWhenVoiceOverIsNotRunning` inspect
+`MockHapticFeedbackProvider.impactStyles` directly. `QuoteBoxUITests`'
+`testFavoritingWithVoiceOverRunningArgumentDoesNotCrash` instead proves the
+launch-argument wiring itself resolves cleanly end-to-end (the argument
+reaches `MockAccessibilityStateProvider`, and favoriting still completes
+normally) without asserting on the invisible haptic call.
 
 ### `HapticFeedbackProviding` (Swift Package product)
 

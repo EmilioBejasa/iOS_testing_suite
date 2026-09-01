@@ -1,4 +1,5 @@
 import XCTest
+import AccessibilityStateProviding
 import FeatureFlagging
 import HapticFeedbackProviding
 import UIKit
@@ -81,5 +82,44 @@ final class QuoteStoreFeatureFlagTests: XCTestCase {
         await store.toggleFavoriteForCurrentQuote()
 
         XCTAssertTrue(haptics.impactStyles.isEmpty)
+    }
+
+    /// Custom haptics are suppressed while VoiceOver is running (see
+    /// `QuoteStore.toggleFavoriteForCurrentQuote()`'s doc comment) even when
+    /// `"hapticFeedbackEnabled"` is on - `AccessibilityStateProviding` gates
+    /// the flag rather than replacing it, so both conditions are exercised
+    /// independently here and in the flag-disabled test above.
+    func testToggleFavoriteDoesNotFireHapticFeedbackWhenVoiceOverIsRunning() async {
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let haptics = MockHapticFeedbackProvider()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            featureFlags: MockFeatureFlags(overrides: ["hapticFeedbackEnabled": true]),
+            haptics: haptics,
+            accessibilityState: MockAccessibilityStateProvider(voiceOverRunning: true)
+        )
+        await store.fetchNewQuote()
+
+        await store.toggleFavoriteForCurrentQuote()
+
+        XCTAssertTrue(haptics.impactStyles.isEmpty)
+    }
+
+    func testToggleFavoriteFiresHapticFeedbackWhenVoiceOverIsNotRunning() async {
+        let quote = Quote(id: 1, quote: "Test quote", author: "Test Author")
+        let haptics = MockHapticFeedbackProvider()
+        let store = QuoteStore(
+            apiClient: MockQuoteAPIClient(mode: .success(quote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            featureFlags: MockFeatureFlags(overrides: ["hapticFeedbackEnabled": true]),
+            haptics: haptics,
+            accessibilityState: MockAccessibilityStateProvider(voiceOverRunning: false)
+        )
+        await store.fetchNewQuote()
+
+        await store.toggleFavoriteForCurrentQuote()
+
+        XCTAssertEqual(haptics.impactStyles, [.light])
     }
 }

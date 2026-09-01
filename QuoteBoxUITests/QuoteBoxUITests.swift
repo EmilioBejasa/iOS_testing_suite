@@ -16,6 +16,30 @@ final class QuoteBoxUITests: XCTestCase {
         try auditIgnoringKnownFalsePositives(app)
     }
 
+    /// Whether `toggleFavoriteForCurrentQuote()` actually skips the haptic
+    /// call under `--mock-voiceover-running` isn't observable through the
+    /// accessibility tree (haptics have no visible/inspectable effect) - that
+    /// behavior is unit-tested directly in `QuoteStoreFeatureFlagTests.swift`.
+    /// This proves the launch-argument wiring itself resolves end-to-end:
+    /// `--mock-voiceover-running` reaches `MockAccessibilityStateProvider`
+    /// (surfaced generically on the Debug tab's launch-arguments list, the
+    /// same way every other `--mock-*` argument already is), and favoriting
+    /// still completes normally rather than crashing or hanging.
+    func testFavoritingWithVoiceOverRunningArgumentDoesNotCrash() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--mock-voiceover-running"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["--mock-voiceover-running"].exists)
+
+        app.tab("Quote").tap()
+        app.element("quote.favoriteButton").tap()
+
+        app.tab("Favorites").tap()
+        XCTAssertTrue(app.element("favorites.list").waitForExistence(timeout: 5))
+    }
+
     func testMockErrorShowsErrorMessage() throws {
         let app = XCUIApplication().launched(withArguments: ["--mock-error"])
 

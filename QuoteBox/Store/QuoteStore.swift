@@ -1,3 +1,4 @@
+import AccessibilityStateProviding
 import AnalyticsLogging
 import AsyncSleeping
 import BundleInfoProviding
@@ -51,6 +52,7 @@ final class QuoteStore {
     private let sleeper: AsyncSleeping
     private let bundleInfo: BundleInfoProviding
     private let haptics: HapticFeedbackProviding
+    private let accessibilityState: AccessibilityStateProviding
     private var lastFetchedAt: Date?
 
     init(
@@ -64,7 +66,8 @@ final class QuoteStore {
         featureFlags: FeatureFlagging = SystemFeatureFlags(),
         sleeper: AsyncSleeping = SystemSleeper(),
         bundleInfo: BundleInfoProviding = SystemBundleInfoProvider(),
-        haptics: HapticFeedbackProviding = SystemHapticFeedbackProvider()
+        haptics: HapticFeedbackProviding = SystemHapticFeedbackProvider(),
+        accessibilityState: AccessibilityStateProviding = SystemAccessibilityStateProvider()
     ) {
         self.apiClient = apiClient
         self.favoritesStore = favoritesStore
@@ -77,6 +80,7 @@ final class QuoteStore {
         self.sleeper = sleeper
         self.bundleInfo = bundleInfo
         self.haptics = haptics
+        self.accessibilityState = accessibilityState
         self.favorites = favoritesStore.loadFavorites()
         self.networkStatus = reachabilityMonitor.currentStatus
         reachabilityMonitor.startMonitoring { [weak self] status in
@@ -151,7 +155,10 @@ final class QuoteStore {
             logAnalyticsEvent("quote_favorited", parameters: ["quoteID": "\(quote.id)"])
         }
         favoritesStore.save(favorites)
-        if hapticFeedbackEnabled {
+        // Custom haptics are commonly suppressed while VoiceOver is running -
+        // VoiceOver has its own feedback conventions, and a redundant custom
+        // impact alongside spoken feedback reads as noisy rather than helpful.
+        if hapticFeedbackEnabled, !(await accessibilityState.isVoiceOverRunning()) {
             await haptics.impact(style: .light)
         }
     }
