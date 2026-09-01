@@ -54,6 +54,12 @@ struct QuoteView: View {
                     }
                     .disabled(tipJarStore.state == .purchasing)
                     .accessibilityIdentifier("tipJar.button")
+                    // Lets QuoteBoxUITests detect "purchasing" via a single
+                    // exists-only predicate query instead of a separate
+                    // .isEnabled read that can throw if the button leaves the
+                    // hierarchy between the two reads - see
+                    // testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration.
+                    .accessibilityValue(tipJarStore.state == .purchasing ? "purchasing" : "idle")
                 }
 
                 switch tipJarStore.supporterState {
@@ -73,6 +79,7 @@ struct QuoteView: View {
                     }
                     .disabled(tipJarStore.supporterState == .purchasing)
                     .accessibilityIdentifier("supporter.button")
+                    .accessibilityValue(tipJarStore.supporterState == .purchasing ? "purchasing" : "idle")
                 }
             }
             .padding()
