@@ -4,6 +4,33 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.6.1] - 2026-09-01
+
+Two more CI-stabilization fixes, following up on [1.6.0]'s `KNOWN_FLAKE_PATTERN`/
+timeout work — both target the leading suspected causes directly rather than
+adding another layer of retry:
+
+- `project.yml`: `QuoteBoxTests`/`QuoteBoxUITests` now set
+  `randomExecutionOrdering: false` in the `QuoteBox` scheme's test action.
+  Xcode randomizes test execution order by default since Xcode 13; the leading
+  theory for the snapshot byte-drift flakes ([1.6.0]) is that whatever test
+  happens to run immediately before `testQuoteContentViewLoadedNewLayoutAccessibility3`/
+  `testRootViewQuoteTabLoaded`/`testQuoteViewErrorState` leaves the
+  font-rendering cache in a slightly different state - pinning a deterministic
+  order tests that theory directly.
+- `QuoteBoxUITests.swift`: the two StoreKit-purchase tests
+  (`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`,
+  `testSupporterSubscriptionResolvesAgainstWiredStoreKitConfiguration`) now
+  wait up to 15s (was 5s) for their terminal state, giving the real
+  `Product.purchase()` StoreKitTest round trip realistic headroom. Documented
+  a known residual limitation: these waits still call `.isEnabled` on a button
+  that can vanish between that call and a preceding `.exists` check (two
+  separate accessibility-tree round trips), which can throw rather than
+  return `false` - the longer timeout helps the common "just slow" case but
+  doesn't eliminate that narrower race; fixing it fully would need either a
+  dedicated "purchasing" accessibility identifier or Objective-C
+  exception-bridging, both left as follow-up.
+
 ## [1.6.0] - 2026-08-26
 
 Deepened the 5 kit modules [1.5.0] wired into `QuoteBox`, and wired in a 6th —
