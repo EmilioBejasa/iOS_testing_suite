@@ -1,3 +1,5 @@
+import AnalyticsLogging
+import BundleInfoProviding
 import Observation
 import PurchaseSupport
 
@@ -22,13 +24,35 @@ final class TipJarStore {
     private(set) var supporterState: SupporterState = .idle
 
     private let purchaseManager: PurchaseManaging
+    private let analyticsLogger: AnalyticsLogging
+    private let bundleInfo: BundleInfoProviding
     private let productIdentifier = "com.quotebox.tip"
     private let supporterProductIdentifier = "com.quotebox.supporter.monthly"
 
-    init(purchaseManager: PurchaseManaging) {
+    init(
+        purchaseManager: PurchaseManaging,
+        analyticsLogger: AnalyticsLogging = SystemAnalyticsLogger(),
+        bundleInfo: BundleInfoProviding = SystemBundleInfoProvider()
+    ) {
         self.purchaseManager = purchaseManager
+        self.analyticsLogger = analyticsLogger
+        self.bundleInfo = bundleInfo
     }
 
+    private func logAnalyticsEvent(_ event: String, parameters: [String: String] = [:]) {
+        var parameters = parameters
+        parameters["appVersion"] = bundleInfo.appVersion
+        analyticsLogger.log(event: event, parameters: parameters)
+    }
+
+    /// `state == .purchased` is unreachable from `TipJarStoreTests`'
+    /// bare-`MockPurchaseManager` cases: `product(for:)` defaults to `nil`
+    /// and `Product` has no public initializer to fabricate a non-nil one
+    /// (see `TipJarStoreTests`'s own doc comment). Deterministic coverage of
+    /// `"tip_purchased"` logging instead lives in
+    /// `TipJarStoreRealSessionTests`, which fetches a real `Product` via
+    /// `SKTestSession` first, the same approach
+    /// `PurchaseSupportRealSessionTests` uses at the kit level.
     func purchaseTip() async {
         state = .purchasing
         do {
@@ -36,7 +60,11 @@ final class TipJarStore {
                 state = .failed
                 return
             }
-            state = try await purchaseManager.purchase(product) ? .purchased : .failed
+            let purchased = try await purchaseManager.purchase(product)
+            state = purchased ? .purchased : .failed
+            if purchased {
+                logAnalyticsEvent("tip_purchased", parameters: ["productID": productIdentifier])
+            }
         } catch {
             state = .failed
         }
@@ -57,7 +85,11 @@ final class TipJarStore {
                 supporterState = .failed
                 return
             }
-            supporterState = try await purchaseManager.purchase(product) ? .active : .failed
+            let purchased = try await purchaseManager.purchase(product)
+            supporterState = purchased ? .active : .failed
+            if purchased {
+                logAnalyticsEvent("supporter_subscribed", parameters: ["productID": supporterProductIdentifier])
+            }
         } catch {
             supporterState = .failed
         }

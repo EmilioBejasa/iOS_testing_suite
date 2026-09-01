@@ -6,17 +6,40 @@ import SwiftUI
 /// `ImageRenderer` renders reliably off-screen.
 struct QuoteContentView: View {
     let quote: Quote
+    /// Gated by `FeatureFlagging`'s `"newQuoteLayout"` flag, resolved by
+    /// `QuoteStore.usesNewQuoteLayout` and passed down as a plain `Bool` by
+    /// `QuoteView` — this view stays dependency-free. Defaults `false` so
+    /// existing call sites keep rendering the original layout unchanged.
+    var usesNewLayout: Bool = false
 
     var body: some View {
-        VStack(spacing: 8) {
-            Text(quote.quote)
-                .font(.title3)
-                .multilineTextAlignment(.center)
-                .accessibilityIdentifier("quote.text")
-            Text("— \(quote.author)")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("quote.author")
+        if usesNewLayout {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("“")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text(quote.quote)
+                    .font(.title3)
+                    .multilineTextAlignment(.leading)
+                    .accessibilityIdentifier("quote.text")
+                Text("— \(quote.author)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("quote.author")
+            }
+            .padding()
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            VStack(spacing: 8) {
+                Text(quote.quote)
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("quote.text")
+                Text("— \(quote.author)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("quote.author")
+            }
         }
     }
 }

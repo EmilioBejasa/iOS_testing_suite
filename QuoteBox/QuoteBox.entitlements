@@ -6,5 +6,9 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.quotebox.qa.app</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.quotebox.qa</string>
+	</array>
 </dict>
 </plist>

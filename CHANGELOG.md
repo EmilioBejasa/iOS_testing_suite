@@ -4,6 +4,142 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.6.1] - 2026-09-01
+
+One CI-stabilization fix, plus a documented dead end, following up on
+[1.6.0]'s `KNOWN_FLAKE_PATTERN`/timeout work:
+
+- **Tried and reverted**: pinning `randomExecutionOrdering: false` on
+  `QuoteBoxTests`/`QuoteBoxUITests` (testing the theory that Xcode's default
+  randomized test order was the cause of the snapshot byte-drift flakes -
+  [1.6.0]). It made the failure on `testQuoteContentViewLoadedNewLayoutAccessibility3`
+  *worse*: instead of an intermittent flake, the pinned order reproduced the
+  exact same byte mismatch (confirmed via 3 repeat CI attempts landing
+  identical byte counts on both iPhone 16 and iPhone SE) on every single run.
+  Recording a fresh reference in isolation (`record-snapshots.yml`,
+  `-only-testing:` scoped to just this one test) reproduced the *original*
+  committed reference exactly, not the byte pattern the full pinned-order
+  suite produces - confirming the drift really is caused by test-adjacency
+  (whatever specific test now always runs immediately before it in the
+  pinned order) rather than a generic environment/machine difference, but
+  also showing this repo's `record-snapshots.yml` tooling (single-test
+  scoped) can't currently capture that context to fix it properly. Reverted
+  to Xcode's default randomized order, which at least sometimes passes,
+  pending a fix that re-records the whole suite in one pinned-order pass
+  rather than a single isolated test.
+- `QuoteBoxUITests.swift`: the two StoreKit-purchase tests
+  (`testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`,
+  `testSupporterSubscriptionResolvesAgainstWiredStoreKitConfiguration`) now
+  wait up to 15s (was 5s) for their terminal state, giving the real
+  `Product.purchase()` StoreKitTest round trip realistic headroom. Documented
+  a known residual limitation: these waits still call `.isEnabled` on a button
+  that can vanish between that call and a preceding `.exists` check (two
+  separate accessibility-tree round trips), which can throw rather than
+  return `false` - the longer timeout helps the common "just slow" case but
+  doesn't eliminate that narrower race; fixing it fully would need either a
+  dedicated "purchasing" accessibility identifier or Objective-C
+  exception-bridging, both left as follow-up.
+
+## [1.6.0] - 2026-08-26
+
+Deepened the 5 kit modules [1.5.0] wired into `QuoteBox`, and wired in a 6th —
+continuing that version's pattern of closing gaps between "wired" and
+"actually integrated":
+
+- `AnalyticsLogging`: 4 new events alongside the existing 3 —
+  `quote_unfavorited` (the remove branch of `toggleFavoriteForCurrentQuote()`,
+  previously silent), `daily_reminder_enabled`/`daily_reminder_disabled`
+  (`toggleDailyReminder()`'s schedule/cancel branches), and
+  `supporter_subscribed` (`purchaseSupporterSubscription()`'s success branch).
+  Every event now also carries an `"appVersion"` parameter via a new
+  `bundleInfo: BundleInfoProviding` dependency on both `QuoteStore` and
+  `TipJarStore`.
+- `tip_purchased` finally has deterministic unit coverage: new
+  `TipJarStoreRealSessionTests.testPurchaseTipLogsAnalyticsEventOnSuccess`
+  fetches a real `Product` via `SKTestSession` + `StoreKitPurchaseManager`
+  (`PurchaseSupportRealSessionTests`'s approach) and feeds it to
+  `MockPurchaseManager`, closing the gap `TipJarStore.purchaseTip()`'s doc
+  comment used to document as unreachable from a mock alone.
+- `FeatureFlagging`: a second flag, `"hapticFeedbackEnabled"`, gating the new
+  `HapticFeedbackProviding` wiring below — proves the module composes with a
+  second, unrelated flag rather than being a one-off.
+- `DiagnosticReporting`: `stopReporting()` previously went uncalled anywhere
+  in `QuoteBox`. `RootView` now exercises it for real via a new
+  `--real-diagnostics` launch argument, following the same same-process
+  real-round-trip pattern `--real-clipboard`/`--real-notifications` already
+  use, surfaced as a new "Diagnostics" Debug-tab section.
+- `HapticFeedbackProviding` (6th module wired in): `QuoteStore.toggleFavoriteForCurrentQuote()`
+  fires `.light` impact feedback on both the favorite and unfavorite
+  branches, gated behind `"hapticFeedbackEnabled"`. Since `impact(style:)` is
+  `async`, `toggleFavoriteForCurrentQuote()` is now `async` too — its one
+  call site in `QuoteView` wraps it in `Task { ... }`, the same pattern its
+  "New Quote" button already used.
+- New `QuoteBoxTests/QuoteBoxAppTests.swift` unit-tests the dependency-resolution
+  seam `QuoteBoxApp.makeDependencies(for:)` (`private` until now) exposes —
+  the `appVersionString` formula and `MockDiagnosticReporter.startReportingCallCount`,
+  previously covered only indirectly via `QuoteBoxUITests`.
+
+`project.yml` gained `HapticFeedbackProviding` as a `QuoteBox` target
+dependency, plus `BundleInfoProviding`/`DiagnosticReporting`/`HapticFeedbackProviding`
+on `QuoteBoxTests` (needed once tests started importing them directly, the
+same reasoning [1.5.0] added `AnalyticsLogging`/`FeatureFlagging`/`AsyncSleeping`
+there). Run `make setup` to regenerate `QuoteBox.xcodeproj` after pulling this.
+
+Also: extended `KNOWN_FLAKE_PATTERN` (from [1.1.0]'s targeted CI retry) to
+cover three snapshot tests (`testQuoteContentViewLoadedNewLayoutAccessibility3`,
+`testRootViewQuoteTabLoaded`, `testQuoteViewErrorState`) that intermittently
+fail on phone-class simulators with a several-hundred-byte mismatch against
+the committed reference PNG — confirmed not a stale reference (a fresh local
+re-recording is byte-identical to what's committed), most likely Xcode's
+randomized test order leaving the font-rendering cache in a slightly
+different state test-to-test. Also raised the test job's `timeout-minutes`
+from 30 to 45: a retried attempt plus the coverage-report step didn't
+reliably fit in 30 minutes, and a run was observed passing all tests on
+retry only to have the job killed by the timeout before it could report.
+
+## [1.5.0] - 2026-08-25
+
+Wired 4 previously kit-level-only modules into real `QuoteBox` features —
+continuing the pattern every prior version bump followed, closing the gap
+between "tested in isolation" and "proven through a real app integration":
+
+- `AnalyticsLogging`: `QuoteStore.toggleFavoriteForCurrentQuote()` logs
+  `quote_favorited` on the add-to-favorites branch (the README's own
+  long-standing example event), `fetchNewQuote()` logs `new_quote_fetched` on
+  success, and `TipJarStore.purchaseTip()` logs `tip_purchased` on its
+  `.purchased` branch — the last one real but untestable by a deterministic
+  unit test (`MockPurchaseManager.product(for:)` defaults to `nil`), so it's
+  only exercised via the existing real-StoreKit-session UI test.
+- `FeatureFlagging`: `QuoteStore.usesNewQuoteLayout` resolves the `"newQuoteLayout"`
+  flag (the README's own long-standing example flag) and `QuoteView` passes
+  it into `QuoteContentView`'s new `usesNewLayout` parameter, gating a real
+  alternate card-style layout. New `QuoteBoxTests/QuoteViewSnapshotTests.swift`
+  snapshots cover both layout states (default and `.accessibility3` sizing).
+- `AsyncSleeping`: `QuoteStore.fetchNewQuote()` now retries a transient
+  `APIError.requestFailed` up to twice with backoff (`[.seconds(1), .seconds(2)]`)
+  before surfacing an error — closing the gap the module's own README section
+  used to state outright ("nothing natural to wire it into yet").
+  `MockQuoteAPIClient` gained a `.failThenSucceed(failures:then:)` mode to
+  drive this deterministically in tests.
+- `BundleInfoProviding` + `DiagnosticReporting`: two new Debug tab rows in the
+  existing "App" section ("Version", "Diagnostic Reporting Started"), both
+  safe, non-prompting real reads following the same "pass a resolved value,
+  not the dependency" shape `ReviewRequesting`'s row already uses.
+
+`project.yml` gained the 5 corresponding `dependencies:` entries on the
+`QuoteBox` target (`AnalyticsLogging`, `FeatureFlagging`, `AsyncSleeping`,
+`BundleInfoProviding`, `DiagnosticReporting`) and 3 on `QuoteBoxTests`
+(`AnalyticsLogging`, `FeatureFlagging`, `AsyncSleeping`) — `Package.swift`
+already declared all 5 products, so no SwiftPM manifest change was needed.
+Run `make setup` to regenerate `QuoteBox.xcodeproj` after pulling this.
+
+Also fixed a latent test-speed issue this surfaced: two existing tests
+constructed `QuoteStore`/`QuoteAPIClient` failures via `.requestFailed`
+without injecting a sleeper, which would now retry against the real
+`SystemSleeper` default (3 real seconds) instead of failing immediately —
+switched to `.decodingFailed` (a genuinely non-transient error) where the
+test's actual point was just the error-surfacing path, not retry behavior.
+
 ## [1.4.0] - 2026-08-21
 
 Real `swift test` support: 49 kit-only test files moved out of

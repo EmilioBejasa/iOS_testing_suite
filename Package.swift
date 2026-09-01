@@ -155,6 +155,7 @@ let package = Package(
             dependencies: ["LocalizationCompletenessChecking"],
             resources: [.copy("sample-catalog.json")]
         ),
+        .testTarget(name: "LocalNotificationsTests", dependencies: ["LocalNotifications"]),
         .testTarget(name: "LocationAuthorizationTests", dependencies: ["LocationAuthorization"]),
         .testTarget(name: "MicrophoneAuthorizationTests", dependencies: ["MicrophoneAuthorization"]),
         .testTarget(name: "NetworkReachabilityMonitoringTests", dependencies: ["NetworkReachabilityMonitoring"]),

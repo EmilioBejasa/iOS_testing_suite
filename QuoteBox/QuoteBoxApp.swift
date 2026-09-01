@@ -1,5 +1,11 @@
+import AnalyticsLogging
+import AsyncSleeping
+import BundleInfoProviding
 import CoreData
 import DeepLinkTesting
+import DiagnosticReporting
+import FeatureFlagging
+import HapticFeedbackProviding
 import LocalNotifications
 import NetworkReachabilityMonitoring
 import PurchaseSupport
@@ -15,9 +21,11 @@ struct QuoteBoxApp: App {
     private let tipJarStore: TipJarStore
     private let launchCount: Int
     private let didRequestReviewThisLaunch: Bool
+    private let appVersionString: String
+    private let didStartDiagnosticReportingThisLaunch: Bool
     @State private var route: QuoteBoxRoute?
 
-    private struct Dependencies {
+    struct Dependencies {
         let apiClient: QuoteAPIClientProtocol
         let favoritesStore: FavoritesStoring
         let reminderScheduler: ReminderScheduling
@@ -25,47 +33,87 @@ struct QuoteBoxApp: App {
         let userDefaultsStore: UserDefaultsStoring
         let reachabilityMonitor: NetworkReachabilityMonitoring
         let reviewRequester: ReviewRequesting
+        let sharedQuoteStore: SharedQuoteWriting
+        let bundleInfo: BundleInfoProviding
+        let diagnosticReporter: DiagnosticReporting
+        let analyticsLogger: AnalyticsLogging
+        let featureFlags: FeatureFlagging
+        let sleeper: AsyncSleeping
+        let haptics: HapticFeedbackProviding
     }
 
-    private static func makeDependencies(for arguments: [String]) -> Dependencies {
+    static func makeDependencies(for arguments: [String]) -> Dependencies {
         if arguments.contains("--mock-error") {
-            return Dependencies(
-                apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
-                favoritesStore: InMemoryFavoritesStore(),
-                reminderScheduler: MockReminderScheduler(authorizationResult: .authorized),
-                purchaseManager: MockPurchaseManager(),
-                userDefaultsStore: InMemoryUserDefaultsStore(),
-                reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
-                reviewRequester: MockReviewRequester()
-            )
+            return mockErrorDependencies()
         } else if arguments.contains("--mock-success") {
-            let notificationsDenied = arguments.contains("--mock-notifications-denied")
-            let authorizationResult: AuthorizationStatus = notificationsDenied ? .denied : .authorized
-            let usesRealPurchases = arguments.contains("--real-purchases")
-            return Dependencies(
-                apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
-                favoritesStore: InMemoryFavoritesStore(),
-                reminderScheduler: MockReminderScheduler(authorizationResult: authorizationResult),
-                purchaseManager: usesRealPurchases ? StoreKitPurchaseManager() : MockPurchaseManager(),
-                userDefaultsStore: InMemoryUserDefaultsStore(),
-                reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
-                reviewRequester: MockReviewRequester()
-            )
+            return mockSuccessDependencies(for: arguments)
         } else {
-            let container = NSPersistentContainer(name: "QuoteBox")
-            container.loadPersistentStores { _, error in
-                precondition(error == nil, "Failed to load Core Data store: \(error!)")
-            }
-            return Dependencies(
-                apiClient: QuoteAPIClient(),
-                favoritesStore: CoreDataFavoritesStore(container: container),
-                reminderScheduler: SystemReminderScheduler(),
-                purchaseManager: StoreKitPurchaseManager(),
-                userDefaultsStore: SystemUserDefaultsStore(),
-                reachabilityMonitor: SystemNetworkReachabilityMonitor(),
-                reviewRequester: SystemReviewRequester()
-            )
+            return productionDependencies()
         }
+    }
+
+    private static func mockErrorDependencies() -> Dependencies {
+        Dependencies(
+            apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: MockReminderScheduler(authorizationResult: .authorized),
+            purchaseManager: MockPurchaseManager(),
+            userDefaultsStore: InMemoryUserDefaultsStore(),
+            reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
+            reviewRequester: MockReviewRequester(),
+            sharedQuoteStore: NoOpSharedQuoteWriter(),
+            bundleInfo: MockBundleInfoProvider(),
+            diagnosticReporter: MockDiagnosticReporter(),
+            analyticsLogger: MockAnalyticsLogger(),
+            featureFlags: MockFeatureFlags(),
+            sleeper: MockSleeper(),
+            haptics: MockHapticFeedbackProvider()
+        )
+    }
+
+    private static func mockSuccessDependencies(for arguments: [String]) -> Dependencies {
+        let notificationsDenied = arguments.contains("--mock-notifications-denied")
+        let authorizationResult: AuthorizationStatus = notificationsDenied ? .denied : .authorized
+        let usesRealPurchases = arguments.contains("--real-purchases")
+        return Dependencies(
+            apiClient: MockQuoteAPIClient(mode: .success(MockQuoteAPIClient.defaultQuote)),
+            favoritesStore: InMemoryFavoritesStore(),
+            reminderScheduler: MockReminderScheduler(authorizationResult: authorizationResult),
+            purchaseManager: usesRealPurchases ? StoreKitPurchaseManager() : MockPurchaseManager(),
+            userDefaultsStore: InMemoryUserDefaultsStore(),
+            reachabilityMonitor: MockNetworkReachabilityMonitor(currentStatus: .satisfied),
+            reviewRequester: MockReviewRequester(),
+            sharedQuoteStore: NoOpSharedQuoteWriter(),
+            bundleInfo: MockBundleInfoProvider(),
+            diagnosticReporter: MockDiagnosticReporter(),
+            analyticsLogger: MockAnalyticsLogger(),
+            featureFlags: MockFeatureFlags(),
+            sleeper: MockSleeper(),
+            haptics: MockHapticFeedbackProvider()
+        )
+    }
+
+    private static func productionDependencies() -> Dependencies {
+        let container = NSPersistentContainer(name: "QuoteBox")
+        container.loadPersistentStores { _, error in
+            precondition(error == nil, "Failed to load Core Data store: \(error!)")
+        }
+        return Dependencies(
+            apiClient: QuoteAPIClient(),
+            favoritesStore: CoreDataFavoritesStore(container: container),
+            reminderScheduler: SystemReminderScheduler(),
+            purchaseManager: StoreKitPurchaseManager(),
+            userDefaultsStore: SystemUserDefaultsStore(),
+            reachabilityMonitor: SystemNetworkReachabilityMonitor(),
+            reviewRequester: SystemReviewRequester(),
+            sharedQuoteStore: SystemSharedQuoteStore(),
+            bundleInfo: SystemBundleInfoProvider(),
+            diagnosticReporter: SystemDiagnosticReporter(),
+            analyticsLogger: SystemAnalyticsLogger(),
+            featureFlags: SystemFeatureFlags(),
+            sleeper: SystemSleeper(),
+            haptics: SystemHapticFeedbackProvider()
+        )
     }
 
     init() {
@@ -76,9 +124,19 @@ struct QuoteBoxApp: App {
             apiClient: dependencies.apiClient,
             favoritesStore: dependencies.favoritesStore,
             reminderScheduler: dependencies.reminderScheduler,
-            reachabilityMonitor: dependencies.reachabilityMonitor
+            reachabilityMonitor: dependencies.reachabilityMonitor,
+            sharedQuoteStore: dependencies.sharedQuoteStore,
+            analyticsLogger: dependencies.analyticsLogger,
+            featureFlags: dependencies.featureFlags,
+            sleeper: dependencies.sleeper,
+            bundleInfo: dependencies.bundleInfo,
+            haptics: dependencies.haptics
         )
-        tipJarStore = TipJarStore(purchaseManager: dependencies.purchaseManager)
+        tipJarStore = TipJarStore(
+            purchaseManager: dependencies.purchaseManager,
+            analyticsLogger: dependencies.analyticsLogger,
+            bundleInfo: dependencies.bundleInfo
+        )
         // Under --mock-*, userDefaultsStore is a fresh InMemoryUserDefaultsStore
         // per launch, so this is always 1 - keeping the Debug tab's Launch Count
         // deterministic for QuoteBoxUITests instead of drifting with however many
@@ -100,6 +158,10 @@ struct QuoteBoxApp: App {
             dependencies.reviewRequester.requestReview()
         }
 
+        appVersionString = "\(dependencies.bundleInfo.appVersion) (\(dependencies.bundleInfo.buildNumber))"
+        dependencies.diagnosticReporter.startReporting()
+        didStartDiagnosticReportingThisLaunch = true
+
         let launchURL = DeepLinkSource.url(from: arguments) ?? UniversalLinkSource.url(from: arguments)
         _route = State(initialValue: launchURL.flatMap(QuoteBoxRoute.init(url:)))
     }
@@ -111,6 +173,8 @@ struct QuoteBoxApp: App {
                 tipJarStore: tipJarStore,
                 launchCount: launchCount,
                 didRequestReviewThisLaunch: didRequestReviewThisLaunch,
+                appVersionString: appVersionString,
+                didStartDiagnosticReportingThisLaunch: didStartDiagnosticReportingThisLaunch,
                 route: $route
             )
                 .onOpenURL { url in

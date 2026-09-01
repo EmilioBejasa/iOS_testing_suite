@@ -42,6 +42,22 @@ targets:
         product: NetworkReachabilityMonitoring
       - package: iOSTestKit
         product: ReviewRequesting
+      - package: iOSTestKit
+        product: ClipboardProviding
+      - package: iOSTestKit
+        product: AnalyticsLogging
+      - package: iOSTestKit
+        product: FeatureFlagging
+      - package: iOSTestKit
+        product: AsyncSleeping
+      - package: iOSTestKit
+        product: BundleInfoProviding
+      - package: iOSTestKit
+        product: DiagnosticReporting
+      - package: iOSTestKit
+        product: HapticFeedbackProviding
+      - target: QuoteBoxWidget
+        embed: true
     info:
       path: QuoteBox/Info.plist
       properties:
@@ -61,11 +77,51 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: QuoteBox/QuoteBox.entitlements
 
+  QuoteBoxWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: QuoteBoxWidget
+    dependencies:
+      - package: iOSTestKit
+        product: WidgetTimelineTesting
+    info:
+      path: QuoteBoxWidget/Info.plist
+      properties:
+        CFBundleDisplayName: QuoteBox Widget
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.app.widget
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: QuoteBoxWidget/QuoteBoxWidget.entitlements
+        SKIP_INSTALL: YES
+
   QuoteBoxTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: QuoteBoxTests
+      # QuoteWidgetCoreTests exercises this file directly, compiled into
+      # QuoteBoxTests's own module - app-extension targets build as .appex
+      # bundles, not linkable frameworks, so QuoteBoxTests can't link
+      # against QuoteBoxWidget the way it links against QuoteBox itself
+      # (which uses -bundle_loader, a mechanism specific to a unit test
+      # target's actual host app). Compiling the same source file into both
+      # targets sidesteps that entirely - confirmed necessary after CI's
+      # linker reported "symbol(s) not found" for QuoteBoxWidget.QuoteWidgetCore.
+      - path: QuoteBoxWidget/QuoteWidgetCore.swift
+      # Same reasoning, for QuoteWidgetView (a plain SwiftUI view - snapshot-
+      # testable the same way QuoteContentView already is) and QuoteWidgetProvider
+      # (needed because QuoteWidgetView.swift's QuoteBoxWidget: Widget references
+      # it in the same file - not because QuoteWidgetProvider's own Context-typed
+      # methods are testable; TimelineProviderContext has no public initializer,
+      # same limitation QuoteWidgetCore's own doc comment already documents).
+      # Deliberately does NOT include QuoteBoxWidgetBundle.swift - its `@main`
+      # attribute has no place in a unit-test bundle target.
+      - path: QuoteBoxWidget/QuoteWidgetView.swift
+      - path: QuoteBoxWidget/QuoteWidgetProvider.swift
     dependencies:
       - target: QuoteBox
         embed: false
@@ -87,6 +143,18 @@ targets:
         product: MemoryLeakDetection
       - package: iOSTestKit
         product: WidgetTimelineTesting
+      - package: iOSTestKit
+        product: AnalyticsLogging
+      - package: iOSTestKit
+        product: FeatureFlagging
+      - package: iOSTestKit
+        product: AsyncSleeping
+      - package: iOSTestKit
+        product: BundleInfoProviding
+      - package: iOSTestKit
+        product: DiagnosticReporting
+      - package: iOSTestKit
+        product: HapticFeedbackProviding
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests
@@ -113,6 +181,7 @@ schemes:
     build:
       targets:
         QuoteBox: all
+        QuoteBoxWidget: all
         QuoteBoxTests: [test]
         QuoteBoxUITests: [test]
     test:

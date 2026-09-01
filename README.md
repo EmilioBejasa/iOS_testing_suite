@@ -21,6 +21,43 @@ make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if miss
 open QuoteBox.xcodeproj
 ```
 
+## How a module works
+
+Every module below follows the same shape — one protocol, a real implementation,
+and a fake one — so understanding it once via a single concrete example
+(`FeatureFlagging`, wired into `QuoteBox` today) tells you how to read all 59
+sections that follow:
+
+```mermaid
+flowchart LR
+    subgraph kit ["FeatureFlagging (Sources/FeatureFlagging/)"]
+        proto["protocol FeatureFlagging\nisEnabled(_ name: String) -> Bool"]
+        sys["SystemFeatureFlags\nreal UserDefaults"]
+        mock["MockFeatureFlags\nin-memory overrides"]
+        sys -- conforms to --> proto
+        mock -- conforms to --> proto
+    end
+
+    subgraph app ["QuoteBox app"]
+        store["QuoteStore\ninit(featureFlags: FeatureFlagging = SystemFeatureFlags())"]
+    end
+
+    subgraph tests ["QuoteBoxTests"]
+        test["QuoteStoreTests\nQuoteStore(featureFlags: MockFeatureFlags(overrides: [...]))"]
+    end
+
+    sys -.->|"production default"| store
+    mock -.->|"--mock-success / --mock-error\nor injected directly in unit tests"| test
+```
+
+The app only ever depends on the **protocol** (`FeatureFlagging`), never on
+`SystemFeatureFlags` or `MockFeatureFlags` by name — that's what makes the swap
+possible. Production code gets the real implementation as an init default;
+tests (unit tests, or the app itself launched with a `--mock-*` argument) pass
+the mock explicitly. Every module section below documents this same
+protocol/real-impl/fake-impl trio, just wrapping a different system API
+(`UserDefaults`, `CLLocationManager`, `HKHealthStore`, `SKPaymentQueue`, ...).
+
 ## What's reusable
 
 <details>
@@ -243,9 +280,22 @@ let sleeper: AsyncSleeping = MockSleeper()
 try await sleeper.sleep(for: .seconds(30)) // returns immediately in tests
 ```
 
-Kit-level only — no code in `QuoteBox` currently self-delays (no retry
-backoff, debounce, or polling loop), so there's nothing natural to wire it
-into yet. `QuoteBoxTests/AsyncSleepingTests.swift` tests the mock fully, and
+`QuoteBox` wires this into a real retry-with-backoff:
+`QuoteStore.fetchNewQuote()` retries a transient `APIError.requestFailed` up
+to `QuoteStore.retryDelays.count` times (`[.seconds(1), .seconds(2)]`, 3
+attempts total) via the injected `sleeper` before surfacing an error to the
+UI — non-transient errors (`.invalidURL`/`.decodingFailed`) surface
+immediately with no retry, a deliberate scope choice: this kit has no way to
+distinguish a slow network from a truly broken one beyond the status code the
+real `APIError` case already encodes. Real `SystemSleeper` in production,
+`MockSleeper` under `--mock-*` (and in `QuoteBoxTests`) so retry/backoff
+logic runs and asserts at full speed instead of racing real wall-clock time.
+Validated by `QuoteBoxTests/QuoteStoreTests.swift`'s
+`testFetchNewQuoteRetriesOnTransientFailureThenSucceeds`/
+`testFetchNewQuoteExhaustsRetriesAndSurfacesErrorAfterMaxAttempts`/
+`testFetchNewQuoteDoesNotRetryNonTransientDecodingFailure`, using a new
+`MockQuoteAPIClient.Mode.failThenSucceed` case.
+`Tests/AsyncSleepingTests/AsyncSleepingTests.swift` tests the mock fully, and
 also exercises `SystemSleeper` for real with a short duration: unlike the
 permission-gated modules above, there's no system prompt or crash risk here,
 just an actual (brief) wait.
@@ -328,11 +378,28 @@ let flags: FeatureFlagging = MockFeatureFlags(overrides: ["newQuoteLayout": true
 if flags.isEnabled("newQuoteLayout") { /* ... */ }
 ```
 
-Kit-level only — no code in `QuoteBox` is currently flag-gated. Both halves
-are safe to test for real: `UserDefaults` reads/writes never prompt or crash,
-so `QuoteBoxTests/FeatureFlaggingTests.swift` exercises `SystemFeatureFlags`
-against a real (scratch, suite-scoped) `UserDefaults` instance, not just the
-mock.
+`QuoteBox` wires this into two independent flags. `"newQuoteLayout"` gates a
+real, snapshot-tested UI variant: `QuoteStore.usesNewQuoteLayout` resolves
+`featureFlags.isEnabled("newQuoteLayout")` (real `SystemFeatureFlags` in
+production, `MockFeatureFlags` under `--mock-*`), and `QuoteView` passes that
+plain `Bool` into `QuoteContentView`'s `usesNewLayout` parameter rather than
+threading the dependency itself into a purely-presentational view — the same
+"pass the resolved value, not the dependency" shape `QuoteBoxApp` already uses
+for `didRequestReviewThisLaunch`. `"hapticFeedbackEnabled"` gates the
+`HapticFeedbackProviding` wiring below via `QuoteStore.hapticFeedbackEnabled`,
+proving `FeatureFlagging` composes with a second, unrelated kit module rather
+than being a one-off. Both flags are validated by
+`QuoteBoxTests/QuoteViewSnapshotTests.swift`'s
+`testQuoteContentViewLoadedNewLayout`/`testQuoteContentViewLoadedNewLayoutAccessibility3`,
+alongside `QuoteStoreTests.swift`'s `testUsesNewQuoteLayoutReflectsEnabledFlag`/
+`testUsesNewQuoteLayoutDefaultsFalseWhenFlagUnset`/
+`testHapticFeedbackEnabledReflectsEnabledFlag`/
+`testHapticFeedbackEnabledDefaultsFalseWhenFlagUnset`. Both halves are also safe
+to test for real independent of that wiring: `UserDefaults` reads/writes
+never prompt or crash, so
+`Tests/FeatureFlaggingTests/FeatureFlaggingTests.swift` exercises
+`SystemFeatureFlags` against a real (scratch, suite-scoped) `UserDefaults`
+instance, not just the mock.
 
 ### `AnalyticsLogging` (Swift Package product)
 
@@ -357,10 +424,44 @@ let logger: AnalyticsLogging = MockAnalyticsLogger()
 logger.log(event: "quote_favorited", parameters: ["quoteID": "42"])
 ```
 
-Kit-level only — no analytics events exist in `QuoteBox` yet. Both halves
-safe to test for real: logging never prompts or crashes, so
-`QuoteBoxTests/AnalyticsLoggingTests.swift` exercises `SystemAnalyticsLogger`
-for real too, not just the mock.
+`QuoteBox` wires this into seven real triggers, sharing one `analyticsLogger`
+dependency across `QuoteStore` and `TipJarStore` (the same DI shape as their
+existing `dateProvider`/`purchaseManager`-style parameters): `quote_favorited`/
+`quote_unfavorited` fire from both branches of
+`QuoteStore.toggleFavoriteForCurrentQuote()`, `new_quote_fetched` fires on a
+successful `fetchNewQuote()`, `daily_reminder_enabled`/`daily_reminder_disabled`
+fire from `toggleDailyReminder()`'s schedule/cancel branches, and
+`tip_purchased`/`supporter_subscribed` fire from `TipJarStore.purchaseTip()`/
+`purchaseSupporterSubscription()`'s success branches. Every event also carries
+an `"appVersion"` parameter, resolved via a `bundleInfo: BundleInfoProviding`
+dependency both stores now take (see `BundleInfoProviding` below) — a real,
+common use of version info distinct from that module's Debug-tab display use.
+Real `SystemAnalyticsLogger` in production, `MockAnalyticsLogger` under
+`--mock-*` so a test can assert on `loggedEvents` instead of needing a real
+logging backend. All but `tip_purchased` are validated by
+`QuoteBoxTests/QuoteStoreTests.swift`/`TipJarStoreTests.swift`'s
+`testToggleFavoriteLogsAnalyticsEventOnFavorite`/
+`testToggleFavoriteLogsAnalyticsEventOnUnfavorite`/
+`testFetchNewQuoteLogsNewQuoteFetchedEventOnSuccess`/
+`testToggleDailyReminderLogsAnalyticsEventWhenEnabled`/
+`testToggleDailyReminderLogsAnalyticsEventWhenDisabled`; `tip_purchased`
+previously had no deterministic unit test — `MockPurchaseManager.product(for:)`
+defaults to `nil` and `Product` has no public initializer (see
+`TipJarStoreTests`'s own doc comment), so `TipJarStore.state` could never reach
+`.purchased` from a bare mock. `TipJarStoreRealSessionTests.testPurchaseTipLogsAnalyticsEventOnSuccess`
+closes that gap: it fetches a real `Product` via `SKTestSession` +
+`StoreKitPurchaseManager` first (the same approach
+`PurchaseSupportRealSessionTests` uses at the kit level), then hands it to
+`MockPurchaseManager` so the `.purchased` branch — and its analytics event —
+run deterministically without a full purchase UI flow.
+`supporter_subscribed` is covered the same way `tip_purchased` used to be:
+only exercised for real via
+`QuoteBoxUITests.testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`'s
+real StoreKit test session, since `purchaseSupporterSubscription()` shares the
+same real-`Product` requirement. Both halves are also safe to test for real
+independent of that wiring: logging never prompts or crashes, so
+`Tests/AnalyticsLoggingTests/AnalyticsLoggingTests.swift` exercises
+`SystemAnalyticsLogger` for real too, not just the mock.
 
 ### `TimeControl` (Swift Package product)
 
@@ -614,6 +715,43 @@ workflow's own history: the first attempt surfaced a real bug — a shell-level
 `SNAPSHOT_RECORD=1` never reached the Simulator-hosted test process until
 `project.yml`'s `test` scheme gained an explicit `SNAPSHOT_RECORD:
 $(SNAPSHOT_RECORD)` environment-variable mapping).
+
+`assertSnapshot` now reliably captures `List`/`ScrollView`/`NavigationStack`/
+`TabView`-backed views too, not just plain declarative trees like
+`QuoteContentView`. It previously didn't:
+`ImageRenderer`'s first synchronous `.uiImage` read never waited for those
+UIKit-backed containers to finish laying out — attempts at snapshotting
+`QuoteView`/`FavoritesView`/`RootView` came back either fully blank
+(`QuoteView`, a bare `ScrollView`) or, for `FavoritesView`'s `List`,
+byte-identical between a seeded and an empty favorites list, and a warm-up
+render plus a short `RunLoop` pass didn't help (confirmed against CI,
+byte-for-byte identical output with or without it). The fix: host the view
+in a real, key `UIWindow` via `UIHostingController` and force a layout pass
+before rasterizing with `UIGraphicsImageRenderer`'s `drawHierarchy`, instead
+of `ImageRenderer.uiImage`. Changing the rendering technology meant
+re-recording every existing reference image, not just new ones —
+`QuoteContentView`'s two references changed bytes even though neither
+contains any of the previously-unsupported container types.
+`QuoteBoxTests/QuoteViewSnapshotTests.testQuoteViewLoadingState`,
+`FavoritesViewSnapshotTests.swift`, and `RootViewSnapshotTests.swift` now
+snapshot those three views directly.
+
+**Scope note**: the new renderer traded one limitation for a smaller one.
+Hosting in a real `UIWindow` ties the render to the host simulator's native
+display scale, and text hinting/anti-aliasing genuinely differs at that
+layer between devices with different native scales (iPhone 16 is @3x
+native; iPhone SE and iPad are @2x) — confirmed by CI even for
+`QuoteContentView`, which has no size-class- or Dynamic-Type-sensitive
+layout at all, ruling out an environment-pinning gap. `assertSnapshot`
+already pins `colorScheme`, `dynamicTypeSize` (defaulting to `.large`), and
+`horizontalSizeClass` (`.compact`, matching QuoteBox's iPhone-only
+`TARGETED_DEVICE_FAMILY`) explicitly so content and layout stay
+deterministic — but native-scale-dependent rendering happens below that
+layer. `ci.yml`'s `test` job runs every `SnapshotTesting`-based test only on
+the device its references were recorded against (`iPhone 16`, via
+`reusable-test.yml`'s `snapshot_reference_device`/
+`snapshot_testing_identifiers` inputs) rather than on the full device
+matrix.
 
 ### `DeepLinkTesting` (Swift Package product)
 
@@ -1049,11 +1187,32 @@ let reporter: DiagnosticReporting = MockDiagnosticReporter()
 reporter.startReporting()
 ```
 
-Kit-level only - no natural QuoteBox feature - but unlike every other
-kit-level-only module, MetricKit has no prompt and no crash risk from a
-missing entitlement, so `QuoteBoxTests/DiagnosticReportingTests.swift`
-exercises the real reporter's start/stop fully, the same "safe to call for
-real" category `ReviewRequesting` is in.
+`QuoteBox` wires this into a real trigger, following `ReviewRequesting`'s
+exact honesty pattern for an opaque fire-and-forget call:
+`QuoteBoxApp.init()` calls `diagnosticReporter.startReporting()` once per
+launch (real `SystemDiagnosticReporter` in production, `MockDiagnosticReporter`
+under `--mock-*`) and passes a plain `didStartDiagnosticReportingThisLaunch: Bool`
+into `RootView` rather than the reporter itself - this protocol has no status
+read at all, so that honestly reflects only "did our own call fire," the same
+limitation a real app has no way around either. Surfaced as a new
+"Diagnostic Reporting Started" row in the Debug tab's "App" section.
+Validated by the extended
+`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`. Unlike every
+other kit-level-only module, MetricKit also has no prompt and no crash risk
+from a missing entitlement, so
+`Tests/DiagnosticReportingTests/DiagnosticReportingTests.swift` exercises the
+real reporter's start/stop fully too, the same "safe to call for real"
+category `ReviewRequesting` is in.
+
+`stopReporting()` itself previously went uncalled anywhere in `QuoteBox` -
+`RootView` now closes that gap the same way it already does for
+`ClipboardProviding`/a real notifications round trip: a `--real-diagnostics`
+launch argument constructs a real `SystemDiagnosticReporter()` directly
+(independent of `QuoteBoxApp`'s own mock-or-real `diagnosticReporter`) and
+calls `startReporting()` then `stopReporting()` on it, surfacing `"ok"` as a
+new "Start/Stop Call" row in a "Diagnostics" Debug-tab section -
+`MXMetricManager.remove(subscriber:)` is safe to call on a subscriber that
+same instance just added, so this is a genuine same-process round trip.
 
 ### `PushRegistering` (Swift Package product)
 
@@ -1296,8 +1455,15 @@ alongside Tip Jar — same `TipJarStore`, same UI pattern, new
 `store.fetchNewQuote()`, checking entitlement rather than assuming purchase
 success implies an active subscription — a completed purchase can later
 lapse (cancellation, billing failure) without the store observing that
-renewal event directly. Validated via `SKTestSession` in
-`PurchaseSupportTests.testIsEntitledReflectsRealPurchaseUnderTestSession`.
+renewal event directly. Validated two ways: a real lapse, purchase then
+`SKTestSession.expireSubscription(productIdentifier:)`, in
+`QuoteBoxTests/PurchaseSupportRealSessionTests.swift` — deliberately placed
+there rather than in kit-level `PurchaseSupportTests` (a bare SwiftPM test
+bundle with no host app identity, where real StoreKit product lookups
+return nil) since `QuoteBoxTests` runs inside the real `QuoteBox.app`
+process and can actually resolve the product; and at the `TipJarStore`
+level (mock-only, no StoreKit timing risk) in
+`QuoteBoxTests/TipJarStoreTests.testRefreshSupporterStatusReflectsLapseAfterPriorActiveEntitlement`.
 
 **Scope note**, matching this kit's existing honesty pattern
 (`SnapshotTesting`'s and `LocalizationCompletenessChecking`'s scope notes):
@@ -1501,11 +1667,25 @@ import BundleInfoProviding
 let bundleInfo: BundleInfoProviding = MockBundleInfoProvider(appVersion: "2.3", buildNumber: "42")
 ```
 
-Kit-level only. Safe to exercise the real provider for real — a plain,
-synchronous Foundation read — but
-`QuoteBoxTests/BundleInfoProvidingTests.swift` only asserts non-empty, not
-exact values, since it reads whatever the test bundle's own Info.plist
-reports rather than a fixed value.
+`QuoteBox` wires this into two real uses. First, the Debug tab's existing
+"App" section gets a real "Version" row: `QuoteBoxApp.init()` resolves
+`"\(bundleInfo.appVersion) (\(bundleInfo.buildNumber))"` once and passes the
+plain `String` into `RootView` (the same "pass the resolved value, not the
+dependency" shape `ReviewRequesting` uses for `didRequestReviewThisLaunch`) —
+real `SystemBundleInfoProvider` in production, `MockBundleInfoProvider`
+(`"1.0"`/`"1"`) under `--mock-*` for a deterministic UI-test assertion.
+Validated by the extended
+`QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`. Second, both
+`QuoteStore` and `TipJarStore` now take a `bundleInfo: BundleInfoProviding`
+dependency of their own and tag every `AnalyticsLogging` event with an
+`"appVersion"` parameter (see `AnalyticsLogging` above) — a real, common use
+of version info distinct from the Debug-tab display use, and closer to the
+"what's new"/support-footer style use this protocol's own doc comment
+describes than a Debug-only row is. Safe to exercise the real provider for
+real independent of either wiring too — a plain, synchronous Foundation read
+— but `Tests/BundleInfoProvidingTests/BundleInfoProvidingTests.swift` only
+asserts non-empty, not exact values, since it reads whatever the test
+bundle's own Info.plist reports rather than a fixed value.
 
 ### `CellularDataRestrictionChecking` (Swift Package product)
 
@@ -1608,9 +1788,20 @@ let haptics: HapticFeedbackProviding = MockHapticFeedbackProvider()
 await haptics.impact(style: .light)
 ```
 
-Kit-level only. Safe to exercise the real provider for real — no crash on
-the Simulator, just a silent no-op
-(`QuoteBoxTests/HapticFeedbackProvidingTests.swift` does).
+`QuoteBox` wires this into `QuoteStore.toggleFavoriteForCurrentQuote()`: both
+the favorite and unfavorite branches fire `await haptics.impact(style: .light)`
+after saving, gated behind `FeatureFlagging`'s new `"hapticFeedbackEnabled"`
+flag (see `FeatureFlagging` above) — real `SystemHapticFeedbackProvider` in
+production, `MockHapticFeedbackProvider` under `--mock-*`. Since
+`impact(style:)` is `async`, the button action in `QuoteView` wraps the call
+in `Task { await ... }`, the same pattern its "New Quote" button and the
+daily-reminder toggle already used. Validated by
+`QuoteBoxTests/QuoteStoreTests.swift`'s
+`testToggleFavoriteFiresHapticFeedbackWhenFlagEnabled`/
+`testToggleFavoriteDoesNotFireHapticFeedbackWhenFlagDisabled`. Safe to
+exercise the real provider for real independent of that wiring too — no
+crash on the Simulator, just a silent no-op
+(`Tests/HapticFeedbackProvidingTests/HapticFeedbackProvidingTests.swift` does).
 
 ### `IdleTimerControlling` (Swift Package product)
 
@@ -1854,19 +2045,23 @@ let timeline = await WidgetTimelineTesting.collectTimeline(from: provider, in: c
 XCTAssertEqual(timeline.entries.count, 3)
 ```
 
-**Scope note**, matching this kit's existing honesty pattern
-(`SnapshotTesting`'s and `LocalizationCompletenessChecking`'s scope notes):
-QuoteBox has no widget extension target. A real one was evaluated and
-deferred — it would need a new XcodeGen `app-extension` target, a
-widgetkit-extension `Info.plist`, and an App Group entitlement to share
-data with the host app, a materially bigger lift than any other module in
-this kit for a demo app whose job is exercising kit modules, not shipping a
-widget feature. Kit-level only as a result, but not thinly so:
-`QuoteBoxTests/WidgetTimelineTestingTests.swift` drives a dummy provider
-whose data source is real — it reads from the same `CoreDataFavoritesStore`
-fixture `CoreDataFavoritesStoreTests.swift` already uses, so timeline
-entries reflect real (test) favorite-quote data even though nothing renders
-them as widget UI.
+QuoteBox now ships a real widget extension (`QuoteBoxWidget/`), a
+`StaticConfiguration` widget showing the most recently viewed quote, shared
+from the host app via an App Group (`group.com.quotebox.qa`) `UserDefaults`
+suite — `QuoteStore.fetchNewQuote()` writes to it through `SharedQuoteWriting`
+(`QuoteBox/Persistence/SharedQuoteStore.swift`; kept out of the kit since
+`UserDefaultsStoring` deliberately only covers int/bool). The widget's actual
+timeline logic lives in `QuoteWidgetCore`, conforming to this kit's
+`TimelineProviding` with `Context = Void` rather than to WidgetKit's
+`TimelineProvider` directly — the same "can't construct `TimelineProviderContext`"
+problem this module's doc comment describes, worked around by keeping the
+testable logic in a separate type from the thin `QuoteWidgetProvider` adapter
+that WidgetKit's `StaticConfiguration` actually holds.
+`QuoteBoxTests/QuoteWidgetCoreTests.swift` drives that real provider directly
+(seeding/clearing the shared suite), and
+`QuoteBoxTests/WidgetTimelineTestingTests.swift`'s earlier dummy-provider
+test — real `CoreDataFavoritesStore` data, no widget UI — is left in place
+alongside it.
 
 ### `HomeKitAuthorization` (Swift Package product)
 

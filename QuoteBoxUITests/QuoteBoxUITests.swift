@@ -100,11 +100,52 @@ final class QuoteBoxUITests: XCTestCase {
         // button leaves the hierarchy entirely (QuoteView renders tipJar.unavailable
         // instead), and querying .isEnabled on an element that no longer exists
         // throws a hard XCUITest snapshot error rather than returning false.
-        XCTAssertTrue(waitUntil(timeout: 5) {
+        // Known residual flake: .exists and .isEnabled are two separate
+        // accessibility-tree round trips, so a transition landing in between
+        // them can still throw despite this ordering - a 15s timeout gives the
+        // real Product.purchase() round trip (the more common cause of a slow
+        // resolve) enough room, but doesn't eliminate that narrower race.
+        XCTAssertTrue(waitUntil(timeout: 15) {
             let button = app.element("tipJar.button")
             return app.element("tipJar.thankYou").exists || (button.exists && !button.isEnabled)
         })
         XCTAssertFalse(app.element("tipJar.unavailable").exists)
+        try auditIgnoringKnownFalsePositives(app)
+    }
+
+    /// Same shape and reasoning as testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration,
+    /// for the "Become a Supporter" subscription product instead of the one-time
+    /// tip: `--real-purchases` drives an actual `Product.purchase()` call against
+    /// the local StoreKit configuration, and this stops short of the system
+    /// purchase-confirmation sheet for the same reason (owned by a process outside
+    /// the app's own accessibility tree).
+    ///
+    /// Unlike the Tip Jar's `state`, `supporterState` is re-checked for real
+    /// entitlement on every launch (QuoteView's `.task` calls
+    /// `refreshSupporterStatus()`), so a subscription already active from a
+    /// prior run against the same local StoreKit test session can mean
+    /// `supporter.thankYou` is already showing before this test taps anything -
+    /// that still proves the product resolved against the wired configuration,
+    /// so it's treated as success rather than skipped.
+    func testSupporterSubscriptionResolvesAgainstWiredStoreKitConfiguration() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-purchases"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        XCTAssertTrue(waitUntil(timeout: 5) {
+            app.element("supporter.button").exists || app.element("supporter.thankYou").exists
+        })
+
+        if app.element("supporter.button").exists {
+            app.element("supporter.button").tap()
+
+            // Same .exists-before-.isEnabled ordering, and same residual race,
+            // as the Tip Jar test above - see its comment for the caveat.
+            XCTAssertTrue(waitUntil(timeout: 15) {
+                let button = app.element("supporter.button")
+                return app.element("supporter.thankYou").exists || (button.exists && !button.isEnabled)
+            })
+        }
+        XCTAssertFalse(app.element("supporter.unavailable").exists)
         try auditIgnoringKnownFalsePositives(app)
     }
 
@@ -128,6 +169,11 @@ final class QuoteBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["satisfied"].exists)
         // launchCount is 1 here, below reviewRequestThreshold (3).
         XCTAssertTrue(app.staticTexts["false"].exists)
+        // MockBundleInfoProvider defaults to "1.0"/"1" under --mock-*.
+        XCTAssertTrue(app.staticTexts["Version"].exists)
+        XCTAssertTrue(app.staticTexts["1.0 (1)"].exists)
+        // diagnosticReporter.startReporting() always fires once per launch.
+        XCTAssertTrue(app.staticTexts["Diagnostic Reporting Started"].exists)
         try auditIgnoringKnownFalsePositives(app)
     }
 
@@ -170,6 +216,96 @@ final class QuoteBoxUITests: XCTestCase {
                 app.element("quote.newButton").tap()
             }
         }
+    }
+
+    /// Exploratory: tests the theory that a same-process copy-then-read (the
+    /// app reading clipboard content it just wrote itself, inside its own
+    /// bundle identity) is exempt from iOS 16+'s cross-app paste-permission
+    /// alert - unlike ClipboardProvidingTests's bare-XCTest-bundle round trip,
+    /// which hangs indefinitely (CONTRIBUTING.md's Troubleshooting table). If
+    /// this theory is wrong and the alert still appears, the
+    /// addUIInterruptionMonitor below dismisses it so this test fails on a
+    /// normal, bounded assertion instead of consuming this job's full timeout
+    /// the way the earlier attempt did - in that case, the existing skip for
+    /// testSystemProviderRoundTripsAgainstRealPasteboard stays in place and
+    /// this becomes a documented "tried X, still blocked" result, not a
+    /// silent revert.
+    func testDebugTabShowsRealClipboardRoundTrip() throws {
+        let pasteAlertMonitor = addUIInterruptionMonitor(withDescription: "Paste permission alert") { alert in
+            if alert.buttons["Allow Paste"].exists {
+                alert.buttons["Allow Paste"].tap()
+                return true
+            }
+            if alert.buttons["Don't Allow"].exists {
+                alert.buttons["Don't Allow"].tap()
+                return true
+            }
+            return false
+        }
+        defer { removeUIInterruptionMonitor(pasteAlertMonitor) }
+
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-clipboard"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        // The copy/read round trip itself runs in RootView's init, at launch -
+        // before this test issues any query - so the waitForExistence calls
+        // above and below already give XCTest's interruption-monitor check
+        // several chances to catch an alert, with no extra gesture needed.
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        // Audited here, before scrolling - same stable, unscrolled state
+        // testDebugTabShowsLaunchArgumentsAndAppState already audits cleanly.
+        // Auditing mid-scroll (tried first) surfaced a "Text clipped" false
+        // positive on iPhone SE from a row transiently at the screen edge,
+        // unrelated to this row's own content.
+        try auditIgnoringKnownFalsePositives(app)
+
+        // The Clipboard section is the last one added to the Debug list and
+        // can sit below the fold on a smaller screen (iPhone SE) - scroll it
+        // into view rather than relying on it already being visible.
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Round Trip"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["clip-ok"].exists)
+    }
+
+    /// Proves `SystemReminderScheduler` constructs and its one non-prompting
+    /// method (`cancelDailyReminder()`) runs cleanly inside a real host app
+    /// bundle - the crash `CONTRIBUTING.md`'s Troubleshooting table documents
+    /// for the bare-bundle case (`SystemReminderScheduler`'s default `center`
+    /// argument eagerly evaluates `UNUserNotificationCenter.current()`, which
+    /// needs `bundleProxyForCurrentProcess`). Deliberately doesn't touch
+    /// `requestAuthorization()`/`scheduleDailyReminder()` - see the doc
+    /// comment on `--real-notifications` in `RootView.swift` for why that
+    /// half of the real path stays untested.
+    func testDebugTabShowsRealNotificationsSchedulerConstructsWithoutCrashing() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-notifications"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Cancel Call"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["ok"].exists)
+    }
+
+    /// Proves `SystemDiagnosticReporter` constructs and both
+    /// `startReporting()`/`stopReporting()` run cleanly inside a real host
+    /// app bundle - see the doc comment on `--real-diagnostics` in
+    /// `RootView.swift` for why this is a genuine same-process round trip
+    /// rather than a no-op.
+    func testDebugTabShowsRealDiagnosticsStartStopRoundTrip() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-diagnostics"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Start/Stop Call"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["ok"].exists)
     }
 
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via

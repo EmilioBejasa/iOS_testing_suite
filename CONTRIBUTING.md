@@ -149,7 +149,7 @@ SwiftPM resources must live inside the target that references them, so a
 single file can't be pointed at from two test targets. If you need to
 change the StoreKit test configuration, update both copies.
 
-**Four tests are skipped in `swift-test`/`kit-tests-ios` (and their `make`
+**Five tests are skipped in `swift-test`/`kit-tests-ios` (and their `make`
 equivalents)** because they need a real Xcode-built host app bundle to work
 at all — confirmed by each failing consistently, not intermittently, and one
 hanging outright rather than failing:
@@ -159,12 +159,71 @@ hanging outright rather than failing:
 | `PurchaseSupportTests.testFetchAndPurchaseTipProduct` | Real StoreKit product lookup returns nil with no host app identity | `QuoteBoxUITests.testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration` |
 | `PurchaseSupportTests.testIsEntitledReflectsRealPurchaseUnderTestSession` | Same | Same |
 | `AsyncSequenceCollectingTests.testCollectsRealTransactionUpdateAfterExternalPurchase` | Same | Same |
-| `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard` | Hung indefinitely — almost certainly iOS 16+'s paste-permission alert, which a headless process can never dismiss | `MockClipboardProvider` coverage only; no real-pasteboard UI test exists yet |
+| `ClipboardProvidingTests.testSystemProviderRoundTripsAgainstRealPasteboard` | Hung indefinitely — almost certainly iOS 16+'s paste-permission alert, which a headless process can never dismiss | `MockClipboardProvider` coverage only; real round trip now covered by `QuoteBoxUITests.testDebugTabShowsRealClipboardRoundTrip` instead — a same-process copy/read from inside QuoteBox's own bundle identity, surfaced on the Debug tab, doesn't hit the alert the way this bare-bundle attempt does |
 | `IdleTimerControllingTests.testSystemControlRoundTripsAgainstRealApplication` | `UIApplication.shared.isIdleTimerDisabled` writes don't take effect without a real running host app | `MockIdleTimerControl` coverage only |
 
 Mock-backed coverage for all five still runs everywhere. If you add a new
 "real system, mutates real app/OS state" test, expect it to need the same
 treatment until proven otherwise.
+
+`LocalNotificationsTests` (kit-level) has no `SystemReminderScheduler` test
+at all, not even for a nominally non-prompting call like
+`cancelDailyReminder()`: `SystemReminderScheduler`'s default `center`
+argument eagerly evaluates `UNUserNotificationCenter.current()`, which
+crashes with `"bundleProxyForCurrentProcess is nil"` outside a real host app
+bundle - confirmed by CI on both `swift test` and `xcodebuild test -scheme
+iOSTestKit-Package`. `MockReminderScheduler` coverage only there.
+
+`QuoteBoxUITests.testDebugTabShowsRealNotificationsSchedulerConstructsWithoutCrashing`
+closes half of that gap for real: a `--real-notifications` launch flag
+(`RootView.swift`'s `init`) constructs `SystemReminderScheduler()` inside the
+real `QuoteBox.app` host bundle and calls `cancelDailyReminder()` - safe
+because it only calls `UNUserNotificationCenter.removePendingNotificationRequests`,
+which never prompts, surfacing the result on the Debug tab. The other half -
+`requestAuthorization()`/`scheduleDailyReminder()` - stays deliberately
+untested for real: `QuoteStore.toggleDailyReminder()` is the only production
+path to `scheduleDailyReminder`, and it only reaches it after
+`requestAuthorization()` returns `.authorized`, which triggers a real,
+un-dismissable-by-construction system permission dialog with no same-process
+loophole the way Clipboard's same-source read has. No CI-level simulator
+pre-authorization step exists in this repo to work around that, so this
+stays a `MockReminderScheduler`-only path in `QuoteStoreTests`/`QuoteBoxUITests`.
+
+Two ways to close that other half were investigated and both rejected, so
+this is a permanent, accepted gap rather than an open TODO:
+`xcrun simctl privacy grant <service> <bundle-id>` can pre-grant several
+permissions before a UI test runs (location, contacts, photos, calendar,
+reminders, microphone, motion, siri), but as of this writing has no
+`notifications` service to grant - confirmed against `simctl privacy help`'s
+service list and a still-open Apple Radar tracking the same gap (FB7566382,
+"Missing services in simctl privacy"), so there's no pre-authorization step
+to add here even in principle. `addUIInterruptionMonitor` - XCUITest's
+documented mechanism for dismissing exactly this class of system alert, and
+already used in this repo for Clipboard's paste-permission alert - would
+technically work, but doing so here would mean writing a UI test that
+depends on reliably dismissing a real system permission prompt: precisely
+the class of fragile, OS-version-dependent hack `ReminderScheduling`'s own
+doc comment says this kit's protocol+real+fake shape exists to avoid, and
+the same reasoning `LocationAuthorization`'s `.notDetermined` avoidance and
+`DeepLinkTesting`'s avoidance of the native "Open in App" confirmation
+already apply elsewhere in this kit. Consistency with that principle across
+the whole kit outweighs closing this one gap.
+
+**`SnapshotTesting`-based tests only run on one device in CI** (`iPhone 16`,
+via `reusable-test.yml`'s `snapshot_reference_device`/
+`snapshot_testing_identifiers` inputs, wired in `ci.yml`), not the full
+`test` job device matrix. `assertSnapshot`'s `UIWindow`-hosted renderer
+(needed so `List`/`ScrollView`/`NavigationStack`/`TabView` content actually
+lays out - see `SnapshotTesting`'s README entry) ties the render to the host
+simulator's native display scale: iPhone SE and iPad (both @2x native)
+produced different PNG bytes than the iPhone-16-recorded (@3x native)
+reference for the exact same content, confirmed even for `QuoteContentView`
+(no size-class- or Dynamic-Type-sensitive layout at all) after pinning
+`dynamicTypeSize`/`horizontalSizeClass` explicitly made no difference -
+ruling out an environment gap in favor of native-scale-dependent text
+hinting below the layer `assertSnapshot` can reach. If you add a new
+`SnapshotTesting`-based test, expect it to need the same treatment
+(added to `snapshot_testing_identifiers`) until proven otherwise.
 
 ## Pull requests
 

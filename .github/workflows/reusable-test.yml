@@ -31,6 +31,23 @@ on:
         required: false
         type: string
         default: ""
+      snapshot_reference_device:
+        description: >-
+          The one device name (matching an entry in `devices`) whose native
+          display scale/text rendering `snapshot_testing_identifiers`'
+          reference images were recorded against. Those identifiers are
+          skipped on every other device in the matrix. Empty (default)
+          applies no such exclusion.
+        required: false
+        type: string
+        default: ""
+      snapshot_testing_identifiers:
+        description: >-
+          Space-separated test identifiers (pixel-comparison snapshot tests)
+          to skip on every device except `snapshot_reference_device`.
+        required: false
+        type: string
+        default: ""
       coverage_baseline_file:
         description: Path to a file containing the minimum acceptable line-coverage percentage. Skipped when empty.
         required: false
@@ -40,7 +57,7 @@ on:
 jobs:
   test:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -67,12 +84,19 @@ jobs:
           SCHEME: ${{ inputs.scheme }}
           DEVICE_NAME: ${{ matrix.destination_name }}
           SKIP_TESTING: ${{ inputs.skip_testing }}
+          SNAPSHOT_REFERENCE_DEVICE: ${{ inputs.snapshot_reference_device }}
+          SNAPSHOT_TESTING_IDENTIFIERS: ${{ inputs.snapshot_testing_identifiers }}
           ENABLE_COVERAGE: ${{ inputs.enable_coverage }}
         run: |
           SKIP_ARGS=()
           for id in $SKIP_TESTING; do
             SKIP_ARGS+=("-skip-testing:$id")
           done
+          if [ -n "$SNAPSHOT_REFERENCE_DEVICE" ] && [ "$DEVICE_NAME" != "$SNAPSHOT_REFERENCE_DEVICE" ]; then
+            for id in $SNAPSHOT_TESTING_IDENTIFIERS; do
+              SKIP_ARGS+=("-skip-testing:$id")
+            done
+          fi
 
           COVERAGE_FLAG="NO"
           if [ "$ENABLE_COVERAGE" = "true" ]; then
@@ -85,10 +109,15 @@ jobs:
           # regression still fails fast instead of being silently retried.
           #
           # This pattern is tuned to QuoteBox's own known flakes, not a generic
-          # baseline - notably the `tipJar\.button` snapshot-mismatch signature
-          # below is specific to QuoteBox's tip jar UI. A repo calling this
-          # reusable workflow should extend or replace KNOWN_FLAKE_PATTERN with
-          # its own known flakes rather than assume this list applies to it.
+          # baseline - notably the `tipJar\.button`/`supporter\.button` "Failed
+          # to get matching snapshot" signature below is specific to QuoteBox's
+          # real-StoreKit-purchase UI tests: both tap a button whose accessibility
+          # element can transiently fail to resolve on iPad's accessibility tree
+          # (same root cause, same failure shape, confirmed independently for
+          # each button - not a generic "any element not found" catch-all, which
+          # would also swallow a real regression). A repo calling this reusable
+          # workflow should extend or replace KNOWN_FLAKE_PATTERN with its own
+          # known flakes rather than assume this list applies to it.
           #
           # testCollectsRealTransactionUpdateAfterPurchase's two failure modes
           # (Transaction.updates never posting within the timeout, or the
@@ -97,7 +126,18 @@ jobs:
           # that one test's known signatures rather than "any failure in
           # AsyncSequenceCollectingTests", so a real regression in
           # AsyncSequenceCollecting.collect() itself still fails fast.
-          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*tipJar\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)'
+          #
+          # testQuoteContentViewLoadedNewLayoutAccessibility3/
+          # testRootViewQuoteTabLoaded/testQuoteViewErrorState fail
+          # intermittently on phone-class simulators with a several-hundred-byte
+          # mismatch against the committed reference PNG (confirmed not a stale
+          # reference - a fresh local re-recording is byte-identical to what's
+          # committed), most likely Xcode's randomized test-order leaving the
+          # font/rendering cache in a slightly different state depending on
+          # whatever ran immediately before. Matched narrowly by test name so a
+          # genuine layout regression in QuoteContentView/RootView still fails
+          # fast.
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*(tipJar|supporter)\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)|(testQuoteContentViewLoadedNewLayoutAccessibility3|testRootViewQuoteTabLoaded|testQuoteViewErrorState)\].*doesn.t match the reference image'
 
           attempt=1
           max_attempts=3
@@ -141,7 +181,13 @@ jobs:
           " | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Enforce coverage floor
-        if: always() && inputs.enable_coverage && inputs.coverage_baseline_file != ''
+        # Only gate the device actually running the full test suite - when
+        # snapshot_reference_device skips some tests on every other device,
+        # those devices' own coverage numbers are expected to be lower by
+        # design, not a regression to fail on.
+        if: >-
+          always() && inputs.enable_coverage && inputs.coverage_baseline_file != '' &&
+          (inputs.snapshot_reference_device == '' || matrix.destination_name == inputs.snapshot_reference_device)
         run: |
           pct=$(python3 -c "import json; print(json.load(open('coverage.json'))['lineCoverage']*100)")
           baseline=$(cat "${{ inputs.coverage_baseline_file }}" 2>/dev/null || echo 0)
