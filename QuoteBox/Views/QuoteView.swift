@@ -17,7 +17,7 @@ struct QuoteView: View {
 
                     if case .loaded = store.state {
                         Button(store.isCurrentQuoteFavorited ? "Unfavorite" : "Favorite") {
-                            store.toggleFavoriteForCurrentQuote()
+                            Task { await store.toggleFavoriteForCurrentQuote() }
                         }
                         .accessibilityIdentifier("quote.favoriteButton")
                     }
@@ -92,7 +92,7 @@ struct QuoteView: View {
             ProgressView("Loading...")
                 .accessibilityIdentifier("quote.loading")
         case .loaded(let quote):
-            QuoteContentView(quote: quote)
+            QuoteContentView(quote: quote, usesNewLayout: store.usesNewQuoteLayout)
         case .error(let message):
             Text(message)
                 .multilineTextAlignment(.center)

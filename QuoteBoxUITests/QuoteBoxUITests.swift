@@ -166,6 +166,11 @@ final class QuoteBoxUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["satisfied"].exists)
         // launchCount is 1 here, below reviewRequestThreshold (3).
         XCTAssertTrue(app.staticTexts["false"].exists)
+        // MockBundleInfoProvider defaults to "1.0"/"1" under --mock-*.
+        XCTAssertTrue(app.staticTexts["Version"].exists)
+        XCTAssertTrue(app.staticTexts["1.0 (1)"].exists)
+        // diagnosticReporter.startReporting() always fires once per launch.
+        XCTAssertTrue(app.staticTexts["Diagnostic Reporting Started"].exists)
         try auditIgnoringKnownFalsePositives(app)
     }
 
@@ -279,6 +284,24 @@ final class QuoteBoxUITests: XCTestCase {
 
         app.element("debugOverlay.list").swipeUp()
         XCTAssertTrue(app.staticTexts["Cancel Call"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["ok"].exists)
+    }
+
+    /// Proves `SystemDiagnosticReporter` constructs and both
+    /// `startReporting()`/`stopReporting()` run cleanly inside a real host
+    /// app bundle - see the doc comment on `--real-diagnostics` in
+    /// `RootView.swift` for why this is a genuine same-process round trip
+    /// rather than a no-op.
+    func testDebugTabShowsRealDiagnosticsStartStopRoundTrip() throws {
+        let app = XCUIApplication().launched(withArguments: ["--mock-success", "--real-diagnostics"])
+        XCTAssertTrue(app.element("quote.text").waitForExistence(timeout: 5))
+
+        app.tab("Debug").tap()
+        XCTAssertTrue(app.element("debugOverlay.list").waitForExistence(timeout: 5))
+        try auditIgnoringKnownFalsePositives(app)
+
+        app.element("debugOverlay.list").swipeUp()
+        XCTAssertTrue(app.staticTexts["Start/Stop Call"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["ok"].exists)
     }
 

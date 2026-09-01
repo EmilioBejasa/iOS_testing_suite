@@ -1,5 +1,6 @@
 import ClipboardProviding
 import DebugOverlay
+import DiagnosticReporting
 import LocalNotifications
 import SwiftUI
 
@@ -18,8 +19,11 @@ struct RootView: View {
     @Binding private var route: QuoteBoxRoute?
     private let launchCount: Int
     private let didRequestReviewThisLaunch: Bool
+    private let appVersionString: String
+    private let didStartDiagnosticReportingThisLaunch: Bool
     private let clipboardRoundTripResult: String?
     private let notificationsCancelResult: String?
+    private let diagnosticsStartStopResult: String?
 
     /// Not a real secret - only needs to be a value the UI test can assert on
     /// verbatim after the round trip. Kept short: the Debug tab's row value
@@ -33,12 +37,16 @@ struct RootView: View {
         tipJarStore: TipJarStore,
         launchCount: Int,
         didRequestReviewThisLaunch: Bool,
+        appVersionString: String,
+        didStartDiagnosticReportingThisLaunch: Bool,
         route: Binding<QuoteBoxRoute?>
     ) {
         _store = State(initialValue: store)
         _tipJarStore = State(initialValue: tipJarStore)
         self.launchCount = launchCount
         self.didRequestReviewThisLaunch = didRequestReviewThisLaunch
+        self.appVersionString = appVersionString
+        self.didStartDiagnosticReportingThisLaunch = didStartDiagnosticReportingThisLaunch
         _route = route
         if case .favorites = route.wrappedValue {
             _selectedTab = State(initialValue: .favorites)
@@ -77,6 +85,27 @@ struct RootView: View {
         } else {
             notificationsCancelResult = nil
         }
+
+        diagnosticsStartStopResult = Self.resolveDiagnosticsStartStopResult()
+    }
+
+    // --real-diagnostics constructs SystemDiagnosticReporter for real and
+    // calls both startReporting()/stopReporting(), surfaced on the Debug tab.
+    // QuoteBoxApp's own diagnosticReporter (production or mock, depending on
+    // launch mode) only ever calls startReporting() once at launch -
+    // stopReporting() otherwise goes uncalled anywhere in the app, the same
+    // gap the clipboard/notifications blocks above close for their own
+    // protocols. MXMetricManager.remove(subscriber:) is safe to call on a
+    // subscriber that was just added by this same instance, so this is a
+    // genuine same-process round trip rather than a no-op. Split out of
+    // init() to keep its body under function_body_length's limit (889f39a
+    // already hit this once for makeDependencies).
+    private static func resolveDiagnosticsStartStopResult() -> String? {
+        guard ProcessInfo.processInfo.arguments.contains("--real-diagnostics") else { return nil }
+        let reporter = SystemDiagnosticReporter()
+        reporter.startReporting()
+        reporter.stopReporting()
+        return "ok"
     }
 
     var body: some View {
@@ -121,7 +150,9 @@ struct RootView: View {
             .launchArguments(),
             DebugSection("App", rows: [
                 DebugRow("Launch Count", "\(launchCount)"),
-                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)")
+                DebugRow("Requested Review This Launch", "\(didRequestReviewThisLaunch)"),
+                DebugRow("Version", appVersionString),
+                DebugRow("Diagnostic Reporting Started", "\(didStartDiagnosticReportingThisLaunch)")
             ]),
             DebugSection("Quote", rows: [
                 DebugRow("State", String(describing: store.state)),
@@ -141,6 +172,11 @@ struct RootView: View {
         if let notificationsCancelResult {
             sections.append(DebugSection("Notifications", rows: [
                 DebugRow("Cancel Call", notificationsCancelResult)
+            ]))
+        }
+        if let diagnosticsStartStopResult {
+            sections.append(DebugSection("Diagnostics", rows: [
+                DebugRow("Start/Stop Call", diagnosticsStartStopResult)
             ]))
         }
         return sections

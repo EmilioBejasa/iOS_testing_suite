@@ -44,6 +44,18 @@ targets:
         product: ReviewRequesting
       - package: iOSTestKit
         product: ClipboardProviding
+      - package: iOSTestKit
+        product: AnalyticsLogging
+      - package: iOSTestKit
+        product: FeatureFlagging
+      - package: iOSTestKit
+        product: AsyncSleeping
+      - package: iOSTestKit
+        product: BundleInfoProviding
+      - package: iOSTestKit
+        product: DiagnosticReporting
+      - package: iOSTestKit
+        product: HapticFeedbackProviding
       - target: QuoteBoxWidget
         embed: true
     info:
@@ -131,6 +143,18 @@ targets:
         product: MemoryLeakDetection
       - package: iOSTestKit
         product: WidgetTimelineTesting
+      - package: iOSTestKit
+        product: AnalyticsLogging
+      - package: iOSTestKit
+        product: FeatureFlagging
+      - package: iOSTestKit
+        product: AsyncSleeping
+      - package: iOSTestKit
+        product: BundleInfoProviding
+      - package: iOSTestKit
+        product: DiagnosticReporting
+      - package: iOSTestKit
+        product: HapticFeedbackProviding
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.quotebox.qa.tests

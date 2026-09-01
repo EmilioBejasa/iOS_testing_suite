@@ -1,4 +1,5 @@
 import XCTest
+import AsyncSleeping
 import PurchaseSupport
 import SnapshotTesting
 @testable import QuoteBox
@@ -23,6 +24,32 @@ final class QuoteViewSnapshotTests: XCTestCase {
             size: CGSize(width: 300, height: 400),
             dynamicTypeSize: .accessibility3,
             named: "loaded-accessibility3"
+        )
+    }
+
+    /// The `"newQuoteLayout"` `FeatureFlagging` variant of the two snapshots
+    /// above, resolved by `QuoteStore.usesNewQuoteLayout` and passed down as
+    /// `QuoteContentView.usesNewLayout` in real use - snapshotted directly
+    /// here the same way the default-layout tests do, without needing a
+    /// `QuoteStore`/`MockFeatureFlags` in between.
+    func testQuoteContentViewLoadedNewLayout() {
+        let quote = Quote(id: 1, quote: "The only way to do great work is to love what you do.", author: "Steve Jobs")
+
+        assertSnapshot(
+            of: QuoteContentView(quote: quote, usesNewLayout: true),
+            size: CGSize(width: 300, height: 150),
+            named: "loaded-newLayout"
+        )
+    }
+
+    func testQuoteContentViewLoadedNewLayoutAccessibility3() {
+        let quote = Quote(id: 1, quote: "The only way to do great work is to love what you do.", author: "Steve Jobs")
+
+        assertSnapshot(
+            of: QuoteContentView(quote: quote, usesNewLayout: true),
+            size: CGSize(width: 300, height: 400),
+            dynamicTypeSize: .accessibility3,
+            named: "loaded-newLayout-accessibility3"
         )
     }
 
@@ -72,11 +99,16 @@ final class QuoteViewSnapshotTests: XCTestCase {
     }
 
     /// Same pre-fetch technique as testQuoteViewLoadedState, for the `.error`
-    /// branch of QuoteView's content switch instead of `.loaded`.
+    /// branch of QuoteView's content switch instead of `.loaded`. Still uses
+    /// `.requestFailed` (matching the existing "error" reference image's
+    /// text) rather than switching error types - `.requestFailed` is now
+    /// transient and retries with backoff (see `QuoteStoreTests`), so a
+    /// `MockSleeper` keeps that retry instant instead of racing real delays.
     func testQuoteViewErrorState() async {
         let store = QuoteStore(
             apiClient: MockQuoteAPIClient(mode: .failure(.requestFailed)),
-            favoritesStore: InMemoryFavoritesStore()
+            favoritesStore: InMemoryFavoritesStore(),
+            sleeper: MockSleeper()
         )
         await store.fetchNewQuote()
         let tipJarStore = TipJarStore(purchaseManager: MockPurchaseManager())
