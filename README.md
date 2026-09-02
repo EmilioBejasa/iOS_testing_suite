@@ -14,14 +14,33 @@ wasn't accidentally coupled to Weather's specifics — different API shape
 `TabView`, not `ObservableObject` MVVM + `NavigationStack`), different testing
 surface (local persistence, not just network).
 
-## Installation
+## Getting Started
 
-Add iOSTestKit as a Swift Package dependency, then depend on only the
-individual products you need — not all 59.
+### 1. Add the package
+
+**In Xcode:** File → Add Package Dependencies… → paste the URL below → pick
+a version rule → select the product(s) you need.
+
+```
+https://github.com/EmilioBejasa/iOS_testing_suite
+```
+
+**In a `Package.swift` manifest:**
 
 ```swift
-.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.1")
+dependencies: [
+    .package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.1")
+]
 ```
+
+### 2. Pick your modules
+
+Browse the [table of contents](#whats-reusable) below — 59 independent
+products grouped by theme (permissions, device/app state, persistence &
+networking, testing infrastructure, app behavior). Add only what you use;
+each `.library` target is standalone, with no dependencies between modules.
+
+### 3. Depend on what you picked
 
 ```swift
 .target(
@@ -35,26 +54,30 @@ individual products you need — not all 59.
 
 The `package:` argument matches the repository name in the URL
 (`iOS_testing_suite`), not the `name:` field declared in `Package.swift`
-(`iOSTestKit`) — SPM resolves package identity from the URL. Individual
-product names (`NetworkStub`, `KeychainStore`, ...) come from `Package.swift`.
+(`iOSTestKit`) — SPM resolves package identity from the URL. Product names
+(`NetworkStub`, `KeychainStore`, ...) come from `Package.swift`.
 
-Browse the [table of contents](#whats-reusable) below to see all 59
-available products grouped by theme and add only what you use — each
-`.library` target is independent.
+### 4. Use it
 
-In Xcode: **File → Add Package Dependencies…** → paste the repo URL above →
-pick a version rule → select the specific product(s) you need.
+Every module follows the same protocol / real-implementation / fake shape —
+see [How a module works](#how-a-module-works) just below. A minimal
+end-to-end example with `NetworkStub`:
 
-## Developing this kit
+```swift
+import NetworkStub
 
-To work on the kit itself (not just consume it):
+let configuration = URLSessionConfiguration.ephemeral
+configuration.protocolClasses = [URLProtocolStub.self]
+let session = URLSession(configuration: configuration)
 
-```sh
-git clone https://github.com/EmilioBejasa/iOS_testing_suite
-cd iOS_testing_suite
-make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if missing
-open QuoteBox.xcodeproj
+URLProtocolStub.handler = { request in
+    let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+    return (response, cannedJSON)
+}
 ```
+
+Each module's own section in the [table of contents](#whats-reusable) has an
+example just like this one.
 
 ## How a module works
 
@@ -172,13 +195,37 @@ protocol/real-impl/fake-impl trio, just wrapping a different system API
 
 </details>
 
-### `NetworkStub` (Swift Package product)
+## Developing this kit
+
+Want to work on the kit itself — add a module, fix a bug, run its own test
+suite — rather than just consume it?
+
+```sh
+git clone https://github.com/EmilioBejasa/iOS_testing_suite
+cd iOS_testing_suite
+make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if missing
+open QuoteBox.xcodeproj
+```
+
+| Command | What it runs |
+|---|---|
+| `make test-kit` | `swift test` — the macOS-buildable subset of the kit's unit tests |
+| `make test-kit-ios` | Kit tests that need an iOS Simulator (UIKit/HealthKit/etc.-backed modules) |
+| `make test-app` | `QuoteBoxTests`/`QuoteBoxUITests` against the demo app |
+| `make lint` | `swiftlint lint --strict` |
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the module-authoring pattern and
+pull request conventions.
+
+<a id="networkstub-swift-package-product"></a>
+<details>
+<summary><code>NetworkStub</code> (Swift Package product)</summary>
 
 `URLProtocolStub` intercepts requests on a configured `URLSession` so any
 `URLSession`-based network client can be tested against canned responses. The only
 requirement on the app side is that the client accepts an injectable `URLSession`.
 
-See [Installation](#installation) for how to add this package as a
+See [Getting Started](#getting-started) for how to add this package as a
 dependency — the target-dependency name is `NetworkStub`.
 
 ```swift
@@ -194,7 +241,11 @@ URLProtocolStub.handler = { request in
 }
 ```
 
-### `UITestHelpers` (Swift Package product)
+</details>
+
+<a id="uitesthelpers-swift-package-product"></a>
+<details>
+<summary><code>UITestHelpers</code> (Swift Package product)</summary>
 
 An `XCUIApplication` extension for looking up elements by accessibility identifier
 without guessing which `XCUIElementType` SwiftUI backed it with, plus a small
@@ -261,7 +312,11 @@ repeatedly tapping "New Quote" to put `QuoteStore`'s fetch-and-replace cycle
 (network stub round trip + view re-render) through enough iterations to be
 worth profiling.
 
-### `MemoryLeakDetection` (Swift Package product)
+</details>
+
+<a id="memoryleakdetection-swift-package-product"></a>
+<details>
+<summary><code>MemoryLeakDetection</code> (Swift Package product)</summary>
 
 A third module shape, alongside `UITestHelpers`: an `XCTestCase` extension
 usable only from a test target, not a protocol+`System`+`Mock` triad or a
@@ -292,7 +347,11 @@ QuoteBox's real reference-counted stores — `QuoteStore`, `TipJarStore`,
 `CoreDataFavoritesStore` — each run through one real lifecycle action
 (fetch, purchase, save) before being released.
 
-### `AsyncSleeping` (Swift Package product)
+</details>
+
+<a id="asyncsleeping-swift-package-product"></a>
+<details>
+<summary><code>AsyncSleeping</code> (Swift Package product)</summary>
 
 The async counterpart to `TimeControl`'s `DateProviding` — that lets app code
 ask "what time is it?" through an injectable dependency instead of calling
@@ -333,7 +392,11 @@ also exercises `SystemSleeper` for real with a short duration: unlike the
 permission-gated modules above, there's no system prompt or crash risk here,
 just an actual (brief) wait.
 
-### `AsyncSequenceCollecting` (Swift Package product)
+</details>
+
+<a id="asyncsequencecollecting-swift-package-product"></a>
+<details>
+<summary><code>AsyncSequenceCollecting</code> (Swift Package product)</summary>
 
 Not a protocol+real+fake module — there's nothing to fake, it's already a
 pure, deterministic function, same "single-purpose utility" shape as
@@ -385,7 +448,11 @@ deterministically (0 collected, 3/3 retries, every device) even after
 widening the timeout and adding a pre-purchase delay, which ruled out a
 timing race — the actual problem was the documented contract, not timing.
 
-### `FeatureFlagging` (Swift Package product)
+</details>
+
+<a id="featureflagging-swift-package-product"></a>
+<details>
+<summary><code>FeatureFlagging</code> (Swift Package product)</summary>
 
 The one module pair in this kit (with `AnalyticsLogging` below) that doesn't
 wrap a single Apple framework — every other module here wraps a real system
@@ -434,7 +501,11 @@ never prompt or crash, so
 `SystemFeatureFlags` against a real (scratch, suite-scoped) `UserDefaults`
 instance, not just the mock.
 
-### `AnalyticsLogging` (Swift Package product)
+</details>
+
+<a id="analyticslogging-swift-package-product"></a>
+<details>
+<summary><code>AnalyticsLogging</code> (Swift Package product)</summary>
 
 Same scope as `FeatureFlagging`: lets app code report an analytics event
 through an injectable dependency instead of calling a hardcoded analytics SDK
@@ -496,7 +567,11 @@ independent of that wiring: logging never prompts or crashes, so
 `Tests/AnalyticsLoggingTests/AnalyticsLoggingTests.swift` exercises
 `SystemAnalyticsLogger` for real too, not just the mock.
 
-### `TimeControl` (Swift Package product)
+</details>
+
+<a id="timecontrol-swift-package-product"></a>
+<details>
+<summary><code>TimeControl</code> (Swift Package product)</summary>
 
 A `DateProviding` protocol so app code asks "what time is it?" through an
 injectable dependency instead of calling `Date()` directly — the same
@@ -512,7 +587,11 @@ let store = MyStore(dateProvider: dateProvider)
 dateProvider.currentDate.addTimeInterval(60) // simulate a minute passing, no real sleep
 ```
 
-### `NetworkReachabilityMonitoring` (Swift Package product)
+</details>
+
+<a id="networkreachabilitymonitoring-swift-package-product"></a>
+<details>
+<summary><code>NetworkReachabilityMonitoring</code> (Swift Package product)</summary>
 
 Distinct from `NetworkStub` — that intercepts individual request/response pairs
 on a `URLSession`; this reports the device's actual connectivity state.
@@ -539,7 +618,11 @@ real monitor is only constructed, never started — `NWPathMonitor.start(queue:)
 runs indefinitely with no synchronous "did it work" signal worth asserting on in
 a unit test) and the extended `QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`.
 
-### `KeychainStore` (Swift Package product)
+</details>
+
+<a id="keychainstore-swift-package-product"></a>
+<details>
+<summary><code>KeychainStore</code> (Swift Package product)</summary>
 
 A `KeychainStoring` protocol so app code isn't tied to `Security` framework calls
 directly — same protocol+real+fake shape as `TimeControl`/`FavoritesStoring`.
@@ -565,7 +648,11 @@ entitlement Keychain access requires never gets embedded. It still runs and
 validates real Keychain access normally on a signed build (a real device, or CI
 with signing configured).
 
-### `UserDefaultsStore` (Swift Package product)
+</details>
+
+<a id="userdefaultsstore-swift-package-product"></a>
+<details>
+<summary><code>UserDefaultsStore</code> (Swift Package product)</summary>
 
 A `UserDefaultsStoring` protocol, same protocol+real+fake shape as
 `KeychainStore` — scoped to the two most common `UserDefaults` use cases
@@ -590,7 +677,11 @@ both implementations, mirroring `KeychainStoreTests.swift`'s pattern — no
 entitlement/signing concern here, so no skip path is needed) and
 `QuoteBoxUITests.testDebugTabShowsLaunchArgumentsAndAppState`.
 
-### `ReviewRequesting` (Swift Package product)
+</details>
+
+<a id="reviewrequesting-swift-package-product"></a>
+<details>
+<summary><code>ReviewRequesting</code> (Swift Package product)</summary>
 
 Fire-and-forget by design, matching `AppStore.requestReview(in:)` itself: no
 return value, and no way for any app — including the real one — to know whether
@@ -623,7 +714,11 @@ force it to `3` deterministically.
 real — unlike `PushRegistering`/`AppleSignIn`'s prompting halves, this is
 genuinely side-effect-safe, so there's nothing to avoid.
 
-### `CoreDataTestSupport` (Swift Package product)
+</details>
+
+<a id="coredatatestsupport-swift-package-product"></a>
+<details>
+<summary><code>CoreDataTestSupport</code> (Swift Package product)</summary>
 
 `InMemoryPersistentContainer.make(modelName:bundle:)` builds an `NSPersistentContainer`
 backed by an in-memory store instead of on-disk SQLite, loaded synchronously — works
@@ -642,7 +737,11 @@ production persistence (`QuoteBoxApp` builds a real on-disk container), and
 `QuoteBoxTests/CoreDataFavoritesStoreTests.swift` proves it with the in-memory
 container above — the same relationship `NetworkStub` has to the real `QuoteAPIClient`.
 
-### `SwiftDataTestSupport` (Swift Package product)
+</details>
+
+<a id="swiftdatatestsupport-swift-package-product"></a>
+<details>
+<summary><code>SwiftDataTestSupport</code> (Swift Package product)</summary>
 
 `InMemoryModelContainer.make(for:)` builds a `ModelContainer` backed by an
 in-memory store instead of SQLite on disk — the SwiftData counterpart to
@@ -673,7 +772,11 @@ against a throwaway `@Model` type defined just for that test file instead,
 the same "no natural QuoteBox need" treatment `KeychainStore`/
 `LocationAuthorization` give their own kit-level-only modules.
 
-### `LocalNotifications` (Swift Package product)
+</details>
+
+<a id="localnotifications-swift-package-product"></a>
+<details>
+<summary><code>LocalNotifications</code> (Swift Package product)</summary>
 
 A `ReminderScheduling` protocol demonstrating the pattern for testing any
 permission-gated system service: request authorization and act through an
@@ -700,7 +803,11 @@ if status == .authorized {
 argument (mirroring `--mock-error`) to exercise the denied-permission UI path
 deterministically.
 
-### `SnapshotTesting` (Swift Package product)
+</details>
+
+<a id="snapshottesting-swift-package-product"></a>
+<details>
+<summary><code>SnapshotTesting</code> (Swift Package product)</summary>
 
 `assertSnapshot(of:size:named:)` renders a SwiftUI view via `ImageRenderer` (iOS
 16+) and compares it against a reference PNG checked into the repo next to the
@@ -786,7 +893,11 @@ the device its references were recorded against (`iPhone 16`, via
 `snapshot_testing_identifiers` inputs) rather than on the full device
 matrix.
 
-### `DeepLinkTesting` (Swift Package product)
+</details>
+
+<a id="deeplinktesting-swift-package-product"></a>
+<details>
+<summary><code>DeepLinkTesting</code> (Swift Package product)</summary>
 
 `DeepLinkSource.url(from:)` looks for `--deep-link <url>` in launch arguments.
 `XCUIDevice.shared.system.open(url:)` — the obvious way to test deep links — opens
@@ -836,7 +947,11 @@ domain — no real Associated Domains entitlement was added, same reasoning
 `QuoteBoxApp` drives the same `route` binding from `.onContinueUserActivity`
 alongside `.onOpenURL`.
 
-### `LocationAuthorization` (Swift Package product)
+</details>
+
+<a id="locationauthorization-swift-package-product"></a>
+<details>
+<summary><code>LocationAuthorization</code> (Swift Package product)</summary>
 
 A second permission-gated system service, following `LocalNotifications`'s
 protocol+real+fake shape. Uses `CLAuthorizationStatus` directly (CoreLocation's
@@ -861,7 +976,11 @@ dismiss headlessly — unlike `LocalNotifications`, where `--mock-*` launch
 arguments keep the real permission API out of UI tests entirely, testing that
 same interactive path here would risk hanging the run, not just failing it.
 
-### `PhotoLibraryAuthorization` (Swift Package product)
+</details>
+
+<a id="photolibraryauthorization-swift-package-product"></a>
+<details>
+<summary><code>PhotoLibraryAuthorization</code> (Swift Package product)</summary>
 
 A third permission-gated system service, following the same protocol+real+fake
 shape. Uses `PHAuthorizationStatus` directly (Photos' own richer type —
@@ -885,7 +1004,11 @@ never call `requestAuthorization()` against the real authorizer — only the saf
 non-prompting `currentAuthorizationStatus()` read
 (`QuoteBoxTests/PhotoLibraryAuthorizationTests.swift`).
 
-### `ContactsAuthorization` (Swift Package product)
+</details>
+
+<a id="contactsauthorization-swift-package-product"></a>
+<details>
+<summary><code>ContactsAuthorization</code> (Swift Package product)</summary>
 
 A fourth permission-gated system service, same protocol+real+fake shape again.
 Uses `CNAuthorizationStatus` directly, same reasoning as the others for keeping
@@ -908,7 +1031,11 @@ authorizer — only the safe, non-prompting, static
 `CNContactStore.authorizationStatus(for:)` read
 (`QuoteBoxTests/ContactsAuthorizationTests.swift`).
 
-### `BiometricAuthentication` (Swift Package product)
+</details>
+
+<a id="biometricauthentication-swift-package-product"></a>
+<details>
+<summary><code>BiometricAuthentication</code> (Swift Package product)</summary>
 
 Face ID/Touch ID doesn't fit the permission-status shape the way Location/Photos
 do: `LAContext` has no persisted "authorization status" to read back later, only
@@ -934,7 +1061,11 @@ tests the mock fully, and the real authenticator is only exercised via
 `canEvaluate()` — never `evaluate()`, which would trigger the real,
 headless-undismissable Face ID/Touch ID system prompt.
 
-### `CameraAuthorization` (Swift Package product)
+</details>
+
+<a id="cameraauthorization-swift-package-product"></a>
+<details>
+<summary><code>CameraAuthorization</code> (Swift Package product)</summary>
 
 A fifth permission-gated system service, same protocol+real+fake shape as
 `LocationAuthorization`/`PhotoLibraryAuthorization`/`ContactsAuthorization`.
@@ -961,7 +1092,11 @@ a quotes app has no natural need for the camera, and automated tests never call
 `Info.plist` has no `NSCameraUsageDescription` key, so it would crash the test
 host outright rather than show a dialog XCTest merely can't dismiss.
 
-### `MicrophoneAuthorization` (Swift Package product)
+</details>
+
+<a id="microphoneauthorization-swift-package-product"></a>
+<details>
+<summary><code>MicrophoneAuthorization</code> (Swift Package product)</summary>
 
 A sixth permission-gated system service, same shape as `CameraAuthorization`.
 Deliberately checks the `.audio` media type through `AVCaptureDevice` rather
@@ -987,7 +1122,11 @@ Same "kit-level only" treatment again, for the same two reasons
 the real authorizer (`QuoteBoxTests/MicrophoneAuthorizationTests.swift` reads
 status only).
 
-### `SpeechRecognitionAuthorization` (Swift Package product)
+</details>
+
+<a id="speechrecognitionauthorization-swift-package-product"></a>
+<details>
+<summary><code>SpeechRecognitionAuthorization</code> (Swift Package product)</summary>
 
 A seventh permission-gated system service, same protocol+real+fake shape
 again. Uses `SFSpeechRecognizerAuthorizationStatus` directly — it has no
@@ -1010,7 +1149,11 @@ Same "kit-level only" treatment again: no natural QuoteBox need, and no
 against the real recognizer
 (`QuoteBoxTests/SpeechRecognitionAuthorizationTests.swift` reads status only).
 
-### `CalendarAuthorization` (Swift Package product)
+</details>
+
+<a id="calendarauthorization-swift-package-product"></a>
+<details>
+<summary><code>CalendarAuthorization</code> (Swift Package product)</summary>
 
 An eighth permission-gated system service, same protocol+real+fake shape as
 `ContactsAuthorization`/`CameraAuthorization`. Uses `EKAuthorizationStatus`
@@ -1042,7 +1185,11 @@ has no `NSCalendarsFullAccessUsageDescription` key, so calling the real
 `requestAccess()` here would crash the test host outright rather than just
 show a dialog XCTest can't dismiss.
 
-### `TrackingAuthorization` (Swift Package product)
+</details>
+
+<a id="trackingauthorization-swift-package-product"></a>
+<details>
+<summary><code>TrackingAuthorization</code> (Swift Package product)</summary>
 
 A ninth permission-gated system service, same shape as the others. Uses
 `ATTrackingManager.AuthorizationStatus` directly, same reasoning every other
@@ -1069,7 +1216,11 @@ QuoteBox need (it doesn't track anything), and no
 against the real manager
 (`QuoteBoxTests/TrackingAuthorizationTests.swift` reads status only).
 
-### `HealthAuthorization` (Swift Package product)
+</details>
+
+<a id="healthauthorization-swift-package-product"></a>
+<details>
+<summary><code>HealthAuthorization</code> (Swift Package product)</summary>
 
 A tenth permission-gated system service, same protocol+real+fake shape as
 `ContactsAuthorization`. Uses `HKAuthorizationStatus` directly, same reasoning
@@ -1104,7 +1255,11 @@ normally-safe status read against the real authorizer - it only constructs
 `SystemHealthAuthorizer()`, the same "documented risk, untested real path"
 treatment `CloudKitAccountCheckingTests` gives `CKContainer.accountStatus()`.
 
-### `MotionAuthorization` (Swift Package product)
+</details>
+
+<a id="motionauthorization-swift-package-product"></a>
+<details>
+<summary><code>MotionAuthorization</code> (Swift Package product)</summary>
 
 An eleventh permission-gated system service - but unlike every other
 authorization module in this kit, there's no explicit "request authorization"
@@ -1127,7 +1282,11 @@ Kit-level only - no natural QuoteBox need - but the real authorizer's status
 read is safe to exercise for real (`QuoteBoxTests/MotionAuthorizationTests.swift`
 does), same as most other modules' status-only-safe pattern.
 
-### `BluetoothAuthorization` (Swift Package product)
+</details>
+
+<a id="bluetoothauthorization-swift-package-product"></a>
+<details>
+<summary><code>BluetoothAuthorization</code> (Swift Package product)</summary>
 
 A twelfth permission-gated system service, same structural outlier as
 `MotionAuthorization`: Bluetooth authorization is requested implicitly when a
@@ -1155,7 +1314,11 @@ let status = authorizer.currentAuthorizationStatus()
 Kit-level only; the real status read is safe to exercise for real
 (`QuoteBoxTests/BluetoothAuthorizationTests.swift` does).
 
-### `SiriAuthorization` (Swift Package product)
+</details>
+
+<a id="siriauthorization-swift-package-product"></a>
+<details>
+<summary><code>SiriAuthorization</code> (Swift Package product)</summary>
 
 A thirteenth permission-gated system service, same protocol+real+fake shape
 as `SpeechRecognitionAuthorization`. Uses `INSiriAuthorizationStatus`
@@ -1180,7 +1343,11 @@ real authorizer, only constructs it - the same "documented risk, untested
 real path" treatment `HealthAuthorizationTests`/`CloudKitAccountCheckingTests`
 give their real authorizers.
 
-### `MediaLibraryAuthorization` (Swift Package product)
+</details>
+
+<a id="medialibraryauthorization-swift-package-product"></a>
+<details>
+<summary><code>MediaLibraryAuthorization</code> (Swift Package product)</summary>
 
 A fourteenth permission-gated system service, same shape again. Uses
 `MPMediaLibraryAuthorizationStatus` directly. `SystemMediaLibraryAuthorizer`
@@ -1198,7 +1365,11 @@ let result = await authorizer.requestAuthorization()
 Kit-level only, no `NSAppleMusicUsageDescription` key in `Info.plist` -
 `QuoteBoxTests/MediaLibraryAuthorizationTests.swift` reads status only.
 
-### `DiagnosticReporting` (Swift Package product)
+</details>
+
+<a id="diagnosticreporting-swift-package-product"></a>
+<details>
+<summary><code>DiagnosticReporting</code> (Swift Package product)</summary>
 
 Wraps `MetricKit`, a system framework with a completely different shape from
 every authorization module above: there's no permission prompt and no status
@@ -1247,7 +1418,11 @@ new "Start/Stop Call" row in a "Diagnostics" Debug-tab section -
 `MXMetricManager.remove(subscriber:)` is safe to call on a subscriber that
 same instance just added, so this is a genuine same-process round trip.
 
-### `PushRegistering` (Swift Package product)
+</details>
+
+<a id="pushregistering-swift-package-product"></a>
+<details>
+<summary><code>PushRegistering</code> (Swift Package product)</summary>
 
 Distinct from `LocalNotifications`'s `ReminderScheduling`, which covers the
 alert/badge/sound *authorization* prompt shared by local and remote
@@ -1276,7 +1451,11 @@ awaiting would hang forever waiting on a continuation nothing resumes — a
 structural reason, distinct from `LocationAuthorization`'s "would show a real
 dialog."
 
-### `AppleSignIn` (Swift Package product)
+</details>
+
+<a id="applesignin-swift-package-product"></a>
+<details>
+<summary><code>AppleSignIn</code> (Swift Package product)</summary>
 
 `AppleSignInProviding` wraps `ASAuthorizationAppleIDProvider`/
 `ASAuthorizationController`. `credentialState(for:)` wraps a plain completion
@@ -1305,7 +1484,11 @@ never prompts) and is tested against the real provider in
 `QuoteBoxTests/AppleSignInTests.swift`; `requestSignIn()` is never called
 against the real provider, since it always shows the actual system sheet.
 
-### `PasskeyAuthentication` (Swift Package product)
+</details>
+
+<a id="passkeyauthentication-swift-package-product"></a>
+<details>
+<summary><code>PasskeyAuthentication</code> (Swift Package product)</summary>
 
 Distinct from `AppleSignIn`: that wraps Sign in with Apple
 (`ASAuthorizationAppleIDProvider`), a single-vendor identity; this wraps
@@ -1346,7 +1529,11 @@ non-prompting half here at all: both `requestRegistration`/
 just stored, no `AuthenticationServices` call happens until a request is
 made) and tests the mock fully.
 
-### `BackgroundTaskScheduling` (Swift Package product)
+</details>
+
+<a id="backgroundtaskscheduling-swift-package-product"></a>
+<details>
+<summary><code>BackgroundTaskScheduling</code> (Swift Package product)</summary>
 
 Wraps `BGTaskScheduler.shared` directly — `SystemBackgroundTaskScheduler` needs
 no bridging, but also no safety net. `MockBackgroundTaskScheduler` records what
@@ -1375,7 +1562,11 @@ unresolved continuation (harmless if never awaited), there's credible risk the
 real scheduler crashes the test host outright.
 `QuoteBoxTests/BackgroundTaskSchedulingTests.swift` tests only the mock.
 
-### `CloudKitAccountChecking` (Swift Package product)
+</details>
+
+<a id="cloudkitaccountchecking-swift-package-product"></a>
+<details>
+<summary><code>CloudKitAccountChecking</code> (Swift Package product)</summary>
 
 `CloudKitAccountChecking` keeps `CKAccountStatus` directly, same reasoning as
 every other status-checking module for keeping a framework's own type.
@@ -1400,7 +1591,11 @@ have — no natural need for iCloud sync, same reasoning as `LocationAuthorizati
 can crash with an uncatchable `CKException` rather than throwing a normal Swift
 error. `QuoteBoxTests/CloudKitAccountCheckingTests.swift` tests only the mock.
 
-### `PurchaseSupport` (Swift Package product)
+</details>
+
+<a id="purchasesupport-swift-package-product"></a>
+<details>
+<summary><code>PurchaseSupport</code> (Swift Package product)</summary>
 
 A `PurchaseManaging` protocol wrapping StoreKit 2's `Product`/`Transaction` APIs.
 `StoreKitTest`'s `SKTestSession` is itself a local, offline StoreKit simulator —
@@ -1507,7 +1702,11 @@ subscription the app hasn't relaunched to re-check is a gap `isEntitled(to:)`
 alone can't close. `observeTransactionUpdates(_:)` narrows that window (it
 fires on renewal while the app is running) but doesn't eliminate it.
 
-### `DebugOverlay` (Swift Package product)
+</details>
+
+<a id="debugoverlay-swift-package-product"></a>
+<details>
+<summary><code>DebugOverlay</code> (Swift Package product)</summary>
 
 A drop-in SwiftUI panel (`DebugOverlayView`) that renders `[DebugSection]` — plain
 label/value rows grouped under a title — so a developer can see runtime state
@@ -1538,7 +1737,11 @@ favorites count, reminder state, tip jar state), read directly off those stores
 rather than re-implemented, so the panel can't drift out of sync with the state
 machines it's reporting on.
 
-### `PowerStateProviding` (Swift Package product)
+</details>
+
+<a id="powerstateproviding-swift-package-product"></a>
+<details>
+<summary><code>PowerStateProviding</code> (Swift Package product)</summary>
 
 Lets app code ask "is Low Power Mode on?" through an injectable dependency
 instead of calling `ProcessInfo.processInfo.isLowPowerModeEnabled` directly,
@@ -1575,7 +1778,11 @@ notification observer never prompts or crashes either, even though nothing
 in CI can force an actual thermal state change to fire it
 (`QuoteBoxTests/PowerStateProvidingTests.swift` does both).
 
-### `BatteryStateProviding` (Swift Package product)
+</details>
+
+<a id="batterystateproviding-swift-package-product"></a>
+<details>
+<summary><code>BatteryStateProviding</code> (Swift Package product)</summary>
 
 Lets app code ask "how much charge is left, and is the device plugged in?"
 through an injectable dependency instead of reading `UIDevice.current`
@@ -1612,7 +1819,11 @@ monitoring and reading level/state never prompts or crashes
 Simulator has no real battery, and the flag doesn't reliably stick there
 (found via a failed CI run).
 
-### `ScreenCaptureStateProviding` (Swift Package product)
+</details>
+
+<a id="screencapturestateproviding-swift-package-product"></a>
+<details>
+<summary><code>ScreenCaptureStateProviding</code> (Swift Package product)</summary>
 
 Lets app code ask "is the screen being recorded, mirrored, or AirPlayed
 right now?" through an injectable dependency instead of reading
@@ -1649,7 +1860,11 @@ never prompt or crash, even though nothing in CI can force an actual screen
 recording to start and fire it
 (`QuoteBoxTests/ScreenCaptureStateProvidingTests.swift` does both).
 
-### `ProtectedDataAvailabilityProviding` (Swift Package product)
+</details>
+
+<a id="protecteddataavailabilityproviding-swift-package-product"></a>
+<details>
+<summary><code>ProtectedDataAvailabilityProviding</code> (Swift Package product)</summary>
 
 Lets app code ask "is file-protected/Keychain data actually accessible
 right now?" through an injectable dependency instead of reading
@@ -1684,7 +1899,11 @@ the same caution `BatteryStateProvidingTests` was corrected to use after a
 real CI run showed a Simulator-state assumption didn't hold
 (`QuoteBoxTests/ProtectedDataAvailabilityProvidingTests.swift`).
 
-### `BundleInfoProviding` (Swift Package product)
+</details>
+
+<a id="bundleinfoproviding-swift-package-product"></a>
+<details>
+<summary><code>BundleInfoProviding</code> (Swift Package product)</summary>
 
 Lets app code ask "what version/build is this?" through an injectable
 dependency instead of reading `Bundle.main.infoDictionary` directly, so a
@@ -1720,7 +1939,11 @@ real independent of either wiring too — a plain, synchronous Foundation read
 asserts non-empty, not exact values, since it reads whatever the test
 bundle's own Info.plist reports rather than a fixed value.
 
-### `CellularDataRestrictionChecking` (Swift Package product)
+</details>
+
+<a id="cellulardatarestrictionchecking-swift-package-product"></a>
+<details>
+<summary><code>CellularDataRestrictionChecking</code> (Swift Package product)</summary>
 
 Lets app code ask "has the user restricted this app from cellular data?"
 (Settings > Cellular's per-app toggle) through an injectable dependency.
@@ -1743,7 +1966,11 @@ safe given no entitlement is required, though a fresh Simulator with no
 cellular hardware may just report `.restrictedStateUnknown` rather than a
 real value.
 
-### `DiskSpaceChecking` (Swift Package product)
+</details>
+
+<a id="diskspacechecking-swift-package-product"></a>
+<details>
+<summary><code>DiskSpaceChecking</code> (Swift Package product)</summary>
 
 Lets app code ask "how much disk space is available/does this device have
 in total?" through an injectable dependency instead of reading
@@ -1776,7 +2003,11 @@ are positive and internally consistent (`available <= total`), not exact
 figures, since the real numbers depend entirely on the CI Simulator host's
 actual disk state.
 
-### `AccessibilityStateProviding` (Swift Package product)
+</details>
+
+<a id="accessibilitystateproviding-swift-package-product"></a>
+<details>
+<summary><code>AccessibilityStateProviding</code> (Swift Package product)</summary>
 
 Lets app code ask "is VoiceOver/Reduce Motion on?" through an injectable
 dependency instead of reading `UIAccessibility` directly, so a test can
@@ -1819,7 +2050,11 @@ launch-argument wiring itself resolves cleanly end-to-end (the argument
 reaches `MockAccessibilityStateProvider`, and favoriting still completes
 normally) without asserting on the invisible haptic call.
 
-### `HapticFeedbackProviding` (Swift Package product)
+</details>
+
+<a id="hapticfeedbackproviding-swift-package-product"></a>
+<details>
+<summary><code>HapticFeedbackProviding</code> (Swift Package product)</summary>
 
 Lets app code trigger haptic feedback through an injectable dependency
 instead of constructing `UIImpactFeedbackGenerator` directly, so a test can
@@ -1853,7 +2088,11 @@ exercise the real provider for real independent of that wiring too — no
 crash on the Simulator, just a silent no-op
 (`Tests/HapticFeedbackProvidingTests/HapticFeedbackProvidingTests.swift` does).
 
-### `IdleTimerControlling` (Swift Package product)
+</details>
+
+<a id="idletimercontrolling-swift-package-product"></a>
+<details>
+<summary><code>IdleTimerControlling</code> (Swift Package product)</summary>
 
 Lets app code disable/re-enable the screen-lock idle timer through an
 injectable dependency instead of touching `UIApplication.shared` directly (a
@@ -1877,7 +2116,11 @@ back round-trips cleanly against the real `UIApplication.shared`, with no
 persistent side effect beyond the test process's lifetime
 (`QuoteBoxTests/IdleTimerControllingTests.swift` does).
 
-### `RemindersAuthorization` (Swift Package product)
+</details>
+
+<a id="remindersauthorization-swift-package-product"></a>
+<details>
+<summary><code>RemindersAuthorization</code> (Swift Package product)</summary>
 
 Sibling to `CalendarAuthorization`, same `EventKit` framework, different
 entity type (`.reminder`, not `.event`). Uses `EKAuthorizationStatus`
@@ -1900,7 +2143,11 @@ Kit-level only, no `NSRemindersFullAccessUsageDescription` key in
 `Info.plist` — `QuoteBoxTests/RemindersAuthorizationTests.swift` reads
 status only, matching `CalendarAuthorizationTests`' already-proven treatment.
 
-### `LiveActivityAuthorization` (Swift Package product)
+</details>
+
+<a id="liveactivityauthorization-swift-package-product"></a>
+<details>
+<summary><code>LiveActivityAuthorization</code> (Swift Package product)</summary>
 
 No explicit request API — the user manages Live Activities via Settings, not
 an in-app prompt, same structural shape as `MotionAuthorizing`/
@@ -1922,7 +2169,11 @@ let authorizer: LiveActivityAuthorizing = MockLiveActivityAuthorizer(areActiviti
 Kit-level only. Safe to exercise the real authorizer for real
 (`QuoteBoxTests/LiveActivityAuthorizationTests.swift` does).
 
-### `ClipboardProviding` (Swift Package product)
+</details>
+
+<a id="clipboardproviding-swift-package-product"></a>
+<details>
+<summary><code>ClipboardProviding</code> (Swift Package product)</summary>
 
 Lets app code copy to/read from the system clipboard through an injectable
 dependency instead of touching `UIPasteboard` directly, so a test can assert
@@ -1945,7 +2196,11 @@ Kit-level only. Safe to exercise the real provider for real — a copy/read
 round trip against the real Simulator pasteboard has no lasting side effect
 worth avoiding (`QuoteBoxTests/ClipboardProvidingTests.swift` does).
 
-### `FocusStatusAuthorization` (Swift Package product)
+</details>
+
+<a id="focusstatusauthorization-swift-package-product"></a>
+<details>
+<summary><code>FocusStatusAuthorization</code> (Swift Package product)</summary>
 
 Same protocol+real+fake shape as `SiriAuthorization`. Uses
 `INFocusStatusAuthorizationStatus` directly.
@@ -1971,7 +2226,11 @@ path" treatment `SiriAuthorizationTests` already learned to give
 `QuoteBoxTests/FocusStatusAuthorizationTests.swift` only constructs
 `SystemFocusStatusAuthorizer()`, never calls a method on it for real.
 
-### `FamilyControlsAuthorization` (Swift Package product)
+</details>
+
+<a id="familycontrolsauthorization-swift-package-product"></a>
+<details>
+<summary><code>FamilyControlsAuthorization</code> (Swift Package product)</summary>
 
 Wraps Screen Time's `AuthorizationCenter`. Uses `AuthorizationStatus`
 directly — a top-level type in the `FamilyControls` module, not nested
@@ -2004,7 +2263,11 @@ Status, `requestAuthorization` here is `async throws` rather than a
 hard-crashing call, so the failure mode might differ) — defaulting to the
 conservative option rather than guessing.
 
-### `JSONFixtureLoading` (Swift Package product)
+</details>
+
+<a id="jsonfixtureloading-swift-package-product"></a>
+<details>
+<summary><code>JSONFixtureLoading</code> (Swift Package product)</summary>
 
 Not a protocol+real+fake module — there's nothing to fake, it's already a
 pure, deterministic function, same "single-purpose utility" shape as
@@ -2027,7 +2290,11 @@ into the repo (`QuoteBoxTests/Fixtures/sample-fixture.json`, wired into
 `project.yml`'s `QuoteBoxTests` `resources:`) in
 `QuoteBoxTests/JSONFixtureLoadingTests.swift`.
 
-### `LocalizationCompletenessChecking` (Swift Package product)
+</details>
+
+<a id="localizationcompletenesschecking-swift-package-product"></a>
+<details>
+<summary><code>LocalizationCompletenessChecking</code> (Swift Package product)</summary>
 
 A single-file utility, same shape as `JSONFixtureLoading`/`SnapshotTesting`
 — nothing to fake, no system framework to wrap, just a pure deterministic
@@ -2073,7 +2340,11 @@ Catalog resource to compile; wired into `project.yml`'s `QuoteBoxTests`
 permission/crash-risk caution needed anywhere here, it's pure file I/O and
 JSON parsing.
 
-### `WidgetTimelineTesting` (Swift Package product)
+</details>
+
+<a id="widgettimelinetesting-swift-package-product"></a>
+<details>
+<summary><code>WidgetTimelineTesting</code> (Swift Package product)</summary>
 
 Bridges WidgetKit's completion-handler-based timeline provider to `async` —
 the same category of value `SystemSleeper` provides over raw `Task.sleep`:
@@ -2113,7 +2384,11 @@ that WidgetKit's `StaticConfiguration` actually holds.
 test — real `CoreDataFavoritesStore` data, no widget UI — is left in place
 alongside it.
 
-### `HomeKitAuthorization` (Swift Package product)
+</details>
+
+<a id="homekitauthorization-swift-package-product"></a>
+<details>
+<summary><code>HomeKitAuthorization</code> (Swift Package product)</summary>
 
 No explicit request API — HomeKit prompts implicitly on first real use, same
 structural shape as `MotionAuthorizing`/`BluetoothAuthorizing`.
@@ -2144,7 +2419,11 @@ constructs `SystemHomeKitAuthorizer()` — which, thanks to the lazy
 construction above, never touches HomeKit at all — and never calls
 `currentAuthorizationStatus()` on it for real.
 
-### `WatchConnectivityStateProviding` (Swift Package product)
+</details>
+
+<a id="watchconnectivitystateproviding-swift-package-product"></a>
+<details>
+<summary><code>WatchConnectivityStateProviding</code> (Swift Package product)</summary>
 
 No permission concept at all, unlike every authorization module in this kit
 — `WatchConnectivity` never prompts. Lets app code ask "is a Watch
@@ -2167,6 +2446,8 @@ Kit-level only. Safe to exercise the real provider for real on every CI
 device, including iPad — expected to gracefully report `isSupported() == false`
 there rather than crash
 (`QuoteBoxTests/WatchConnectivityStateProvidingTests.swift` does).
+
+</details>
 
 ### A note on frameworks this kit doesn't cover
 
