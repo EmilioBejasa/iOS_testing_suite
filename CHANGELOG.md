@@ -4,6 +4,19 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.8.1] - 2026-09-02
+
+Raised `.github/coverage-baseline.txt`'s regression floor from 90.5% to
+93.5%. It had gone stale: [1.6.0]'s coverage-closing work and [1.7.0]'s
+`AccessibilityStateProviding` wiring both pushed real line coverage up (to
+93.5%/93.6%/93.6% across iPhone 16/iPad/iPhone SE) without a matching
+baseline bump, silently loosening `reusable-test.yml`'s
+`coverage_baseline_file` gate by ~3 points - a real regression within that
+gap would have passed CI undetected. 93.5% (the minimum across all three
+devices, since the floor check runs per-device) matches this repo's own
+documented convention in `ci.yml`'s inline comment: update the baseline in
+a reviewed PR whenever coverage intentionally shifts.
+
 ## [1.8.0] - 2026-09-02
 
 Re-recorded `testQuoteContentViewLoadedNewLayoutAccessibility3`'s iPhone SE
