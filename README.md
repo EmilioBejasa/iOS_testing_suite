@@ -14,6 +14,41 @@ wasn't accidentally coupled to Weather's specifics — different API shape
 `TabView`, not `ObservableObject` MVVM + `NavigationStack`), different testing
 surface (local persistence, not just network).
 
+## Installation
+
+Add iOSTestKit as a Swift Package dependency, then depend on only the
+individual products you need — not all 59.
+
+```swift
+.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.1")
+```
+
+```swift
+.target(
+    name: "YourApp",
+    dependencies: [
+        .product(name: "NetworkStub", package: "iOS_testing_suite"),
+        .product(name: "KeychainStore", package: "iOS_testing_suite"),
+    ]
+)
+```
+
+The `package:` argument matches the repository name in the URL
+(`iOS_testing_suite`), not the `name:` field declared in `Package.swift`
+(`iOSTestKit`) — SPM resolves package identity from the URL. Individual
+product names (`NetworkStub`, `KeychainStore`, ...) come from `Package.swift`.
+
+Browse the [table of contents](#whats-reusable) below to see all 59
+available products grouped by theme and add only what you use — each
+`.library` target is independent.
+
+In Xcode: **File → Add Package Dependencies…** → paste the repo URL above →
+pick a version rule → select the specific product(s) you need.
+
+## Developing this kit
+
+To work on the kit itself (not just consume it):
+
 ```sh
 git clone https://github.com/EmilioBejasa/iOS_testing_suite
 cd iOS_testing_suite
@@ -143,10 +178,8 @@ protocol/real-impl/fake-impl trio, just wrapping a different system API
 `URLSession`-based network client can be tested against canned responses. The only
 requirement on the app side is that the client accepts an injectable `URLSession`.
 
-```swift
-.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.0")
-// target dependency: .product(name: "NetworkStub", package: "iOS_testing_suite")
-```
+See [Installation](#installation) for how to add this package as a
+dependency — the target-dependency name is `NetworkStub`.
 
 ```swift
 import NetworkStub
