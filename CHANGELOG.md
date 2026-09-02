@@ -22,6 +22,38 @@ case proves the launch-argument wiring resolves end-to-end instead.
 `QuoteBoxTests` target dependency, same reasoning prior version bumps
 followed for each newly-wired module.
 
+## [1.6.2] - 2026-09-01
+
+Two more attempts at the CI flakes from [1.6.1] - one succeeded, one didn't,
+both documented honestly rather than only keeping the win:
+
+- **Fixed for real**: `testQuoteContentViewLoadedNewLayoutAccessibility3`'s
+  iPhone 16 reference was stale under a pinned test order.
+  `randomExecutionOrdering: false` is re-pinned (a second attempt - the first,
+  on the now-merged CI-stabilization branch, was reverted after an isolated
+  single-test recording couldn't capture the pinned order's actual
+  test-adjacency context). This time the whole `QuoteBoxTests` target was
+  re-recorded in one `record-snapshots.yml` pass instead of one isolated
+  test, and the new iPhone 16 reference was verified deterministic across 2
+  separate recording runs (933018 bytes both times), matching all 3 prior CI
+  failures - 5/5 consistent samples.
+- **Investigated, not fixed**: the equivalent iPhone SE reference for the
+  same test. 2 recording attempts under the identical pinned order produced
+  2 different byte counts (328701, then 328682) - genuine run-to-run
+  rendering nondeterminism, not a test-order artifact. Left uncommitted
+  rather than picking one value and calling it fixed; still covered by
+  `KNOWN_FLAKE_PATTERN`'s retry. A real fix needs pixel-tolerance comparison
+  in `Sources/SnapshotTesting/assertSnapshot.swift` (exact byte equality
+  can't absorb this kind of variance) - left as follow-up.
+- Also fixed the `tipJar.button`/`supporter.button` UI-test race for real
+  (previously only timeout-widened in [1.6.1], which didn't touch the actual
+  cause): `QuoteView`'s Tip Jar/Supporter buttons now carry an
+  `accessibilityValue` ("purchasing"/"idle") reflecting their disabled
+  state, and the UI tests fold that into the query predicate itself instead
+  of reading `.isEnabled` as a second, separate accessibility-tree round
+  trip after `.exists` - the exact race the old two-step check couldn't
+  close no matter how long the timeout was.
+
 ## [1.6.1] - 2026-09-01
 
 One CI-stabilization fix, plus a documented dead end, following up on

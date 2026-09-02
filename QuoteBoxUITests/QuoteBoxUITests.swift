@@ -120,18 +120,13 @@ final class QuoteBoxUITests: XCTestCase {
 
         app.element("tipJar.button").tap()
 
-        // Query .exists before .isEnabled - once state moves to .failed, the
-        // button leaves the hierarchy entirely (QuoteView renders tipJar.unavailable
-        // instead), and querying .isEnabled on an element that no longer exists
-        // throws a hard XCUITest snapshot error rather than returning false.
-        // Known residual flake: .exists and .isEnabled are two separate
-        // accessibility-tree round trips, so a transition landing in between
-        // them can still throw despite this ordering - a 15s timeout gives the
-        // real Product.purchase() round trip (the more common cause of a slow
-        // resolve) enough room, but doesn't eliminate that narrower race.
+        // Race-free: matches on tipJar.button's accessibilityValue directly in
+        // the query predicate rather than reading .isEnabled as a second,
+        // separate accessibility-tree round trip after .exists - see
+        // element(_:withValue:in:)'s doc comment.
         XCTAssertTrue(waitUntil(timeout: 15) {
-            let button = app.element("tipJar.button")
-            return app.element("tipJar.thankYou").exists || (button.exists && !button.isEnabled)
+            app.element("tipJar.thankYou").exists
+                || element("tipJar.button", withValue: "purchasing", in: app).exists
         })
         XCTAssertFalse(app.element("tipJar.unavailable").exists)
         try auditIgnoringKnownFalsePositives(app)
@@ -162,11 +157,11 @@ final class QuoteBoxUITests: XCTestCase {
         if app.element("supporter.button").exists {
             app.element("supporter.button").tap()
 
-            // Same .exists-before-.isEnabled ordering, and same residual race,
-            // as the Tip Jar test above - see its comment for the caveat.
+            // Same race-free predicate-matching approach as the Tip Jar test
+            // above - see element(_:withValue:in:)'s doc comment.
             XCTAssertTrue(waitUntil(timeout: 15) {
-                let button = app.element("supporter.button")
-                return app.element("supporter.thankYou").exists || (button.exists && !button.isEnabled)
+                app.element("supporter.thankYou").exists
+                    || element("supporter.button", withValue: "purchasing", in: app).exists
             })
         }
         XCTAssertFalse(app.element("supporter.unavailable").exists)
@@ -330,6 +325,20 @@ final class QuoteBoxUITests: XCTestCase {
         app.element("debugOverlay.list").swipeUp()
         XCTAssertTrue(app.staticTexts["Start/Stop Call"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["ok"].exists)
+    }
+
+    /// Race-free alternative to checking `.exists` and then a second property
+    /// (`.isEnabled`/`.value`) on the same element: folds the value condition
+    /// into the query predicate itself, so a single `.exists` check - always
+    /// safe to call, even against zero matches - replaces two separate
+    /// accessibility-tree round trips that a UI transition could land between.
+    /// See `testTipJarPurchaseResolvesAgainstWiredStoreKitConfiguration`'s
+    /// prior `.exists && !.isEnabled` history for why that ordering alone
+    /// wasn't enough.
+    private func element(_ identifier: String, withValue value: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == %@ AND value == %@", identifier, value))
+            .firstMatch
     }
 
     /// Re-evaluates `condition` (which should re-query fresh each call, e.g. via
