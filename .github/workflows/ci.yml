@@ -35,8 +35,13 @@ jobs:
       # QuoteBoxWidget extension landed - its thin TimelineProvider adapter
       # and SwiftUI view are genuinely impractical to line-cover the way
       # QuoteWidgetCore (its testable logic, split out for exactly this
-      # reason) already is. Update only in a reviewed PR when coverage
-      # intentionally shifts.
+      # reason) already is. Raised to 93.5% (the minimum across all three
+      # devices - 93.5/93.6/93.6 - since the floor applies to each of them,
+      # not just iPhone 16) after the coverage-closing work in [1.6.0] and
+      # the AccessibilityStateProviding wiring in [1.7.0] pushed real
+      # coverage up without a matching baseline bump, silently loosening the
+      # regression floor by ~3pts. Update only in a reviewed PR when
+      # coverage intentionally shifts.
       coverage_baseline_file: .github/coverage-baseline.txt
 
   # Fast feedback on the macOS-runnable subset of kit-only tests. Doesn't need
