@@ -2167,6 +2167,20 @@ jobs:
       skip_testing: "MyAppTests/LiveContractTests"
 ```
 
+Its retry-on-known-flake step ships with a pattern tuned to this kit's own
+`QuoteBox` proving-ground app, which won't match anything in a different
+app's build log - harmless left alone. Once your own CI has characterized a
+real flake (a specific test/error signature you've confirmed isn't a
+regression), pass it via `extra_known_flake_pattern` (an extended-regex
+fragment, `grep -E` syntax) instead of forking the workflow:
+
+```yaml
+    with:
+      scheme: MyApp
+      project: MyApp.xcodeproj
+      extra_known_flake_pattern: "Unable to find a device matching the provided destination specifier"
+```
+
 `.github/workflows/reusable-live-contract.yml` runs a single test identifier
 against a real network on a schedule, kept separate so a live API hiccup can't
 block a PR:

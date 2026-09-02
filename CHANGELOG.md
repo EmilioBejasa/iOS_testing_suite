@@ -4,6 +4,35 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.8.0] - 2026-09-02
+
+Re-recorded `testQuoteContentViewLoadedNewLayoutAccessibility3`'s iPhone SE
+reference image (`@2x-phone`, 328701 → 328682 bytes). [1.6.2] fixed the
+equivalent iPhone 16 reference but left this one uncommitted after 2 local
+recording attempts produced 2 different byte counts. Two fresh
+`record-snapshots.yml` passes against the current CI runner image now agree
+byte-for-byte (328682 both times) and match what every real CI run has
+rendered since - the committed 328701 was simply stale against the current
+image, not evidence of ongoing nondeterminism. `testQuoteViewErrorState`'s
+one-off failure on the same run was confirmed to still be the
+already-covered flake (`KNOWN_FLAKE_PATTERN`): its recording matches the
+existing committed reference exactly, both times.
+`testRootViewQuoteTabLoaded`'s reference is left alone - its own two
+recordings this pass disagreed with each other (76086 vs 75613 bytes),
+confirming it's still genuine per-run nondeterminism rather than a stale
+reference, exactly as [1.6.2] found for the accessibility3 case before this
+fix.
+
+`reusable-test.yml` gained an `extra_known_flake_pattern` input. Its
+retry-on-known-flake step previously hardcoded `KNOWN_FLAKE_PATTERN` to this
+kit's own `QuoteBox` signatures, and the surrounding comment told a calling
+repo to "extend or replace" it - impossible from the calling side without
+forking the workflow. The new input is OR'd into the built-in pattern, so
+an external app can register its own characterized flakes (once it has any)
+without touching this repo. No behavior change for existing callers: the
+input defaults to empty, and the built-in QuoteBox-specific pattern only
+ever matches QuoteBox's own build output.
+
 ## [1.7.0] - 2026-09-01
 
 Wired a 7th kit module into `QuoteBox`: `AccessibilityStateProviding`.
