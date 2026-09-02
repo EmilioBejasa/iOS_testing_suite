@@ -131,6 +131,54 @@ jobs:
             sleep 15
           done
 
+  # Proves the package is actually consumable the way an external app
+  # would consume it - resolving `.package(url:...)` against a real git URL
+  # and building against the resulting product - not just building from
+  # inside this repo's own checkout, which is all swift-test/kit-tests-ios
+  # above exercise. Pins to this run's own commit via `revision:` rather
+  # than a released tag, so this stays self-maintaining across releases and
+  # always checks *this* commit's Package.swift, never a stale version.
+  verify-external-resolution:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Scaffold a scratch consumer package
+        run: |
+          SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          CHECK_DIR="$RUNNER_TEMP/spm-consumer-check"
+          mkdir -p "$CHECK_DIR/Sources/ConsumerCheck"
+          cd "$CHECK_DIR"
+          cat <<EOF > Package.swift
+          // swift-tools-version:5.9
+          import PackageDescription
+
+          let package = Package(
+              name: "ConsumerCheck",
+              platforms: [.iOS(.v13), .macOS(.v13)],
+              dependencies: [
+                  .package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", revision: "$SHA")
+              ],
+              targets: [
+                  .target(
+                      name: "ConsumerCheck",
+                      dependencies: [.product(name: "NetworkStub", package: "iOS_testing_suite")]
+                  )
+              ]
+          )
+          EOF
+          cat <<'EOF' > Sources/ConsumerCheck/ConsumerCheck.swift
+          import NetworkStub
+
+          func referencesNetworkStub() {
+              _ = URLProtocolStub.self
+          }
+          EOF
+          echo "CHECK_DIR=$CHECK_DIR" >> "$GITHUB_ENV"
+      - name: swift package resolve
+        run: cd "$CHECK_DIR" && swift package resolve
+      - name: swift build
+        run: cd "$CHECK_DIR" && swift build
+
   # Hard-blocking: the first report-only run found 35 pre-existing violations
   # (all cosmetic - line length, trailing commas, etc.), all fixed in the same
   # PR that flipped this to --strict.
