@@ -154,7 +154,7 @@ jobs:
 
           let package = Package(
               name: "ConsumerCheck",
-              platforms: [.iOS(.v13)],
+              platforms: [.iOS(.v13), .macOS(.v13)],
               dependencies: [
                   .package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", revision: "$SHA")
               ],
