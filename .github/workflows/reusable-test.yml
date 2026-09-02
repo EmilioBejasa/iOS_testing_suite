@@ -53,6 +53,18 @@ on:
         required: false
         type: string
         default: ""
+      extra_known_flake_pattern:
+        description: >-
+          Extended-regex (grep -E syntax) OR'd into the built-in known-flake
+          retry pattern below, for a calling repo's own known flakes. The
+          built-in pattern is tuned to this kit's own QuoteBox proving-ground
+          app and won't match another app's failures, so it's harmless left
+          at the default (empty) - set this once your own CI has a
+          characterized flake signature you want retried instead of failing
+          the run outright.
+        required: false
+        type: string
+        default: ""
 
 jobs:
   test:
@@ -87,6 +99,7 @@ jobs:
           SNAPSHOT_REFERENCE_DEVICE: ${{ inputs.snapshot_reference_device }}
           SNAPSHOT_TESTING_IDENTIFIERS: ${{ inputs.snapshot_testing_identifiers }}
           ENABLE_COVERAGE: ${{ inputs.enable_coverage }}
+          EXTRA_KNOWN_FLAKE_PATTERN: ${{ inputs.extra_known_flake_pattern }}
         run: |
           SKIP_ARGS=()
           for id in $SKIP_TESTING; do
@@ -116,8 +129,9 @@ jobs:
           # (same root cause, same failure shape, confirmed independently for
           # each button - not a generic "any element not found" catch-all, which
           # would also swallow a real regression). A repo calling this reusable
-          # workflow should extend or replace KNOWN_FLAKE_PATTERN with its own
-          # known flakes rather than assume this list applies to it.
+          # workflow should assume this list doesn't apply to it and instead
+          # pass its own characterized flake signatures via the
+          # `extra_known_flake_pattern` input, OR'd in below.
           #
           # testCollectsRealTransactionUpdateAfterPurchase's two failure modes
           # (Transaction.updates never posting within the timeout, or the
@@ -138,6 +152,9 @@ jobs:
           # genuine layout regression in QuoteContentView/RootView still fails
           # fast.
           KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier|Failed to get matching snapshot.*(tipJar|supporter)\.button|Audit failed to complete in time|testCollectsRealTransactionUpdateAfterPurchase.*(timedOut\(collected: 0, expected: 1\)|missingValue\(for:.*advancedCommerceInfo)|(testQuoteContentViewLoadedNewLayoutAccessibility3|testRootViewQuoteTabLoaded|testQuoteViewErrorState)\].*doesn.t match the reference image'
+          if [ -n "$EXTRA_KNOWN_FLAKE_PATTERN" ]; then
+            KNOWN_FLAKE_PATTERN="${KNOWN_FLAKE_PATTERN}|${EXTRA_KNOWN_FLAKE_PATTERN}"
+          fi
 
           attempt=1
           max_attempts=3

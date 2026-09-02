@@ -4,6 +4,18 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.8.0] - 2026-09-02
+
+`reusable-test.yml` gained an `extra_known_flake_pattern` input. Its
+retry-on-known-flake step previously hardcoded `KNOWN_FLAKE_PATTERN` to this
+kit's own `QuoteBox` signatures, and the surrounding comment told a calling
+repo to "extend or replace" it - impossible from the calling side without
+forking the workflow. The new input is OR'd into the built-in pattern, so
+an external app can register its own characterized flakes (once it has any)
+without touching this repo. No behavior change for existing callers: the
+input defaults to empty, and the built-in QuoteBox-specific pattern only
+ever matches QuoteBox's own build output.
+
 ## [1.7.0] - 2026-09-01
 
 Wired a 7th kit module into `QuoteBox`: `AccessibilityStateProviding`.
