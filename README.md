@@ -14,14 +14,33 @@ wasn't accidentally coupled to Weather's specifics — different API shape
 `TabView`, not `ObservableObject` MVVM + `NavigationStack`), different testing
 surface (local persistence, not just network).
 
-## Installation
+## Getting Started
 
-Add iOSTestKit as a Swift Package dependency, then depend on only the
-individual products you need — not all 59.
+### 1. Add the package
+
+**In Xcode:** File → Add Package Dependencies… → paste the URL below → pick
+a version rule → select the product(s) you need.
+
+```
+https://github.com/EmilioBejasa/iOS_testing_suite
+```
+
+**In a `Package.swift` manifest:**
 
 ```swift
-.package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.1")
+dependencies: [
+    .package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.1")
+]
 ```
+
+### 2. Pick your modules
+
+Browse the [table of contents](#whats-reusable) below — 59 independent
+products grouped by theme (permissions, device/app state, persistence &
+networking, testing infrastructure, app behavior). Add only what you use;
+each `.library` target is standalone, with no dependencies between modules.
+
+### 3. Depend on what you picked
 
 ```swift
 .target(
@@ -35,26 +54,30 @@ individual products you need — not all 59.
 
 The `package:` argument matches the repository name in the URL
 (`iOS_testing_suite`), not the `name:` field declared in `Package.swift`
-(`iOSTestKit`) — SPM resolves package identity from the URL. Individual
-product names (`NetworkStub`, `KeychainStore`, ...) come from `Package.swift`.
+(`iOSTestKit`) — SPM resolves package identity from the URL. Product names
+(`NetworkStub`, `KeychainStore`, ...) come from `Package.swift`.
 
-Browse the [table of contents](#whats-reusable) below to see all 59
-available products grouped by theme and add only what you use — each
-`.library` target is independent.
+### 4. Use it
 
-In Xcode: **File → Add Package Dependencies…** → paste the repo URL above →
-pick a version rule → select the specific product(s) you need.
+Every module follows the same protocol / real-implementation / fake shape —
+see [How a module works](#how-a-module-works) just below. A minimal
+end-to-end example with `NetworkStub`:
 
-## Developing this kit
+```swift
+import NetworkStub
 
-To work on the kit itself (not just consume it):
+let configuration = URLSessionConfiguration.ephemeral
+configuration.protocolClasses = [URLProtocolStub.self]
+let session = URLSession(configuration: configuration)
 
-```sh
-git clone https://github.com/EmilioBejasa/iOS_testing_suite
-cd iOS_testing_suite
-make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if missing
-open QuoteBox.xcodeproj
+URLProtocolStub.handler = { request in
+    let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+    return (response, cannedJSON)
+}
 ```
+
+Each module's own section in the [table of contents](#whats-reusable) has an
+example just like this one.
 
 ## How a module works
 
@@ -172,13 +195,35 @@ protocol/real-impl/fake-impl trio, just wrapping a different system API
 
 </details>
 
+## Developing this kit
+
+Want to work on the kit itself — add a module, fix a bug, run its own test
+suite — rather than just consume it?
+
+```sh
+git clone https://github.com/EmilioBejasa/iOS_testing_suite
+cd iOS_testing_suite
+make setup   # or: ./Scripts/setup.sh — installs XcodeGen via Homebrew if missing
+open QuoteBox.xcodeproj
+```
+
+| Command | What it runs |
+|---|---|
+| `make test-kit` | `swift test` — the macOS-buildable subset of the kit's unit tests |
+| `make test-kit-ios` | Kit tests that need an iOS Simulator (UIKit/HealthKit/etc.-backed modules) |
+| `make test-app` | `QuoteBoxTests`/`QuoteBoxUITests` against the demo app |
+| `make lint` | `swiftlint lint --strict` |
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the module-authoring pattern and
+pull request conventions.
+
 ### `NetworkStub` (Swift Package product)
 
 `URLProtocolStub` intercepts requests on a configured `URLSession` so any
 `URLSession`-based network client can be tested against canned responses. The only
 requirement on the app side is that the client accepts an injectable `URLSession`.
 
-See [Installation](#installation) for how to add this package as a
+See [Getting Started](#getting-started) for how to add this package as a
 dependency — the target-dependency name is `NetworkStub`.
 
 ```swift
