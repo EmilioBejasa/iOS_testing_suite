@@ -392,6 +392,19 @@ also exercises `SystemSleeper` for real with a short duration: unlike the
 permission-gated modules above, there's no system prompt or crash risk here,
 just an actual (brief) wait.
 
+**Measured, not estimated:** running `QuoteStore`'s exact retry-delay shape
+(`[.seconds(1), .seconds(2)]`) against `MockSleeper` versus real
+`SystemSleeper` on a macOS CI runner
+([run](https://github.com/EmilioBejasa/iOS_testing_suite/actions/runs/33782298664/job/100738655490))
+took 0.00003s mocked vs. 3.12s real — about 94,000x faster for this one
+retry-backoff test. That's the mechanism, not a claim about the whole
+suite: only tests that exercise delay/retry/polling code see a gain this
+large, since that's the only place a "standard" test would otherwise sit
+through a real wait. Tests around `NetworkStub`, permission-gated system
+APIs, etc. are faster too, just not by a wall-clock-measurable multiple in
+the same way — they skip real I/O and flake/hang risk rather than a fixed
+delay.
+
 </details>
 
 <a id="asyncsequencecollecting-swift-package-product"></a>
