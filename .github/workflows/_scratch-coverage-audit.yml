@@ -19,12 +19,9 @@ jobs:
             -n test-results-iPhone_16_ \
             -D artifact
 
-      - name: Debug artifact layout
-        run: find artifact -maxdepth 4
-
       - name: Per-file coverage report
         run: |
-          xcrun xccov view --report --json artifact/TestResults.xcresult > coverage.json
+          xcrun xccov view --report --json artifact > coverage.json
           python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
           import json
           data = json.load(open("coverage.json"))
