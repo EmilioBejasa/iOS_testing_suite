@@ -1,12 +1,8 @@
 name: Scratch Coverage Audit
 
 on:
-  workflow_dispatch:
-    inputs:
-      run_id:
-        description: Workflow run ID to pull the test-results-iPhone_16_ artifact from
-        required: true
-        type: string
+  pull_request:
+    branches: [master]
 
 jobs:
   audit:
@@ -16,8 +12,9 @@ jobs:
       - name: Download xcresult artifact
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_ID: "34137703952"
         run: |
-          gh run download "${{ inputs.run_id }}" \
+          gh run download "$RUN_ID" \
             -R EmilioBejasa/iOS_testing_suite \
             -n test-results-iPhone_16_ \
             -D artifact
