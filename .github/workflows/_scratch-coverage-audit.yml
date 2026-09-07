@@ -1,0 +1,41 @@
+name: Scratch Coverage Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Workflow run ID to pull the test-results-iPhone_16_ artifact from
+        required: true
+        type: string
+
+jobs:
+  audit:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Download xcresult artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ inputs.run_id }}" \
+            -R EmilioBejasa/iOS_testing_suite \
+            -n test-results-iPhone_16_ \
+            -D artifact
+
+      - name: Per-file coverage report
+        run: |
+          xcrun xccov view --report --json artifact/TestResults.xcresult > coverage.json
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json
+          data = json.load(open("coverage.json"))
+          print(f"Overall line coverage: {data['lineCoverage']*100:.1f}%\n")
+          rows = []
+          for target in data.get("targets", []):
+              tname = target["name"]
+              for f in target.get("files", []):
+                  rows.append((f["lineCoverage"] * 100, f["coveredLines"], f["executableLines"], tname, f["path"].split("/")[-1]))
+          rows.sort()
+          print(f"{'pct':>6}  {'covered/executable':>18}  {'target':<28} file")
+          for pct, cov, tot, tname, path in rows:
+              print(f"{pct:5.1f}%  {cov:>8}/{tot:<8}  {tname:<28} {path}")
+          PY
