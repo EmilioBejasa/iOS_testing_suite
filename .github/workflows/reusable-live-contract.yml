@@ -48,9 +48,34 @@ jobs:
           DEVICE_NAME: ${{ inputs.device }}
           ONLY_TESTING: ${{ inputs.only_testing }}
         run: |
-          xcodebuild test \
-            -project "$PROJECT" \
-            -scheme "$SCHEME" \
-            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
-            -only-testing:"$ONLY_TESTING" \
-            CODE_SIGNING_ALLOWED=NO
+          # Retry only on the simulator-discovery flake this kit's own CI has
+          # hit (CoreSimulator not fully warmed up on a fresh runner) - see
+          # the same pattern in ci.yml's kit-tests-ios job and
+          # reusable-test.yml's KNOWN_FLAKE_PATTERN. A real contract failure
+          # (the live API actually broke) still fails fast on attempt 1.
+          KNOWN_FLAKE_PATTERN='Unable to find a device matching the provided destination specifier'
+          attempt=1
+          max_attempts=3
+          while true; do
+            set +e
+            xcodebuild test \
+              -project "$PROJECT" \
+              -scheme "$SCHEME" \
+              -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
+              -only-testing:"$ONLY_TESTING" \
+              CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
+            exit_code=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$exit_code" -eq 0 ]; then
+              break
+            fi
+
+            if [ "$attempt" -ge "$max_attempts" ] || ! grep -qE "$KNOWN_FLAKE_PATTERN" build.log; then
+              exit "$exit_code"
+            fi
+
+            echo "::warning::Known flake detected (attempt $attempt/$max_attempts) - retrying in 15s..."
+            attempt=$((attempt + 1))
+            sleep 15
+          done
