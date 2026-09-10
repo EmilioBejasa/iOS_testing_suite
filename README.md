@@ -29,7 +29,7 @@ https://github.com/EmilioBejasa/iOS_testing_suite
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.1")
+    .package(url: "https://github.com/EmilioBejasa/iOS_testing_suite", from: "1.8.2")
 ]
 ```
 
@@ -2486,7 +2486,7 @@ repo:
 ```yaml
 jobs:
   test:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.8.0
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-test.yml@v1.8.2
     with:
       scheme: MyApp
       project: MyApp.xcodeproj
@@ -2519,7 +2519,7 @@ on:
 
 jobs:
   contract:
-    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.8.0
+    uses: EmilioBejasa/iOS_testing_suite/.github/workflows/reusable-live-contract.yml@v1.8.2
     with:
       scheme: MyApp
       project: MyApp.xcodeproj

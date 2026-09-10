@@ -4,6 +4,33 @@ All notable changes to this package are documented here. Versions correspond
 to git tags; see the [README](README.md) for what each module does and how to
 depend on it.
 
+## [1.8.2] - 2026-09-10
+
+Added a `verify-external-resolution` job to `ci.yml` that proves the package
+is actually consumable the way a real app would consume it: it scaffolds a
+scratch `Package.swift` in a temp directory that resolves this repo via
+`.package(url:revision:)` pinned to the run's own commit, then runs
+`swift package resolve` and `swift build` against it. Every other CI job
+builds from inside this repo's own checkout, which never exercises the
+URL/revision/product-name path a consumer actually goes through. The
+scratch package's own `platforms:` had to be widened to match the real
+package's `[.iOS(.v13), .macOS(.v13)]` - declaring iOS 13 alone left it
+defaulting to macOS 10.13 on the macos-15 build host, below `NetworkStub`'s
+macOS 13 requirement, so `swift build` failed even though `swift package
+resolve` had already proven the dependency itself resolved correctly.
+
+Reworked the README into a step-by-step Getting Started guide (add the
+package, pick modules, declare the dependency, use it) and collapsed each
+module's reference section into a `<details>` block so the table of
+contents stays scannable across all 59 products.
+
+Gave `reusable-live-contract.yml`'s `xcodebuild test` step the same
+known-flake retry `ci.yml` and `reusable-test.yml` already had: up to 3
+attempts, retrying only when the failure matches the simulator-discovery
+flake ("Unable to find a device matching the provided destination
+specifier") this kit's CI has hit on freshly-provisioned runners. A genuine
+contract failure (the live API actually broke) still fails on attempt 1.
+
 ## [1.8.1] - 2026-09-02
 
 Raised `.github/coverage-baseline.txt`'s regression floor from 90.5% to
