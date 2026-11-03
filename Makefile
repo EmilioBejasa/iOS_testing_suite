@@ -17,7 +17,9 @@ test-kit-ios:
 	  -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testFetchAndPurchaseTipProduct \
 	  -skip-testing:PurchaseSupportTests/PurchaseSupportTests/testIsEntitledReflectsRealPurchaseUnderTestSession \
 	  -skip-testing:AsyncSequenceCollectingTests/AsyncSequenceCollectingTests/testCollectsRealTransactionUpdateAfterExternalPurchase \
-	  -skip-testing:ClipboardProvidingTests/ClipboardProvidingTests/testSystemProviderRoundTripsAgainstRealPasteboard
+	  -skip-testing:ClipboardProvidingTests/ClipboardProvidingTests/testSystemProviderRoundTripsAgainstRealPasteboard \
+	  -skip-testing:IdleTimerControllingTests/IdleTimerControllingTests/testSystemControlRoundTripsAgainstRealApplication \
+	  CODE_SIGNING_ALLOWED=NO
 
 test-app: setup
 	xcodebuild test \
