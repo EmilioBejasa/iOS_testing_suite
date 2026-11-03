@@ -24,6 +24,12 @@ package, pick modules, declare the dependency, use it) and collapsed each
 module's reference section into a `<details>` block so the table of
 contents stays scannable across all 59 products.
 
+Documented a measured `MockSleeper` vs. `SystemSleeper` speedup in the
+README's `AsyncSleeping` section: `QuoteStore`'s retry-delay shape
+(`[.seconds(1), .seconds(2)]`) took 0.00003s mocked vs. 3.12s real on a
+macOS CI runner, with a link to the run. The one-off benchmark test that
+produced the numbers was removed once they were recorded.
+
 Gave `reusable-live-contract.yml`'s `xcodebuild test` step the same
 known-flake retry `ci.yml` and `reusable-test.yml` already had: up to 3
 attempts, retrying only when the failure matches the simulator-discovery
